@@ -2830,7 +2830,7 @@ Implement a system to track the deployment status of connected repositories. Thi
 
 ---
 
-### Task 39: End-to-End System Integration Testing
+### [x] Task 39: End-to-End System Integration Testing
 
 **Description:**
 Execute a comprehensive, platform-wide integration testing phase. This task does not involve building new features, but rather writing extensive automated tests using Playwright to ensure all previously built systems—Auth, Billing, GitHub Webhooks, AI Generation, and UI—communicate flawlessly. You will create dedicated test scripts that simulate the entire critical path of the application, from user sign-up to PR analysis and billing limits.
@@ -2869,7 +2869,7 @@ Execute a comprehensive, platform-wide integration testing phase. This task does
 
 ---
 
-### Task 40: Production Deployment & CI/CD Pipeline Configuration
+### [x] Task 40: Production Deployment & CI/CD Pipeline Configuration
 
 **Description:**
 Prepare and execute the final deployment strategy for the ShipFlow AI platform. This involves configuring GitHub Actions for continuous integration (linting, type-checking, testing) and continuous deployment. The Next.js web application will be deployed to Vercel, the PostgreSQL database will be provisioned on a managed service (e.g., Supabase, Neon), and environment variables must be securely synchronized. This task solidifies the project infrastructure for public release.
