@@ -1,5 +1,5 @@
 {
-  "id": "4aa314c6-9876-4bbf-985a-36ea5509cdcb",
+  "id": "f1243018-e062-40a4-b527-251f3f61dee8",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -304,8 +304,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.workspace_member": {
-      "name": "workspace_member",
+    "public.members": {
+      "name": "members",
       "schema": "",
       "columns": {
         "id": {
@@ -314,8 +314,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "workspace_id": {
-          "name": "workspace_id",
+        "org_id": {
+          "name": "org_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -351,12 +351,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "workspace_member_workspace_id_workspace_id_fk": {
-          "name": "workspace_member_workspace_id_workspace_id_fk",
-          "tableFrom": "workspace_member",
-          "tableTo": "workspace",
+        "members_org_id_organizations_id_fk": {
+          "name": "members_org_id_organizations_id_fk",
+          "tableFrom": "members",
+          "tableTo": "organizations",
           "columnsFrom": [
-            "workspace_id"
+            "org_id"
           ],
           "columnsTo": [
             "id"
@@ -364,9 +364,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "workspace_member_user_id_user_id_fk": {
-          "name": "workspace_member_user_id_user_id_fk",
-          "tableFrom": "workspace_member",
+        "members_user_id_user_id_fk": {
+          "name": "members_user_id_user_id_fk",
+          "tableFrom": "members",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
@@ -384,8 +384,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.workspace": {
-      "name": "workspace",
+    "public.organizations": {
+      "name": "organizations",
       "schema": "",
       "columns": {
         "id": {
@@ -445,8 +445,8 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "workspace_slug_unique": {
-          "name": "workspace_slug_unique",
+        "organizations_slug_unique": {
+          "name": "organizations_slug_unique",
           "nullsNotDistinct": false,
           "columns": [
             "slug"
@@ -600,10 +600,10 @@
         }
       },
       "foreignKeys": {
-        "projects_org_id_workspace_id_fk": {
-          "name": "projects_org_id_workspace_id_fk",
+        "projects_org_id_organizations_id_fk": {
+          "name": "projects_org_id_organizations_id_fk",
           "tableFrom": "projects",
-          "tableTo": "workspace",
+          "tableTo": "organizations",
           "columnsFrom": [
             "org_id"
           ],
@@ -672,10 +672,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "repositories_org_id_workspace_id_fk": {
-          "name": "repositories_org_id_workspace_id_fk",
+        "repositories_org_id_organizations_id_fk": {
+          "name": "repositories_org_id_organizations_id_fk",
           "tableFrom": "repositories",
-          "tableTo": "workspace",
+          "tableTo": "organizations",
           "columnsFrom": [
             "org_id"
           ],
@@ -888,10 +888,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "feature_requests_org_id_workspace_id_fk": {
-          "name": "feature_requests_org_id_workspace_id_fk",
+        "feature_requests_org_id_organizations_id_fk": {
+          "name": "feature_requests_org_id_organizations_id_fk",
           "tableFrom": "feature_requests",
-          "tableTo": "workspace",
+          "tableTo": "organizations",
           "columnsFrom": [
             "org_id"
           ],
@@ -914,10 +914,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "feature_requests_author_id_workspace_member_id_fk": {
-          "name": "feature_requests_author_id_workspace_member_id_fk",
+        "feature_requests_author_id_members_id_fk": {
+          "name": "feature_requests_author_id_members_id_fk",
           "tableFrom": "feature_requests",
-          "tableTo": "workspace_member",
+          "tableTo": "members",
           "columnsFrom": [
             "author_id"
           ],
@@ -1019,10 +1019,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "prd_versions_author_id_workspace_member_id_fk": {
-          "name": "prd_versions_author_id_workspace_member_id_fk",
+        "prd_versions_author_id_members_id_fk": {
+          "name": "prd_versions_author_id_members_id_fk",
           "tableFrom": "prd_versions",
-          "tableTo": "workspace_member",
+          "tableTo": "members",
           "columnsFrom": [
             "author_id"
           ],
@@ -1084,10 +1084,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "prds_org_id_workspace_id_fk": {
-          "name": "prds_org_id_workspace_id_fk",
+        "prds_org_id_organizations_id_fk": {
+          "name": "prds_org_id_organizations_id_fk",
           "tableFrom": "prds",
-          "tableTo": "workspace",
+          "tableTo": "organizations",
           "columnsFrom": [
             "org_id"
           ],
@@ -1175,10 +1175,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "epics_org_id_workspace_id_fk": {
-          "name": "epics_org_id_workspace_id_fk",
+        "epics_org_id_organizations_id_fk": {
+          "name": "epics_org_id_organizations_id_fk",
           "tableFrom": "epics",
-          "tableTo": "workspace",
+          "tableTo": "organizations",
           "columnsFrom": [
             "org_id"
           ],
@@ -1432,10 +1432,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "tasks_org_id_workspace_id_fk": {
-          "name": "tasks_org_id_workspace_id_fk",
+        "tasks_org_id_organizations_id_fk": {
+          "name": "tasks_org_id_organizations_id_fk",
           "tableFrom": "tasks",
-          "tableTo": "workspace",
+          "tableTo": "organizations",
           "columnsFrom": [
             "org_id"
           ],
@@ -1458,10 +1458,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "tasks_assignee_id_workspace_member_id_fk": {
-          "name": "tasks_assignee_id_workspace_member_id_fk",
+        "tasks_assignee_id_members_id_fk": {
+          "name": "tasks_assignee_id_members_id_fk",
           "tableFrom": "tasks",
-          "tableTo": "workspace_member",
+          "tableTo": "members",
           "columnsFrom": [
             "assignee_id"
           ],
@@ -1529,10 +1529,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "approvals_approver_id_workspace_member_id_fk": {
-          "name": "approvals_approver_id_workspace_member_id_fk",
+        "approvals_approver_id_members_id_fk": {
+          "name": "approvals_approver_id_members_id_fk",
           "tableFrom": "approvals",
-          "tableTo": "workspace_member",
+          "tableTo": "members",
           "columnsFrom": [
             "approver_id"
           ],
@@ -1614,10 +1614,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "pull_request_reviews_reviewer_id_workspace_member_id_fk": {
-          "name": "pull_request_reviews_reviewer_id_workspace_member_id_fk",
+        "pull_request_reviews_reviewer_id_members_id_fk": {
+          "name": "pull_request_reviews_reviewer_id_members_id_fk",
           "tableFrom": "pull_request_reviews",
-          "tableTo": "workspace_member",
+          "tableTo": "members",
           "columnsFrom": [
             "reviewer_id"
           ],
@@ -1655,6 +1655,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "feature_request_id": {
+          "name": "feature_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "task_id": {
           "name": "task_id",
@@ -1738,10 +1744,10 @@
         }
       },
       "foreignKeys": {
-        "pull_requests_org_id_workspace_id_fk": {
-          "name": "pull_requests_org_id_workspace_id_fk",
+        "pull_requests_org_id_organizations_id_fk": {
+          "name": "pull_requests_org_id_organizations_id_fk",
           "tableFrom": "pull_requests",
-          "tableTo": "workspace",
+          "tableTo": "organizations",
           "columnsFrom": [
             "org_id"
           ],
@@ -1762,6 +1768,19 @@
             "id"
           ],
           "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "pull_requests_feature_request_id_feature_requests_id_fk": {
+          "name": "pull_requests_feature_request_id_feature_requests_id_fk",
+          "tableFrom": "pull_requests",
+          "tableTo": "feature_requests",
+          "columnsFrom": [
+            "feature_request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "pull_requests_task_id_tasks_id_fk": {
@@ -1917,10 +1936,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "audit_logs_org_id_workspace_id_fk": {
-          "name": "audit_logs_org_id_workspace_id_fk",
+        "audit_logs_org_id_organizations_id_fk": {
+          "name": "audit_logs_org_id_organizations_id_fk",
           "tableFrom": "audit_logs",
-          "tableTo": "workspace",
+          "tableTo": "organizations",
           "columnsFrom": [
             "org_id"
           ],
@@ -1930,10 +1949,10 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "audit_logs_actor_id_workspace_member_id_fk": {
-          "name": "audit_logs_actor_id_workspace_member_id_fk",
+        "audit_logs_actor_id_members_id_fk": {
+          "name": "audit_logs_actor_id_members_id_fk",
           "tableFrom": "audit_logs",
-          "tableTo": "workspace_member",
+          "tableTo": "members",
           "columnsFrom": [
             "actor_id"
           ],
@@ -1993,10 +2012,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "releases_org_id_workspace_id_fk": {
-          "name": "releases_org_id_workspace_id_fk",
+        "releases_org_id_organizations_id_fk": {
+          "name": "releases_org_id_organizations_id_fk",
           "tableFrom": "releases",
-          "tableTo": "workspace",
+          "tableTo": "organizations",
           "columnsFrom": [
             "org_id"
           ],
@@ -2025,6 +2044,364 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.invoice": {
+      "name": "invoice",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "subscription_id": {
+          "name": "subscription_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "razorpay_invoice_id": {
+          "name": "razorpay_invoice_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "amount": {
+          "name": "amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "currency": {
+          "name": "currency",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'USD'"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "invoice_subscription_id_subscription_id_fk": {
+          "name": "invoice_subscription_id_subscription_id_fk",
+          "tableFrom": "invoice",
+          "tableTo": "subscription",
+          "columnsFrom": [
+            "subscription_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "invoice_razorpay_invoice_id_unique": {
+          "name": "invoice_razorpay_invoice_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "razorpay_invoice_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.subscription": {
+      "name": "subscription",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "org_id": {
+          "name": "org_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "razorpay_subscription_id": {
+          "name": "razorpay_subscription_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "subscription_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "plan_id": {
+          "name": "plan_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "current_period_end": {
+          "name": "current_period_end",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "subscription_org_id_organizations_id_fk": {
+          "name": "subscription_org_id_organizations_id_fk",
+          "tableFrom": "subscription",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "org_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "subscription_razorpay_subscription_id_unique": {
+          "name": "subscription_razorpay_subscription_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "razorpay_subscription_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.usage_record": {
+      "name": "usage_record",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "org_id": {
+          "name": "org_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_usage": {
+          "name": "token_usage",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "pr_analyses": {
+          "name": "pr_analyses",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "month_start": {
+          "name": "month_start",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "usage_record_org_id_organizations_id_fk": {
+          "name": "usage_record_org_id_organizations_id_fk",
+          "tableFrom": "usage_record",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "org_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "workspace_month_unq": {
+          "name": "workspace_month_unq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "org_id",
+            "month_start"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.deployments": {
+      "name": "deployments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "repository_id": {
+          "name": "repository_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "environment": {
+          "name": "environment",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "commit_sha": {
+          "name": "commit_sha",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "deployment_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PENDING'"
+        },
+        "deployment_url": {
+          "name": "deployment_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "deployment_repo_idx": {
+          "name": "deployment_repo_idx",
+          "columns": [
+            {
+              "expression": "repository_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "deployment_env_idx": {
+          "name": "deployment_env_idx",
+          "columns": [
+            {
+              "expression": "environment",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "deployments_repository_id_repositories_id_fk": {
+          "name": "deployments_repository_id_repositories_id_fk",
+          "tableFrom": "deployments",
+          "tableTo": "repositories",
+          "columnsFrom": [
+            "repository_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -2037,6 +2414,16 @@
         "ENTERPRISE"
       ]
     },
+    "public.deployment_status": {
+      "name": "deployment_status",
+      "schema": "public",
+      "values": [
+        "PENDING",
+        "SUCCESS",
+        "FAILED",
+        "ERROR"
+      ]
+    },
     "public.fr_status": {
       "name": "fr_status",
       "schema": "public",
@@ -2044,9 +2431,15 @@
         "SUBMITTED",
         "CLARIFYING",
         "CLARIFIED",
-        "REJECTED",
         "PRD_GENERATED",
-        "SHIPPED"
+        "TASKS_GENERATED",
+        "PLAN_APPROVED",
+        "IN_DEVELOPMENT",
+        "IN_REVIEW",
+        "FIX_NEEDED",
+        "AWAITING_HUMAN_APPROVAL",
+        "SHIPPED",
+        "REJECTED"
       ]
     },
     "public.finding_type": {
@@ -2056,7 +2449,10 @@
         "SECURITY",
         "PERFORMANCE",
         "ARCHITECTURE",
-        "PRD_DEVIATION"
+        "PRD_DEVIATION",
+        "CODE_QUALITY",
+        "EDGE_CASE",
+        "TEST_COVERAGE"
       ]
     },
     "public.member_role": {
@@ -2067,6 +2463,7 @@
         "ADMIN",
         "PM",
         "ENGINEER",
+        "REVIEWER",
         "VIEWER"
       ]
     },
@@ -2098,6 +2495,15 @@
         "APPROVED",
         "CHANGES_REQUESTED",
         "COMMENTED"
+      ]
+    },
+    "public.subscription_status": {
+      "name": "subscription_status",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "PAST_DUE",
+        "CANCELED"
       ]
     },
     "public.task_dependency_type": {

@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm";
-import { workspaces, workspaceMembers } from "./workspaces";
+import { organizations, members } from "./organizations";
 import { projects, repositories } from "./projects";
 import { featureRequests } from "./features";
 import { auditLogs } from "./operations";
@@ -8,12 +8,12 @@ import { pullRequests, pullRequestReviews, reviewFindings } from "./github";
 import { subscriptions, invoices, usageRecords } from "./billing";
 import { deployments } from "./deployments";
 
-export const workspaceRelations = relations(workspaces, ({ many, one }) => ({
-  members: many(workspaceMembers),
+export const organizationRelations = relations(organizations, ({ many, one }) => ({
+  members: many(members),
   projects: many(projects),
   featureRequests: many(featureRequests),
   auditLogs: many(auditLogs),
-  subscription: one(subscriptions, { fields: [workspaces.id], references: [subscriptions.workspaceId] }),
+  subscription: one(subscriptions, { fields: [organizations.id], references: [subscriptions.orgId] }),
   usageRecords: many(usageRecords),
 }));
 
@@ -23,9 +23,9 @@ export const featureRequestRelations = relations(featureRequests, ({ many }) => 
 
 export const taskRelations = relations(tasks, ({ one, many }) => ({
   epic: one(epics, { fields: [tasks.epicId], references: [epics.id] }),
-  assignee: one(workspaceMembers, {
+  assignee: one(members, {
     fields: [tasks.assigneeId],
-    references: [workspaceMembers.id],
+    references: [members.id],
   }),
   subtasks: many(subtasks),
   pullRequests: many(pullRequests),
@@ -64,7 +64,7 @@ export const reviewRelations = relations(pullRequestReviews, ({ one, many }) => 
 }));
 
 export const subscriptionRelations = relations(subscriptions, ({ one, many }) => ({
-  workspace: one(workspaces, { fields: [subscriptions.workspaceId], references: [workspaces.id] }),
+  workspace: one(organizations, { fields: [subscriptions.orgId], references: [organizations.id] }),
   invoices: many(invoices),
 }));
 
@@ -73,7 +73,7 @@ export const invoiceRelations = relations(invoices, ({ one }) => ({
 }));
 
 export const usageRecordRelations = relations(usageRecords, ({ one }) => ({
-  workspace: one(workspaces, { fields: [usageRecords.workspaceId], references: [workspaces.id] }),
+  workspace: one(organizations, { fields: [usageRecords.orgId], references: [organizations.id] }),
 }));
 
 export const repositoryRelations = relations(repositories, ({ many }) => ({

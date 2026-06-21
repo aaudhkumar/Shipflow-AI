@@ -1,7 +1,7 @@
 import { getRazorpayClient } from "../client";
 import { BILLING_PLANS, PlanId } from "../config/plans";
 
-export async function createCheckoutSession(workspaceId: string, planId: PlanId) {
+export async function createCheckoutSession(orgId: string, planId: PlanId) {
   const plan = BILLING_PLANS[planId];
   if (!plan.razorpayPlanId) {
     throw new Error("Cannot create checkout session for a free plan.");
@@ -14,7 +14,7 @@ export async function createCheckoutSession(workspaceId: string, planId: PlanId)
     customer_notify: 1,
     total_count: 12,
     notes: {
-      workspaceId,
+      orgId,
       planId,
     },
   });

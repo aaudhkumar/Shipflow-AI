@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, boolean, uniqueIndex, index } from "drizzle-orm/pg-core";
-import { workspaces } from "./workspaces";
+import { organizations } from "./organizations";
 import { projectStatusEnum } from "./enums";
 
 export const projects = pgTable(
@@ -8,7 +8,7 @@ export const projects = pgTable(
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     orgId: text("org_id")
       .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     description: text("description"),
     status: projectStatusEnum("status").default("ACTIVE").notNull(),
@@ -26,7 +26,7 @@ export const repositories = pgTable("repositories", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   orgId: text("org_id")
     .notNull()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
+    .references(() => organizations.id, { onDelete: "cascade" }),
   githubRepoId: text("github_repo_id").notNull().unique(),
   fullName: text("full_name").notNull(), // e.g., "acme/backend"
   defaultBranch: text("default_branch").default("main").notNull(),

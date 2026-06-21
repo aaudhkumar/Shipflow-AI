@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, integer, boolean, uniqueIndex } from "drizzle-orm/pg-core";
-import { workspaces, workspaceMembers } from "./workspaces";
+import { organizations, members } from "./organizations";
 import { projects } from "./projects";
 import { prds } from "./prds";
 import { taskStatusEnum, taskDependencyTypeEnum } from "./enums";
@@ -8,7 +8,7 @@ export const epics = pgTable("epics", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   orgId: text("org_id")
     .notNull()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
+    .references(() => organizations.id, { onDelete: "cascade" }),
   projectId: text("project_id")
     .notNull()
     .references(() => projects.id),
@@ -25,11 +25,11 @@ export const tasks = pgTable("tasks", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   orgId: text("org_id")
     .notNull()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
+    .references(() => organizations.id, { onDelete: "cascade" }),
   epicId: text("epic_id")
     .notNull()
     .references(() => epics.id, { onDelete: "cascade" }),
-  assigneeId: text("assignee_id").references(() => workspaceMembers.id),
+  assigneeId: text("assignee_id").references(() => members.id),
   title: text("title").notNull(),
   technicalImplementationDetails: text("technical_implementation_details").notNull(),
   status: taskStatusEnum("status").default("BACKLOG").notNull(),

@@ -1,6 +1,6 @@
 export * from "./users";
 export * from "./enums";
-export * from "./workspaces";
+export * from "./organizations";
 export * from "./projects";
 export * from "./features";
 export * from "./prds";

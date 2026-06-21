@@ -2,13 +2,13 @@ import { router } from "./trpc";
 
 import { healthRouter } from "./routes/health/route";
 import { authRouter } from "./routes/auth/route";
-import { workspaceRouter } from "./routes/workspace/route";
+import { organizationRouter } from "./routes/organization/route";
 import { featureRouter } from "./routes/feature/route";
 
 export const serverRouter = router({
   health: healthRouter,
   auth: authRouter,
-  workspace: workspaceRouter,
+  organization: organizationRouter,
   feature: featureRouter,
 });
 

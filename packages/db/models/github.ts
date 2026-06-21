@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, integer, boolean, uniqueIndex } from "drizzle-orm/pg-core";
-import { workspaces, workspaceMembers } from "./workspaces";
+import { organizations, members } from "./organizations";
 import { repositories } from "./projects";
 import { featureRequests } from "./features";
 import { tasks } from "./tasks";
@@ -11,7 +11,7 @@ export const pullRequests = pgTable(
     id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     orgId: text("org_id")
       .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
+      .references(() => organizations.id, { onDelete: "cascade" }),
     repositoryId: text("repository_id")
       .notNull()
       .references(() => repositories.id),
@@ -44,7 +44,7 @@ export const pullRequestReviews = pgTable("pull_request_reviews", {
   pullRequestId: text("pull_request_id")
     .notNull()
     .references(() => pullRequests.id, { onDelete: "cascade" }),
-  reviewerId: text("reviewer_id").references(() => workspaceMembers.id), // Null if AI
+  reviewerId: text("reviewer_id").references(() => members.id), // Null if AI
   isAiReview: boolean("is_ai_review").default(false).notNull(),
   state: reviewStateEnum("state").notNull(),
   commitSha: text("commit_sha").notNull(),
@@ -71,7 +71,7 @@ export const approvals = pgTable("approvals", {
     .references(() => pullRequests.id, { onDelete: "cascade" }),
   approverId: text("approver_id")
     .notNull()
-    .references(() => workspaceMembers.id),
+    .references(() => members.id),
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   signature: text("signature").notNull(),
 });

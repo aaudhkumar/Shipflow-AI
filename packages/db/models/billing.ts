@@ -1,10 +1,10 @@
 import { pgTable, text, timestamp, integer, unique } from "drizzle-orm/pg-core";
-import { workspaces } from "./workspaces";
+import { organizations } from "./organizations";
 import { subscriptionStatusEnum } from "./enums";
 
 export const subscriptions = pgTable("subscription", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   razorpaySubscriptionId: text("razorpay_subscription_id").unique(),
   status: subscriptionStatusEnum("status").notNull().default("ACTIVE"),
   planId: text("plan_id").notNull(),
@@ -25,12 +25,12 @@ export const invoices = pgTable("invoice", {
 
 export const usageRecords = pgTable("usage_record", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   tokenUsage: integer("token_usage").notNull().default(0),
   prAnalyses: integer("pr_analyses").notNull().default(0),
   monthStart: timestamp("month_start").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 }, (t) => ({
-  unq: unique("workspace_month_unq").on(t.workspaceId, t.monthStart)
+  unq: unique("workspace_month_unq").on(t.orgId, t.monthStart)
 }));

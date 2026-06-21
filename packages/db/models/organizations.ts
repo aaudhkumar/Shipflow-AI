@@ -2,7 +2,7 @@ import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { billingPlanEnum, memberRoleEnum } from "./enums";
 
-export const workspaces = pgTable("workspace", {
+export const organizations = pgTable("organizations", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").unique().notNull(),
@@ -13,9 +13,9 @@ export const workspaces = pgTable("workspace", {
   deletedAt: timestamp("deleted_at", { withTimezone: true }),
 });
 
-export const workspaceMembers = pgTable("workspace_member", {
+export const members = pgTable("members", {
   id: text("id").primaryKey(),
-  workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: "cascade" }),
+  orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   role: memberRoleEnum("role").default("VIEWER").notNull(),
   status: text("status").default("ACTIVE").notNull(),

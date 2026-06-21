@@ -1,12 +1,12 @@
 import { pgTable, text, timestamp, integer, jsonb, uniqueIndex } from "drizzle-orm/pg-core";
-import { workspaces, workspaceMembers } from "./workspaces";
+import { organizations, members } from "./organizations";
 import { featureRequests } from "./features";
 
 export const prds = pgTable("prds", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   orgId: text("org_id")
     .notNull()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
+    .references(() => organizations.id, { onDelete: "cascade" }),
   featureRequestId: text("feature_request_id")
     .notNull()
     .references(() => featureRequests.id),
@@ -24,7 +24,7 @@ export const prdVersions = pgTable(
       .references(() => prds.id, { onDelete: "cascade" }),
     authorId: text("author_id")
       .notNull()
-      .references(() => workspaceMembers.id),
+      .references(() => members.id),
     versionNumber: integer("version_number").notNull(),
     content: jsonb("content").notNull(),
     changeSummary: text("change_summary"),

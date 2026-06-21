@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, integer, boolean, jsonb } from "drizzle-orm/pg-core";
-import { workspaces, workspaceMembers } from "./workspaces";
+import { organizations, members } from "./organizations";
 import { projects } from "./projects";
 import { featureRequestStatusEnum } from "./enums";
 
@@ -7,13 +7,13 @@ export const featureRequests = pgTable("feature_requests", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   orgId: text("org_id")
     .notNull()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
+    .references(() => organizations.id, { onDelete: "cascade" }),
   projectId: text("project_id")
     .notNull()
     .references(() => projects.id, { onDelete: "cascade" }),
   authorId: text("author_id")
     .notNull()
-    .references(() => workspaceMembers.id),
+    .references(() => members.id),
   title: text("title").notNull(),
   rawDescription: text("raw_description").notNull(),
   status: featureRequestStatusEnum("status").default("SUBMITTED").notNull(),

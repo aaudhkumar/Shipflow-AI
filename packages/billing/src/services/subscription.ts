@@ -3,9 +3,9 @@ import { subscriptions } from "@shipflow/db/schema";
 import { eq } from "drizzle-orm";
 import { getRazorpayClient } from "../client";
 
-export async function cancelSubscription(workspaceId: string) {
+export async function cancelSubscription(orgId: string) {
   const activeSub = await db.query.subscriptions.findFirst({
-    where: eq(subscriptions.workspaceId, workspaceId),
+    where: eq(subscriptions.orgId, orgId),
   });
 
   if (!activeSub || !activeSub.razorpaySubscriptionId) {
