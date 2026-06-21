@@ -40,3 +40,4 @@ export const findingTypeEnum = pgEnum("finding_type", [
   "ARCHITECTURE",
   "PRD_DEVIATION",
 ]);
+export const deploymentStatusEnum = pgEnum("deployment_status", ["PENDING", "SUCCESS", "FAILED", "ERROR"]);

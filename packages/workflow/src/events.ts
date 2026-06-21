@@ -19,6 +19,13 @@ export const BillingPaymentSuccessSchema = z.object({
   amount: z.number(),
 });
 
+export const DeploymentFailedSchema = z.object({
+  deploymentId: z.string(),
+  repositoryId: z.string(),
+  commitSha: z.string(),
+  environment: z.string(),
+});
+
 export const ShipflowEvents = {
   "github.pr.opened": {
     data: GithubPrOpenedEventSchema,
@@ -28,5 +35,8 @@ export const ShipflowEvents = {
   },
   "billing.payment.success": {
     data: BillingPaymentSuccessSchema,
+  },
+  "deployment.failed": {
+    data: DeploymentFailedSchema,
   },
 };

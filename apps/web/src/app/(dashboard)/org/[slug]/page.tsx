@@ -1,5 +1,6 @@
 import { StatCards } from "@/components/dashboard/stat-cards"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
+import { DeploymentsList } from "@/components/dashboard/deployments-list"
 import { Button } from "@/components/ui/button"
 import { Sparkles, ArrowRight } from "lucide-react"
 
@@ -27,12 +28,13 @@ export default function DashboardPage({ params }: { params: { slug: string } }) 
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <div className="h-[400px] rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm p-6 shadow-sm">
+          <div className="h-[250px] rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm p-6 shadow-sm">
             <h3 className="font-semibold mb-4 text-lg">Analysis Volume (Last 7 Days)</h3>
             <div className="h-full w-full flex items-center justify-center text-muted-foreground/50 text-sm">
               [Recharts AreaChart Placeholder]
             </div>
           </div>
+          <DeploymentsList />
         </div>
         <div className="lg:col-span-1">
           <ActivityFeed />

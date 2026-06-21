@@ -1192,7 +1192,7 @@ This section provides a rigorous, in-depth breakdown of the foundational and cor
 
 ---
 
-## Task 1: Monorepo Foundation and Tooling Setup
+## [x] Task 1: Monorepo Foundation and Tooling Setup
 
 **Description**:
 Establish the foundational monorepo structure using Turborepo or an equivalent workspace manager. This includes setting up the base directory structure, defining package namespaces (`@shipflow/`), and configuring global linting (ESLint), formatting (Prettier), and TypeScript compiler options. The goal is to create a robust, scalable foundation that ensures consistency across all apps and packages in the project. This involves creating shared configuration packages that all other modules will extend.
@@ -1240,7 +1240,7 @@ Establish the foundational monorepo structure using Turborepo or an equivalent w
 
 ---
 
-## Task 2: Core Database Infrastructure and Schema Definition
+## [x] Task 2: Core Database Infrastructure and Schema Definition
 
 **Description**:
 Initialize the `packages/db` package utilizing Drizzle ORM and PostgreSQL. This task focuses on defining the foundational schema required for authentication, user management, and multitenancy (workspaces/organizations). It also includes setting up Drizzle Kit for database migrations and creating a centralized database client instance that can be imported by repository layers in other packages.
@@ -1285,7 +1285,7 @@ Initialize the `packages/db` package utilizing Drizzle ORM and PostgreSQL. This 
 
 ---
 
-## Task 3: Centralized Authentication Module Initialization
+## [x] Task 3: Centralized Authentication Module Initialization
 
 **Description**:
 Set up the authentication foundation using BetterAuth within the `packages/auth` package. This module will integrate tightly with `packages/db` to store users and sessions. The task involves configuring the BetterAuth server instance, defining authentication providers (e.g., GitHub, Google, and Email/Password), and creating middleware utilities to protect routes and tRPC procedures.
@@ -1328,7 +1328,7 @@ Set up the authentication foundation using BetterAuth within the `packages/auth`
 
 ---
 
-## Task 4: Next.js Web Application Scaffold
+## [x] Task 4: Next.js Web Application Scaffold
 
 **Description**:
 Initialize the primary user interface application in `apps/web` utilizing Next.js (App Router). This involves setting up the core layout, integrating the shared Tailwind CSS configuration, and establishing the Shadcn UI foundation. The application must consume the configuration packages from Task 1. This task sets the stage for building the frontend components.
@@ -1374,7 +1374,7 @@ Initialize the primary user interface application in `apps/web` utilizing Next.j
 
 ---
 
-## Task 5: tRPC Core Configuration and API Route
+## [x] Task 5: tRPC Core Configuration and API Route
 
 **Description**:
 Initialize the `packages/trpc` module to handle type-safe API communication between the Next.js frontend and backend services. This involves setting up the core tRPC instance, defining context creators that inject the BetterAuth session and Drizzle database client, and establishing public and protected procedure middlewares. Finally, set up the Next.js API route handler in `apps/web`.
@@ -1422,7 +1422,7 @@ Initialize the `packages/trpc` module to handle type-safe API communication betw
 
 ---
 
-## Task 6: Authentication User Interface and Workflows
+## [x] Task 6: Authentication User Interface and Workflows
 
 **Description**:
 Implement the user interface and client-side logic for authentication in `apps/web`. This involves building the login, registration, password reset, and magic link pages utilizing Shadcn UI forms, React Hook Form, and Zod for validation. The interface must communicate securely with the BetterAuth endpoints established in Task 3.
@@ -1466,7 +1466,7 @@ Implement the user interface and client-side logic for authentication in `apps/w
 
 ---
 
-## Task 7: Workspace Management Service Layer
+## [x] Task 7: Workspace Management Service Layer
 
 **Description**:
 Implement the backend service layer and tRPC routers for Workspace management. A Workspace represents an organization or tenant within ShipFlow AI. This task involves creating services to create, read, update, and delete workspaces, and managing user roles/memberships within those workspaces. Follow the layering rules: tRPC Router -> Service -> Repository.
@@ -1510,7 +1510,7 @@ Implement the backend service layer and tRPC routers for Workspace management. A
 
 ---
 
-## Task 8: Dashboard Layout and Navigation
+## [x] Task 8: Dashboard Layout and Navigation
 
 **Description**:
 Develop the core authenticated application shell in `apps/web`. This involves constructing a responsive sidebar, a top navigation bar, and user profile dropdowns. The layout must dynamically fetch the user's workspaces and provide a context switcher. It serves as the container for all subsequent application features.
@@ -1554,7 +1554,7 @@ Develop the core authenticated application shell in `apps/web`. This involves co
 
 ---
 
-## Task 9: Billing Infrastructure and Stripe/Razorpay Setup
+## [x] Task 9: Billing Infrastructure and Stripe/Razorpay Setup
 
 **Description**:
 Initialize the `packages/billing` package to handle subscription management. Integrate Razorpay or Stripe to facilitate payment processing. This task involves configuring the SDK, defining subscription tiers (e.g., Free, Pro, Enterprise), and building the webhook handler to listen to subscription status changes from the payment gateway.
@@ -1598,7 +1598,7 @@ Initialize the `packages/billing` package to handle subscription management. Int
 
 ---
 
-## Task 10: Billing UI and Subscription Management
+## [x] Task 10: Billing UI and Subscription Management
 
 **Description**:
 Create the user interface within the dashboard for users to view their current plan, manage billing details, and upgrade their subscription. This involves building a pricing table component, integrating the checkout session redirect, and displaying usage metrics against plan limits.
@@ -1644,7 +1644,7 @@ Create the user interface within the dashboard for users to view their current p
 
 ---
 
-## Task 11: Background Jobs Initialization with Inngest
+## [x] Task 11: Background Jobs Initialization with Inngest
 
 **Description**:
 Set up the `packages/workflow` package utilizing Inngest to handle reliable, distributed background jobs and event-driven workflows. This foundational task requires configuring the Inngest client, defining event types, and creating the Next.js API route that serves as the execution endpoint for the Inngest orchestrator.
@@ -1688,7 +1688,7 @@ Set up the `packages/workflow` package utilizing Inngest to handle reliable, dis
 
 ---
 
-## Task 12: GitHub App Integration and Authentication
+## [x] Task 12: GitHub App Integration and Authentication
 
 **Description**:
 Initialize the `packages/github` package to manage the integration with GitHub. Set up the logic for users to authenticate and install a GitHub App to their repositories. This involves handling OAuth exchanges for the GitHub App, securely storing installation tokens, and utilizing Octokit to interact with the GitHub API.
@@ -1733,7 +1733,7 @@ Initialize the `packages/github` package to manage the integration with GitHub. 
 
 ---
 
-## Task 13: Repository Synchronization Workflow
+## [x] Task 13: Repository Synchronization Workflow
 
 **Description**:
 Create a background workflow using Inngest (from Task 11) to synchronize a newly connected GitHub repository's metadata into the local database. When a user connects a repository, a job should be triggered to fetch branches, recent commits, and open pull requests, storing this data for the dashboard to display rapidly.
@@ -1778,7 +1778,7 @@ Create a background workflow using Inngest (from Task 11) to synchronize a newly
 
 ---
 
-## Task 14: Project/Repository Dashboard Interface
+## [x] Task 14: Project/Repository Dashboard Interface
 
 **Description**:
 Develop the user interface to manage connected repositories within a workspace. This includes listing synced repositories, displaying their sync status, and providing detailed views of recent activity (commits, active branches). This connects the frontend to the data populated by the synchronization workflows in Task 13.
@@ -1824,7 +1824,7 @@ Develop the user interface to manage connected repositories within a workspace. 
 
 ---
 
-## Task 15: AI Core Initialization and Provider Setup
+## [x] Task 15: AI Core Initialization and Provider Setup
 
 **Description**:
 Initialize the `packages/ai` module utilizing the Vercel AI SDK. This task establishes the foundational interface for interacting with Large Language Models (LLMs). It involves configuring providers (e.g., OpenAI, Anthropic), defining the standardized input/output interfaces, and implementing a service to manage prompt templates.
@@ -1867,7 +1867,7 @@ Initialize the `packages/ai` module utilizing the Vercel AI SDK. This task estab
 
 ---
 
-## Task 16: Automated Code Review Workflow Setup
+## [x] Task 16: Automated Code Review Workflow Setup
 
 **Description**:
 Implement the core background workflow that performs automated code reviews on GitHub Pull Requests. Utilizing the GitHub integration (Task 12), the Workflow engine (Task 11), and the AI Core (Task 15), this task strings together the logic to listen for a PR event, fetch the diff, analyze it, and post comments back to GitHub.
@@ -1910,7 +1910,7 @@ Implement the core background workflow that performs automated code reviews on G
 
 ---
 
-## Task 17: Review Configuration and Rules Engine
+## [x] Task 17: Review Configuration and Rules Engine
 
 **Description**:
 Create a configuration engine allowing users to define specific rules and focus areas for the AI Code Reviewer at the workspace or project level. This involves creating the database schema to store rules (e.g., "Enforce strict TypeScript typing," "Check for SQL injection vulnerabilities") and injecting these rules dynamically into the AI prompt during the review workflow.
@@ -1954,7 +1954,7 @@ Create a configuration engine allowing users to define specific rules and focus 
 
 ---
 
-## Task 18: Code Review Settings Interface
+## [x] Task 18: Code Review Settings Interface
 
 **Description**:
 Develop the user interface where developers manage the review configurations created in Task 17. This includes a robust forms interface to add new rules, toggle existing ones, and set global review thresholds (e.g., "Only review PRs with specific labels").
@@ -1997,7 +1997,7 @@ Develop the user interface where developers manage the review configurations cre
 
 ---
 
-## Task 19: Real-time Review Status Updates via WebSockets/SSE
+## [x] Task 19: Real-time Review Status Updates via WebSockets/SSE
 
 **Description**:
 Implement real-time updates to the dashboard so users can view the progress of a code review instantaneously without refreshing. Since Inngest handles the workflow asynchronously, Server-Sent Events (SSE) or WebSockets must be established to push status changes (e.g., "Queued", "Analyzing", "Commenting", "Completed") to the connected frontend clients.
@@ -2039,7 +2039,7 @@ Implement real-time updates to the dashboard so users can view the progress of a
 
 ---
 
-## Task 20: Audit Logging and Usage Tracking
+## [x] Task 20: Audit Logging and Usage Tracking
 
 **Description**:
 Implement an extensive audit logging system tracking critical actions within the platform (e.g., User logins, Workspace modifications, PR reviews initiated). Simultaneously, track detailed token usage generated by the AI module to facilitate billing. This data must be robustly stored and queried.
@@ -2087,7 +2087,7 @@ This document contains the extremely detailed technical tasks from 21 to 40 for 
 
 ---
 
-### Task 21: Setup Inngest Client and Core Infrastructure
+### [x] Task 21: Setup Inngest Client and Core Infrastructure
 
 **Description:**
 Initialize and configure the Inngest client within the `packages/workflow` workspace to serve as the backbone for all asynchronous background processing across the ShipFlow platform. Given the nature of our application—which relies heavily on long-running AI operations and resilient third-party webhook handling—a robust background job queue is absolutely critical. This task entails creating the Inngest client instance, setting up the API route handler in the Next.js application (`apps/web/src/app/api/inngest/route.ts`), and implementing the foundational event schemas. The event schemas must be strictly typed using Zod to ensure runtime safety when events are dispatched. Furthermore, you will need to establish a shared utility layer for dispatching events from our tRPC routers securely.
@@ -2132,7 +2132,7 @@ Initialize and configure the Inngest client within the `packages/workflow` works
 
 ---
 
-### Task 22: GitHub App Webhook Integration (PR Opened/Synchronized)
+### [x] Task 22: GitHub App Webhook Integration (PR Opened/Synchronized)
 
 **Description:**
 Implement the GitHub App webhook receiver in the Next.js application to listen for `pull_request` events, specifically the `opened` and `synchronize` actions. This is a critical ingestion point for the platform, as it triggers the entire AI code review pipeline. The implementation requires verifying the webhook signature using the GitHub App secret to ensure the payload is authentic and hasn't been tampered with. Once verified, the webhook handler should parse the payload, extract relevant repository and PR metadata, and dispatch an Inngest event (e.g., `github.pr.opened`) for asynchronous processing. This ensures the Next.js API route responds to GitHub within the required 10-second timeout window, preventing webhook delivery failures.
@@ -2177,7 +2177,7 @@ Implement the GitHub App webhook receiver in the Next.js application to listen f
 
 ---
 
-### Task 23: Core AI SDK Setup & Prompt Engineering Foundation
+### [x] Task 23: Core AI SDK Setup & Prompt Engineering Foundation
 
 **Description:**
 Establish the foundation for all AI features by integrating the Vercel AI SDK into the `packages/ai` workspace. This task involves configuring the core language model providers (e.g., OpenAI, Anthropic) based on environment configurations, ensuring secure API key management, and creating a structured prompt engineering system. Instead of hardcoding prompts throughout the codebase, you will create a centralized prompt registry that utilizes template literals and context injection. Furthermore, you must define the base system prompts that define the personas of our various AI agents (e.g., Senior Code Reviewer, Technical Product Manager). This layer must also include retry mechanisms, timeout configurations, and token usage tracking utilities.
@@ -2219,7 +2219,7 @@ Establish the foundation for all AI features by integrating the Vercel AI SDK in
 
 ---
 
-### Task 24: AI Code Review Agent Implementation
+### [x] Task 24: AI Code Review Agent Implementation
 
 **Description:**
 Develop the "Code Review Agent" within the `packages/ai` workspace. This agent is the crown jewel of the platform. It takes a unified diff of a pull request, alongside relevant file context, and generates a comprehensive, line-by-line code review. The agent must be capable of identifying security vulnerabilities, performance bottlenecks, architectural anti-patterns, and stylistic inconsistencies. You will utilize the `generateObject` function from the Vercel AI SDK alongside a strict Zod schema to ensure the AI's output is structured as an array of review comments, each containing a file path, line number, severity level, and markdown-formatted feedback. This task requires intense prompt engineering to strike the right balance between being overly pedantic and dangerously permissive.
@@ -2261,7 +2261,7 @@ Develop the "Code Review Agent" within the `packages/ai` workspace. This agent i
 
 ---
 
-### Task 25: GitHub PR Commenting Integration for Code Review
+### [x] Task 25: GitHub PR Commenting Integration for Code Review
 
 **Description:**
 Implement the GitHub integration layer responsible for posting the AI-generated code review comments back to the originating Pull Request. Within `packages/github`, use the `@octokit/rest` client, authenticated as the GitHub App installation, to create inline review comments on specific lines of code. This task is highly complex because GitHub's API requires strict adherence to commit SHAs and line numbers relative to the diff. You must translate the output of the AI Code Review Agent (Task 24) into the exact format expected by the `octokit.rest.pulls.createReview` API endpoint. The system must also be capable of updating existing reviews or dismissing outdated AI comments when new commits are pushed.
@@ -2301,7 +2301,7 @@ Implement the GitHub integration layer responsible for posting the AI-generated 
 
 ---
 
-### Task 26: Asynchronous PR Analysis Workflow via Inngest
+### [x] Task 26: Asynchronous PR Analysis Workflow via Inngest
 
 **Description:**
 Tie together the GitHub webhook reception, the AI code review generation, and the GitHub commenting system into a unified, resilient asynchronous workflow using Inngest. Inside `packages/workflow`, create the `analyzePullRequest` workflow function. This function will be triggered by the `github.pr.opened` or `github.pr.synchronized` events. The workflow must define explicit "steps" using Inngest's `step.run` mechanism to ensure state is preserved and retries are handled cleanly. The workflow will: 1) Fetch the raw diff from GitHub, 2) Pass the diff to the AI Code Review Agent, 3) Track token usage and update the database, 4) Post the review to GitHub. This orchestrates the core value proposition of the SaaS.
@@ -2339,7 +2339,7 @@ Tie together the GitHub webhook reception, the AI code review generation, and th
 
 ---
 
-### Task 27: AI Planning Agent for Ticket Generation
+### [x] Task 27: AI Planning Agent for Ticket Generation
 
 **Description:**
 Develop a specialized AI agent designed to ingest unstructured project requirements (e.g., a brief description of a feature or a raw transcript from a meeting) and decompose them into structured, actionable engineering tasks or Jira/Linear-style tickets. This agent resides in `packages/ai` and focuses heavily on breaking down complexity. It must output a JSON array of tasks, where each task includes a title, technical description, estimated complexity (story points), and acceptance criteria. This feature will power the "Auto-Plan" button in the frontend dashboard.
@@ -2380,7 +2380,7 @@ Develop a specialized AI agent designed to ingest unstructured project requireme
 
 ---
 
-### Task 28: AI Summarization Agent for Release Notes
+### [x] Task 28: AI Summarization Agent for Release Notes
 
 **Description:**
 Create the Summarization Agent within `packages/ai` responsible for analyzing a collection of merged Pull Requests and generating polished, user-facing release notes. This agent takes an array of PR titles, descriptions, and commit messages, and synthesizes them into a coherent changelog categorized into "Features", "Bug Fixes", and "Chores". The agent must be capable of filtering out internal noise (e.g., "bump dependencies") and focusing on value delivered to the end-user. It will format the output as clean Markdown.
@@ -2417,7 +2417,7 @@ Create the Summarization Agent within `packages/ai` responsible for analyzing a 
 
 ---
 
-### Task 29: Release Note Generation Workflow Integration
+### [x] Task 29: Release Note Generation Workflow Integration
 
 **Description:**
 Implement the Inngest workflow that orchestrates the release note generation process. This workflow will be manually triggered by a user from the web dashboard or automatically triggered via a webhook when a GitHub Release is published. The workflow will utilize Octokit to fetch all merged PRs since the last release tag, pass that data to the Summarization Agent (Task 28), and then either save the draft to the database or directly update the GitHub Release body via the API.
@@ -2456,7 +2456,7 @@ Implement the Inngest workflow that orchestrates the release note generation pro
 
 ---
 
-### Task 30: Billing Core System & Razorpay Setup
+### [x] Task 30: Billing Core System & Razorpay Setup
 
 **Description:**
 Establish the foundation for the platform's monetization strategy by integrating Razorpay into the `packages/billing` workspace. This involves setting up the Razorpay Node.js SDK, securely configuring API keys, and defining the core domain models for subscriptions, plans, and invoices within the Drizzle schema. This is a critical security and compliance task. You must ensure that sensitive data is handled properly and that the architecture supports future expansion to other payment gateways if necessary.
@@ -2496,7 +2496,7 @@ Establish the foundation for the platform's monetization strategy by integrating
 
 ---
 
-### Task 31: Subscription Tier Management Service
+### [x] Task 31: Subscription Tier Management Service
 
 **Description:**
 Develop the internal services within `packages/billing` required to manage the lifecycle of a customer's subscription. This includes functions to create Razorpay checkout sessions, upgrade/downgrade plans, cancel subscriptions, and retrieve the current billing status for an organization. This service layer acts as the intermediary between our tRPC routers and the Razorpay API, abstracting away the specifics of the payment gateway from the rest of the application.
@@ -2535,7 +2535,7 @@ Develop the internal services within `packages/billing` required to manage the l
 
 ---
 
-### Task 32: Razorpay Webhook Handler Implementation
+### [x] Task 32: Razorpay Webhook Handler Implementation
 
 **Description:**
 Implement the critical webhook endpoint that receives asynchronous notifications from Razorpay regarding payment success, subscription renewals, and failed charges. This handler, located in `apps/web/src/app/api/webhooks/razorpay/route.ts`, must verify the Razorpay signature to prevent fraud, and then dispatch events to Inngest to handle the database updates. This asynchronous decoupling ensures that the webhook endpoint responds rapidly to Razorpay, preventing webhook retries and potential duplicate processing.
@@ -2577,7 +2577,7 @@ Implement the critical webhook endpoint that receives asynchronous notifications
 
 ---
 
-### Task 33: Usage Tracking and Enforcement Service
+### [x] Task 33: Usage Tracking and Enforcement Service
 
 **Description:**
 Implement a robust mechanism to track the consumption of resources (specifically AI tokens and PR analysis counts) and enforce the limits defined by the organization's subscription tier. This service, spanning `packages/billing` and `packages/db`, acts as the gatekeeper. Every time an AI agent is executed, this service must record the usage and decrement the available quota. If the quota is exceeded, the service must block further executions and prompt the user to upgrade.
@@ -2617,7 +2617,7 @@ Implement a robust mechanism to track the consumption of resources (specifically
 
 ---
 
-### Task 34: Billing Frontend UI & Checkout Flow
+### [x] Task 34: Billing Frontend UI & Checkout Flow
 
 **Description:**
 Build the user-facing billing management interfaces within the Next.js application (`apps/web`). This involves creating a comprehensive "Billing & Plans" settings page where users can view their current usage, upgrade their subscription, and manage their payment methods. This task requires integrating the Razorpay Checkout script dynamically and handling the frontend lifecycle of a payment transaction, ensuring a seamless and visually polished experience using Shadcn UI components.
@@ -2661,7 +2661,7 @@ Build the user-facing billing management interfaces within the Next.js applicati
 
 ---
 
-### Task 35: Project Settings & Team Member Management UI
+### [x] Task 35: Project Settings & Team Member Management UI
 
 **Description:**
 Develop the organizational management interface allowing administrators to manage their team members, configure GitHub repository access, and adjust project-level AI settings. This page resides within the dashboard and interacts deeply with the BetterAuth access control layer. You must implement features to invite new users via email, assign roles (Admin, Member, Viewer), and revoke access. Additionally, provide a UI to link or unlink specific GitHub repositories to the ShipFlow platform.
@@ -2704,7 +2704,7 @@ Develop the organizational management interface allowing administrators to manag
 
 ---
 
-### Task 36: Dashboard Frontend Implementation
+### [x] Task 36: Dashboard Frontend Implementation
 
 **Description:**
 Construct the primary landing dashboard for logged-in users. This page (`apps/web/src/app/(dashboard)/org/[slug]/page.tsx`) acts as the command center, providing a high-level overview of the organization's engineering velocity and AI interactions. It should aggregate data across all connected repositories. The dashboard must feature key metrics (e.g., PRs analyzed, critical bugs found, time saved), a feed of recent AI activity, and quick actions (like triggering a release note generation). This task requires complex data fetching via tRPC and sophisticated UI composition.
@@ -2747,7 +2747,7 @@ Construct the primary landing dashboard for logged-in users. This page (`apps/we
 
 ---
 
-### Task 37: Detailed PR Review Insights Page
+### [x] Task 37: Detailed PR Review Insights Page
 
 **Description:**
 Build a dedicated, deep-dive page within the web application to view the detailed results of a specific AI PR analysis. While the AI posts comments directly to GitHub, this internal page provides a holistic summary, security vulnerability highlights, and an interactive diff viewer enriched with AI insights. This page allows managers to review the AI's performance and allows developers to see an aggregated view of architectural concerns that might be lost in scattered GitHub inline comments.
@@ -2789,7 +2789,7 @@ Build a dedicated, deep-dive page within the web application to view the detaile
 
 ---
 
-### Task 38: Deployment Webhook & Status Tracking
+### [x] Task 38: Deployment Webhook & Status Tracking
 
 **Description:**
 Implement a system to track the deployment status of connected repositories. This involves creating a generic webhook receiver in Next.js that can accept deployment payloads from platforms like Vercel, AWS Amplify, or standard CI/CD pipelines. The system must parse these payloads, update the internal database with the deployment status (pending, successful, failed), and optionally trigger Inngest workflows (e.g., notifying a Slack channel or running post-deployment AI sanity checks).

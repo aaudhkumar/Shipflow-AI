@@ -6,6 +6,7 @@ import { auditLogs } from "./operations";
 import { tasks, epics, subtasks, taskDependencies } from "./tasks";
 import { pullRequests, pullRequestReviews, reviewFindings } from "./github";
 import { subscriptions, invoices, usageRecords } from "./billing";
+import { deployments } from "./deployments";
 
 export const workspaceRelations = relations(workspaces, ({ many, one }) => ({
   members: many(workspaceMembers),
@@ -68,4 +69,12 @@ export const invoiceRelations = relations(invoices, ({ one }) => ({
 
 export const usageRecordRelations = relations(usageRecords, ({ one }) => ({
   workspace: one(workspaces, { fields: [usageRecords.workspaceId], references: [workspaces.id] }),
+}));
+
+export const repositoryRelations = relations(repositories, ({ many }) => ({
+  deployments: many(deployments),
+}));
+
+export const deploymentRelations = relations(deployments, ({ one }) => ({
+  repository: one(repositories, { fields: [deployments.repositoryId], references: [repositories.id] }),
 }));
