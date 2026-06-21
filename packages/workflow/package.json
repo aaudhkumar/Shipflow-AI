@@ -11,10 +11,12 @@
   "devDependencies": {
     "@shipflow/eslint-config": "workspace:*",
     "@shipflow/typescript-config": "workspace:*",
+    "@types/node": "^26.0.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@shipflow/ai": "workspace:*",
     "inngest": "^3.19.16",
-    "zod": "^4.3.5"
+    "zod": "^3.22.4"
   }
 }

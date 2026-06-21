@@ -2,6 +2,7 @@
   "extends": ["@shipflow/typescript-config/node.json"],
   "compilerOptions": {
     "moduleResolution": "Bundler",
-    "module": "preserve"
+    "module": "preserve",
+    "types": ["node"]
   }
 }

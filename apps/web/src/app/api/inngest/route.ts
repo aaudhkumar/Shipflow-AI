@@ -1,5 +1,5 @@
 import { serve } from "inngest/next";
-import { inngest } from "@shipflow/workflow";
+import { inngest, generateReleaseNotesWorkflow } from "@shipflow/workflow";
 import { runCodeReview } from "@shipflow/ai";
 
 const reviewPullRequestWorkflow = inngest.createFunction(
@@ -39,5 +39,8 @@ const reviewPullRequestWorkflow = inngest.createFunction(
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [reviewPullRequestWorkflow],
+  functions: [
+    reviewPullRequestWorkflow,
+    generateReleaseNotesWorkflow,
+  ],
 });
