@@ -5,7 +5,7 @@ export const CodeReviewResultSchema = z.object({
     z.object({
       filePath: z.string().describe("The exact file path of the reviewed file"),
       lineNumber: z.number().nullable().describe("The specific line number for the comment, or null for general file comments"),
-      severity: z.enum(["critical", "warning", "suggestion"]),
+      findingType: z.enum(["SECURITY", "PERFORMANCE", "ARCHITECTURE", "PRD_DEVIATION", "CODE_QUALITY", "EDGE_CASE", "TEST_COVERAGE"]),
       comment: z.string().describe("The actionable markdown-formatted feedback"),
       suggestedFix: z.string().optional().describe("A suggested code block fix, if applicable"),
     })

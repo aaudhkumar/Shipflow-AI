@@ -13,7 +13,8 @@
     "@shipflow/logger": "workspace:*",
     "google-auth-library": "^10.5.0",
     "drizzle-orm": "^0.45.1",
-    "zod": "^4.3.5"
+    "zod": "^4.3.5",
+    "@shipflow/workflow": "workspace:*"
   },
   "type": "module"
 }

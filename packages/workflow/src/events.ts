@@ -26,6 +26,14 @@ export const DeploymentFailedSchema = z.object({
   environment: z.string(),
 });
 
+export const FeatureStateTransitionSchema = z.object({
+  featureId: z.string(),
+  orgId: z.string(),
+  previousState: z.string(),
+  newState: z.string(),
+  actorId: z.string(),
+});
+
 export const ShipflowEvents = {
   "github.pr.opened": {
     data: GithubPrOpenedEventSchema,
@@ -38,5 +46,20 @@ export const ShipflowEvents = {
   },
   "deployment.failed": {
     data: DeploymentFailedSchema,
+  },
+  "feature.prd.generated": {
+    data: FeatureStateTransitionSchema,
+  },
+  "feature.tasks.generated": {
+    data: FeatureStateTransitionSchema,
+  },
+  "feature.plan.approved": {
+    data: FeatureStateTransitionSchema,
+  },
+  "feature.review.failed": {
+    data: FeatureStateTransitionSchema,
+  },
+  "feature.human.approved": {
+    data: FeatureStateTransitionSchema,
   },
 };

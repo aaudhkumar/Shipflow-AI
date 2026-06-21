@@ -517,6 +517,9 @@ importers:
       '@shipflow/logger':
         specifier: workspace:*
         version: link:../logger
+      '@shipflow/workflow':
+        specifier: workspace:*
+        version: link:../workflow
       drizzle-orm:
         specifier: ^0.45.1
         version: 0.45.1(@opentelemetry/api@1.9.1)(@types/pg@8.16.0)(kysely@0.29.2)(pg@8.16.3)
