@@ -1,0 +1,22 @@
+{
+  "name": "@shipflow/github",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@shipflow/eslint-config": "workspace:*",
+    "@shipflow/typescript-config": "workspace:*",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "octokit": "^4.0.2",
+    "@octokit/webhooks-methods": "^5.0.1",
+    "@octokit/auth-app": "^7.1.3"
+  }
+}

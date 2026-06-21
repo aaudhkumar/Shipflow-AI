@@ -1,0 +1,18 @@
+{
+  "name": "@shipflow/services",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@shipflow/eslint-config": "workspace:*",
+    "@shipflow/typescript-config": "workspace:*",
+    "dotenv-cli": "^11.0.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@shipflow/db": "workspace:*",
+    "@shipflow/logger": "workspace:*",
+    "google-auth-library": "^10.5.0",
+    "drizzle-orm": "^0.45.1",
+    "zod": "^4.3.5"
+  }
+}

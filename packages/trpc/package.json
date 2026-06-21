@@ -1,0 +1,20 @@
+{
+  "name": "@shipflow/trpc",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@shipflow/eslint-config": "workspace:*",
+    "@shipflow/typescript-config": "workspace:*",
+    "dotenv-cli": "^11.0.0",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@shipflow/services": "workspace:*",
+    "@shipflow/auth": "workspace:*",
+    "@shipflow/db": "workspace:*",
+    "@trpc/client": "^11.8.1",
+    "@trpc/server": "^11.8.1",
+    "trpc-to-openapi": "^3.1.0",
+    "zod": "^4.3.5"
+  }
+}

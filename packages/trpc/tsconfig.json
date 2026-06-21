@@ -1,0 +1,4 @@
+{
+  "extends": ["@shipflow/typescript-config/node.json"],
+  "include": ["server/", "client/"]
+}
