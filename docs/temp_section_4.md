@@ -32,7 +32,7 @@ import { relations, sql } from "drizzle-orm";
 
 // --- ENUMS ---
 export const billingPlanEnum = pgEnum("billing_plan", ["FREE", "PRO", "ENTERPRISE"]);
-export const memberRoleEnum = pgEnum("member_role", ["OWNER", "ADMIN", "PM", "ENGINEER", "VIEWER"]);
+export const memberRoleEnum = pgEnum("member_role", ["OWNER", "ADMIN", "PM", "ENGINEER", "REVIEWER", "VIEWER"]);
 export const projectStatusEnum = pgEnum("project_status", ["ACTIVE", "ARCHIVED"]);
 export const featureRequestStatusEnum = pgEnum("fr_status", [
   "SUBMITTED",

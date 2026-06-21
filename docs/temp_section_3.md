@@ -18,7 +18,7 @@ The ShipFlow AI domain model is an exhaustive representation of the software eng
 - **Purpose:** Represents a user's association with a specific `Organization`. ShipFlow uses a model where a user (managed by BetterAuth) can belong to multiple Organizations, but their context is scoped by their `Member` record.
 - **Relationships:** Many-to-One with `Organization`. Many-to-One with `User` (the global identity). One-to-Many with `FeatureRequest` (as author), `Task` (as assignee), `PullRequestReview` (as reviewer).
 - **Lifecycle:** Created via invitation or automatic association upon Org creation. Can be active, invited, or deactivated.
-- **Important Fields:** `id`, `orgId` (FK), `userId` (FK), `role` (Enum: Owner, Admin, PM, Engineer, Viewer), `status`, `joinedAt`.
+- **Important Fields:** `id`, `orgId` (FK), `userId` (FK), `role` (Enum: (Owner, Admin, PM, Engineer, Reviewer, Viewer)), `status`, `joinedAt`.
 - **Indexes:** Composite unique index on `(orgId, userId)` to prevent duplicate memberships.
 - **Constraints:** A member must have exactly one role. 'Owner' role must have at least one active member in the organization.
 

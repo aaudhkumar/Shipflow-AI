@@ -9,7 +9,7 @@ export async function checkAIAccess(workspaceId: string, tokensNeeded: number = 
     with: {
       subscription: true,
       usageRecords: {
-        orderBy: (usageRecords, { desc }) => [desc(usageRecords.monthStart)],
+        orderBy: (usageRecords: any, { desc }: any) => [desc(usageRecords.monthStart)],
         limit: 1,
       }
     }

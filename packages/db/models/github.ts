@@ -1,6 +1,7 @@
 import { pgTable, text, timestamp, integer, boolean, uniqueIndex } from "drizzle-orm/pg-core";
 import { workspaces, workspaceMembers } from "./workspaces";
 import { repositories } from "./projects";
+import { featureRequests } from "./features";
 import { tasks } from "./tasks";
 import { prStateEnum, reviewStateEnum, findingTypeEnum } from "./enums";
 
@@ -14,6 +15,8 @@ export const pullRequests = pgTable(
     repositoryId: text("repository_id")
       .notNull()
       .references(() => repositories.id),
+    featureRequestId: text("feature_request_id")
+      .references(() => featureRequests.id, { onDelete: "cascade" }),
     taskId: text("task_id")
       .notNull()
       .references(() => tasks.id),

@@ -68,8 +68,8 @@ app/                 # Routes, layouts, API routes (/api/webhooks/*, /api/innges
 ## Core Status Machine (aligned with project.md)
 
 ```
-intake → clarifying → prd_draft → planning → awaiting_plan_approval
-  → in_development → in_review ↔ fix_needed → awaiting_human_approval → shipped
+SUBMITTED → CLARIFYING → CLARIFIED → PRD_GENERATED → TASKS_GENERATED → PLAN_APPROVED
+  → IN_DEVELOPMENT → IN_REVIEW ↔ fix_needed → AWAITING_HUMAN_APPROVAL → SHIPPED
 
 Side paths: rejected, duplicate_education
 ```
@@ -394,7 +394,7 @@ packages/ai/agents/
 - `packages/trpc/routers/clarification.router.ts`
 - Hook: `use-clarification-thread.ts`
 - Clarification chat panel on feature detail page
-- Status: `intake → clarifying →` (resolved, continues pipeline)
+- Status: `SUBMITTED → CLARIFYING →` (resolved, continues pipeline)
 
 **Acceptance Criteria:**
 
@@ -423,7 +423,7 @@ packages/ai/agents/
 - Hooks: `use-prd.ts`, `use-scope-check.ts`, `use-generate-prd.ts`
 - PRD editor (TipTap): section sidebar, all required sections, version history via `prd_version`
 - Pages: `/[workspaceSlug]/projects/[projectId]/features/[featureId]/prd`
-- Status: `clarifying → prd_draft` (or side paths)
+- Status: `CLARIFYING → CLARIFIED → PRD_GENERATED` (or side paths)
 
 **Acceptance Criteria:**
 
@@ -444,11 +444,11 @@ packages/ai/agents/
 
 - Repositories: `task.repository.ts`, `subtask.repository.ts`, `task-dependency.repository.ts`
 - Service: `generate-task-plan.service.ts` — calls `task-planning.agent.ts` (epics → tasks → subtasks + dependencies in one pass)
-- Service: `approve-plan.service.ts` — gates `planning → awaiting_plan_approval → in_development` (PM/Admin/Owner)
+- Service: `approve-plan.service.ts` — gates `TASKS_GENERATED → PLAN_APPROVED → in_development` (PM/Admin/Owner)
 - `packages/trpc/routers/task.router.ts`
 - Hooks: `use-tasks.ts`, `use-generate-tasks.ts`, `use-approve-plan.ts`
 - Plan review screen before approval
-- Status: `prd_draft → planning → awaiting_plan_approval`
+- Status: `PRD_GENERATED → TASKS_GENERATED → awaiting_plan_approval`
 
 **Acceptance Criteria:**
 
@@ -691,7 +691,7 @@ packages/ai/agents/
 - Hooks: `use-approval-readiness.ts`, `use-submit-approval.ts`
 - Approvals queue page with full context: PRD, tasks, PR, review history, AI findings, outstanding issues
 - Decision routing: `approved →` release; `rejected` / `changes_requested → fix_needed` with human feedback fed into next re-review
-- Status: `in_review → awaiting_human_approval`
+- Status: `IN_REVIEW → AWAITING_HUMAN_APPROVAL`
 
 **Acceptance Criteria:**
 

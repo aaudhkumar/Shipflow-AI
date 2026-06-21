@@ -17,6 +17,10 @@ export const workspaceRelations = relations(workspaces, ({ many, one }) => ({
   usageRecords: many(usageRecords),
 }));
 
+export const featureRequestRelations = relations(featureRequests, ({ many }) => ({
+  pullRequests: many(pullRequests),
+}));
+
 export const taskRelations = relations(tasks, ({ one, many }) => ({
   epic: one(epics, { fields: [tasks.epicId], references: [epics.id] }),
   assignee: one(workspaceMembers, {
@@ -43,6 +47,7 @@ export const taskDependenciesRelations = relations(taskDependencies, ({ one }) =
 
 export const pullRequestRelations = relations(pullRequests, ({ one, many }) => ({
   task: one(tasks, { fields: [pullRequests.taskId], references: [tasks.id] }),
+  featureRequest: one(featureRequests, { fields: [pullRequests.featureRequestId], references: [featureRequests.id] }),
   repository: one(repositories, {
     fields: [pullRequests.repositoryId],
     references: [repositories.id],

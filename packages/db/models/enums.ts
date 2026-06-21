@@ -2,15 +2,21 @@ import { pgEnum } from "drizzle-orm/pg-core";
 
 export const billingPlanEnum = pgEnum("billing_plan", ["FREE", "PRO", "ENTERPRISE"]);
 export const subscriptionStatusEnum = pgEnum("subscription_status", ["ACTIVE", "PAST_DUE", "CANCELED"]);
-export const memberRoleEnum = pgEnum("member_role", ["OWNER", "ADMIN", "PM", "ENGINEER", "VIEWER"]);
+export const memberRoleEnum = pgEnum("member_role", ["OWNER", "ADMIN", "PM", "ENGINEER", "REVIEWER", "VIEWER"]);
 export const projectStatusEnum = pgEnum("project_status", ["ACTIVE", "ARCHIVED"]);
 export const featureRequestStatusEnum = pgEnum("fr_status", [
   "SUBMITTED",
   "CLARIFYING",
   "CLARIFIED",
-  "REJECTED",
   "PRD_GENERATED",
+  "TASKS_GENERATED",
+  "PLAN_APPROVED",
+  "IN_DEVELOPMENT",
+  "IN_REVIEW",
+  "FIX_NEEDED",
+  "AWAITING_HUMAN_APPROVAL",
   "SHIPPED",
+  "REJECTED",
 ]);
 export const taskStatusEnum = pgEnum("task_status", [
   "BACKLOG",
@@ -39,5 +45,8 @@ export const findingTypeEnum = pgEnum("finding_type", [
   "PERFORMANCE",
   "ARCHITECTURE",
   "PRD_DEVIATION",
+  "CODE_QUALITY",
+  "EDGE_CASE",
+  "TEST_COVERAGE",
 ]);
 export const deploymentStatusEnum = pgEnum("deployment_status", ["PENDING", "SUCCESS", "FAILED", "ERROR"]);

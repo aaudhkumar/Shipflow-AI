@@ -2,8 +2,8 @@
   "name": "@shipflow/db",
   "version": "1.0.0",
   "exports": {
-    ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    ".": "./index.ts",
+    "./schema": "./models/index.ts"
   },
   "scripts": {
     "db:migrate": "dotenv -- drizzle-kit migrate",
@@ -24,5 +24,6 @@
     "drizzle-orm": "^0.45.1",
     "pg": "^8.16.3",
     "zod": "^4.3.5"
-  }
+  },
+  "type": "module"
 }

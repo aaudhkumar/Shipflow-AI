@@ -103,8 +103,8 @@ Only approved features can be marked **Shipped**.
 ## 4. Feature Status State Machine
 
 ```
-intake → clarifying → prd_draft → planning → awaiting_plan_approval
-  → in_development → in_review ↔ fix_needed → awaiting_human_approval → shipped
+SUBMITTED → CLARIFYING → CLARIFIED → PRD_GENERATED → TASKS_GENERATED → PLAN_APPROVED
+  → IN_DEVELOPMENT → IN_REVIEW ↔ fix_needed → AWAITING_HUMAN_APPROVAL → SHIPPED
 
 Side paths: rejected, duplicate_education
 ```

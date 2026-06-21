@@ -220,7 +220,7 @@ The Org Plugin introduces the following database tables:
 
 ## 5.3 Role-Based Access Control (RBAC)
 
-Role-Based Access Control is enforced at the organization level. A user's permissions are scoped strictly to the organization they are currently operating within. We define four distinct roles: Owner, Admin, Member, and Reviewer.
+Role-Based Access Control is enforced at the organization level. A user's permissions are scoped strictly to the organization they are currently operating within. We define four distinct roles: Owner, Admin, Member, Reviewer, Engineer, PM.
 
 ### 5.3.1 Roles and Responsibilities
 
@@ -983,7 +983,7 @@ The root tRPC router (`appRouter`) merges multiple sub-routers. Every procedure 
 - **Queries:**
   - `list`: Gets all orgs the user is a member of.
   - `getById`: Gets details of a specific org.
-  - `listMembers`: Gets users within an org and their roles (Admin, Member, Viewer).
+  - `listMembers`: Gets users within an org and their roles (Admin, PM, Engineer, Reviewer, Viewer).
 - **Mutations:**
   - `create`: Creates a new organization.
   - `update`: Updates org settings.
@@ -2664,7 +2664,7 @@ Build the user-facing billing management interfaces within the Next.js applicati
 ### [x] Task 35: Project Settings & Team Member Management UI
 
 **Description:**
-Develop the organizational management interface allowing administrators to manage their team members, configure GitHub repository access, and adjust project-level AI settings. This page resides within the dashboard and interacts deeply with the BetterAuth access control layer. You must implement features to invite new users via email, assign roles (Admin, Member, Viewer), and revoke access. Additionally, provide a UI to link or unlink specific GitHub repositories to the ShipFlow platform.
+Develop the organizational management interface allowing administrators to manage their team members, configure GitHub repository access, and adjust project-level AI settings. This page resides within the dashboard and interacts deeply with the BetterAuth access control layer. You must implement features to invite new users via email, assign roles (Admin, PM, Engineer, Reviewer, Viewer), and revoke access. Additionally, provide a UI to link or unlink specific GitHub repositories to the ShipFlow platform.
 
 **Packages affected:**
 
