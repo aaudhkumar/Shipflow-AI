@@ -1,5 +1,5 @@
 {
-  "name": "@shipflow/workflow",
+  "name": "@shipflow/billing",
   "version": "1.0.0",
   "type": "module",
   "exports": {
@@ -11,14 +11,13 @@
   "devDependencies": {
     "@shipflow/eslint-config": "workspace:*",
     "@shipflow/typescript-config": "workspace:*",
-    "@types/node": "^26.0.0",
+    "@types/node": "^22.15.3",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@shipflow/ai": "workspace:*",
-    "@shipflow/db": "workspace:^",
+    "@shipflow/db": "workspace:*",
     "drizzle-orm": "^0.45.1",
-    "inngest": "^3.19.16",
+    "razorpay": "^2.9.4",
     "zod": "^3.22.4"
   }
 }

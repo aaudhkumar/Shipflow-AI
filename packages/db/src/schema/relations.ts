@@ -5,12 +5,15 @@ import { featureRequests } from "./features";
 import { auditLogs } from "./operations";
 import { tasks, epics, subtasks, taskDependencies } from "./tasks";
 import { pullRequests, pullRequestReviews, reviewFindings } from "./github";
+import { subscriptions, invoices, usageRecords } from "./billing";
 
-export const workspaceRelations = relations(workspaces, ({ many }) => ({
+export const workspaceRelations = relations(workspaces, ({ many, one }) => ({
   members: many(workspaceMembers),
   projects: many(projects),
   featureRequests: many(featureRequests),
   auditLogs: many(auditLogs),
+  subscription: one(subscriptions, { fields: [workspaces.id], references: [subscriptions.workspaceId] }),
+  usageRecords: many(usageRecords),
 }));
 
 export const taskRelations = relations(tasks, ({ one, many }) => ({
@@ -52,4 +55,17 @@ export const reviewRelations = relations(pullRequestReviews, ({ one, many }) => 
     references: [pullRequests.id],
   }),
   findings: many(reviewFindings),
+}));
+
+export const subscriptionRelations = relations(subscriptions, ({ one, many }) => ({
+  workspace: one(workspaces, { fields: [subscriptions.workspaceId], references: [workspaces.id] }),
+  invoices: many(invoices),
+}));
+
+export const invoiceRelations = relations(invoices, ({ one }) => ({
+  subscription: one(subscriptions, { fields: [invoices.subscriptionId], references: [subscriptions.id] }),
+}));
+
+export const usageRecordRelations = relations(usageRecords, ({ one }) => ({
+  workspace: one(workspaces, { fields: [usageRecords.workspaceId], references: [workspaces.id] }),
 }));

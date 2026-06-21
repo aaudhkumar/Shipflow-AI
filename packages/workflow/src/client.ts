@@ -1,6 +1,6 @@
 import { Inngest, EventSchemas } from "inngest";
 import { z } from "zod";
-import { GithubPrOpenedEventSchema, GithubReleaseDraftedSchema } from "./events";
+import { GithubPrOpenedEventSchema, GithubReleaseDraftedSchema, BillingPaymentSuccessSchema } from "./events";
 
 type Events = {
   "github.pr.opened": {
@@ -8,6 +8,9 @@ type Events = {
   };
   "github.release.drafted": {
     data: z.infer<typeof GithubReleaseDraftedSchema>;
+  };
+  "billing.payment.success": {
+    data: z.infer<typeof BillingPaymentSuccessSchema>;
   };
 };
 

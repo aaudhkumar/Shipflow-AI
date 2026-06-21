@@ -1,6 +1,7 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
 export const billingPlanEnum = pgEnum("billing_plan", ["FREE", "PRO", "ENTERPRISE"]);
+export const subscriptionStatusEnum = pgEnum("subscription_status", ["ACTIVE", "PAST_DUE", "CANCELED"]);
 export const memberRoleEnum = pgEnum("member_role", ["OWNER", "ADMIN", "PM", "ENGINEER", "VIEWER"]);
 export const projectStatusEnum = pgEnum("project_status", ["ACTIVE", "ARCHIVED"]);
 export const featureRequestStatusEnum = pgEnum("fr_status", [

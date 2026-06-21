@@ -13,11 +13,20 @@ export const GithubReleaseDraftedSchema = z.object({
   orgId: z.string(),
 });
 
+export const BillingPaymentSuccessSchema = z.object({
+  subscriptionId: z.string(),
+  paymentId: z.string(),
+  amount: z.number(),
+});
+
 export const ShipflowEvents = {
   "github.pr.opened": {
     data: GithubPrOpenedEventSchema,
   },
   "github.release.drafted": {
     data: GithubReleaseDraftedSchema,
+  },
+  "billing.payment.success": {
+    data: BillingPaymentSuccessSchema,
   },
 };
