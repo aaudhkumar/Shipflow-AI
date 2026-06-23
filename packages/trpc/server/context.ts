@@ -1,11 +1,20 @@
 import { db } from "@shipflow/db";
-import { getSession } from "@shipflow/auth/middleware";
+import type { Database } from "@shipflow/db";
+import { getSession } from "@shipflow/auth";
+import { drizzle } from "drizzle-orm/node-postgres/driver";
 
-export async function createContext(opts: { headers: Headers }) {
+export interface Context {
+  db: ReturnType<typeof drizzle>;
+  session: Awaited<ReturnType<typeof getSession>>;
+}
+
+export async function createContext(
+  opts: { headers: Headers }
+): Promise<Context> {
   const session = await getSession(opts.headers);
+
   return {
     db,
     session,
   };
 }
-export type Context = Awaited<ReturnType<typeof createContext>>;

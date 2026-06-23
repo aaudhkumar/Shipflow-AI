@@ -16,9 +16,11 @@
   },
   "dependencies": {
     "@shipflow/ai": "workspace:*",
-    "@shipflow/db": "workspace:^",
+    "@shipflow/db": "workspace:*",
+    "@shipflow/github": "workspace:*",
+    "@shipflow/services": "workspace:*",
     "drizzle-orm": "^0.45.1",
-    "inngest": "^3.19.16",
-    "zod": "^3.22.4"
+    "inngest": "^3.22.12",
+    "zod": "^4.3.5"
   }
 }

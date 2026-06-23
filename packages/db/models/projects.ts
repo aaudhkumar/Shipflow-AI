@@ -1,6 +1,6 @@
-import { pgTable, text, timestamp, boolean, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
-import { projectStatusEnum } from "./enums";
+import { projectStatusEnum, repoSyncStatusEnum } from "./enums";
 
 export const projects = pgTable(
   "projects",
@@ -32,6 +32,9 @@ export const repositories = pgTable("repositories", {
   defaultBranch: text("default_branch").default("main").notNull(),
   isPrivate: boolean("is_private").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  syncStatus: repoSyncStatusEnum("sync_status").default("PENDING").notNull(),
+  syncChunkCount: integer("sync_chunk_count").default(0).notNull(),
+  lastSyncedAt: timestamp("last_synced_at"),
 });
 
 export const projectRepositories = pgTable(

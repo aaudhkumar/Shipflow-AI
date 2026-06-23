@@ -50,3 +50,4 @@ export const findingTypeEnum = pgEnum("finding_type", [
   "TEST_COVERAGE",
 ]);
 export const deploymentStatusEnum = pgEnum("deployment_status", ["PENDING", "SUCCESS", "FAILED", "ERROR"]);
+export const repoSyncStatusEnum = pgEnum("repo_sync_status", ["PENDING", "SYNCING", "SYNCED", "FAILED"]);

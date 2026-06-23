@@ -5,12 +5,13 @@ import { Badge } from "@/components/ui/badge"
 import { GitPullRequest, ArrowLeft, ExternalLink } from "lucide-react"
 import Link from "next/link"
 
-export default function PRInsightsPage({ params }: { params: { slug: string, id: string } }) {
+export default async function PRInsightsPage({ params }: { params: Promise<{ slug: string, id: string }> }) {
+  const { slug, id } = await params;
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       <div className="flex items-center gap-2 mb-4">
         <Button variant="ghost" size="sm" asChild className="text-muted-foreground">
-          <Link href={`/org/${params.slug}`}><ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard</Link>
+          <Link href={`/org/${slug}`}><ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard</Link>
         </Button>
       </div>
 
@@ -18,7 +19,7 @@ export default function PRInsightsPage({ params }: { params: { slug: string, id:
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight">Refactor billing webhooks</h1>
-            <Badge variant="outline" className="font-mono text-sm border-border/50">#{params.id}</Badge>
+            <Badge variant="outline" className="font-mono text-sm border-border/50">#{id}</Badge>
           </div>
           <p className="text-muted-foreground mt-2 flex items-center gap-2">
             <GitPullRequest className="w-4 h-4" />

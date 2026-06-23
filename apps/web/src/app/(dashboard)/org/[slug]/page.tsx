@@ -3,15 +3,17 @@ import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { DeploymentsList } from "@/components/dashboard/deployments-list"
 import { Button } from "@/components/ui/button"
 import { Sparkles, ArrowRight } from "lucide-react"
+import Link from "next/link"
 
-export default function DashboardPage({ params }: { params: { slug: string } }) {
+export default async function DashboardPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Command Center</h1>
           <p className="text-muted-foreground mt-1">
-            Welcome back to {params.slug}. Here's what your AI has been up to.
+            Welcome back to {slug}. Here's what your AI has been up to.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -19,6 +21,7 @@ export default function DashboardPage({ params }: { params: { slug: string } }) 
             Release Notes <ArrowRight className="w-4 h-4 ml-2 opacity-70" />
           </Button>
           <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all">
+            <Link href={`/org/${slug}/pr/1`} className="absolute inset-0 z-10" />
             <Sparkles className="w-4 h-4 mr-2" /> Trigger Analysis
           </Button>
         </div>

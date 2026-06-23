@@ -1,4 +1,4 @@
-import { inngest } from "../client";
+import { inngest } from "@shipflow/services/src/workflow/client";
 import { db } from "@shipflow/db";
 import { repositories } from "@shipflow/db/schema";
 import { eq } from "drizzle-orm";

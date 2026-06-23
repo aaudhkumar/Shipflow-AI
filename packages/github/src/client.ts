@@ -1,5 +1,6 @@
 import { Octokit } from "octokit";
 import { createAppAuth } from "@octokit/auth-app";
+import { getGithubApp } from "./app";
 
 export function getGithubClient(): Octokit {
   const appId = process.env.GITHUB_APP_ID;
@@ -16,4 +17,9 @@ export function getGithubClient(): Octokit {
       privateKey,
     },
   });
+}
+
+export async function getInstallationOctokit(installationId: number): Promise<Octokit> {
+  const app = getGithubApp();
+  return app.getInstallationOctokit(installationId) as unknown as Octokit;
 }

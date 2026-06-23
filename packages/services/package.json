@@ -2,6 +2,15 @@
   "name": "@shipflow/services",
   "version": "1.0.0",
   "private": true,
+  "exports": {
+    "./github/files": "./src/github/files.ts",
+    "./github/comments": "./src/github/comments.ts",
+    "./db/reviews": "./src/db/reviews.ts",
+    "./pinecone/vector": "./src/pinecone/vector.ts",
+    "./pinecone/client": "./src/pinecone/client.ts",
+    "./utils/chunk": "./src/utils/chunk.ts",
+    "./*": "./*"
+  },
   "devDependencies": {
     "@shipflow/eslint-config": "workspace:*",
     "@shipflow/typescript-config": "workspace:*",
@@ -9,12 +18,15 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
+    "@shipflow/ai": "workspace:*",
+    "@pinecone-database/pinecone": "^8.0.0",
     "@shipflow/db": "workspace:*",
     "@shipflow/logger": "workspace:*",
-    "google-auth-library": "^10.5.0",
     "drizzle-orm": "^0.45.1",
-    "zod": "^4.3.5",
-    "@shipflow/workflow": "workspace:*"
+    "inngest": "^3.22.12",
+    "google-auth-library": "^10.5.0",
+    "octokit": "^4.0.2",
+    "zod": "^4.3.5"
   },
   "type": "module"
 }

@@ -8,6 +8,20 @@
       "when": 1782085100929,
       "tag": "0000_bent_the_initiative",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1782147302428,
+      "tag": "0001_regular_jackpot",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782184630659,
+      "tag": "0002_stale_wallop",
+      "breakpoints": true
     }
   ]
 }

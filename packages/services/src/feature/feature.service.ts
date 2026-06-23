@@ -1,5 +1,5 @@
 import { FeatureRepository } from "./feature.repository";
-import { inngest } from "@shipflow/workflow";
+import { inngest } from "../workflow/client";
 
 export class FeatureService {
   constructor(private readonly featureRepo: FeatureRepository) {}

@@ -17,13 +17,15 @@ const openApiDocument = generateOpenApiDocument(serverRouter, {
   baseUrl: env.BASE_URL.concat("/api"),
 });
 
-if (env.NODE_ENV !== "prod") {
-  app.use(
-    cors({
-      origin: "*",
-    }),
-  );
-}
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // Unconditionally allow any origin to prevent internal server errors masking as CORS
+      callback(null, origin || true);
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
@@ -44,18 +46,24 @@ logger.debug(`docs: ${env.BASE_URL}/docs`);
 app.use("/docs", apiReference({ url: "/openapi.json" }));
 
 app.use(
-  "/api",
-  createOpenApiExpressMiddleware({
+  "/trpc",
+  trpcExpress.createExpressMiddleware({
     router: serverRouter,
-    createContext,
+    createContext: ({ req }) =>
+      createContext({
+        headers: new Headers(req.headers as Record<string, string>),
+      }),
   }),
 );
 
 app.use(
-  "/trpc",
-  trpcExpress.createExpressMiddleware({
+  "/api",
+  createOpenApiExpressMiddleware({
     router: serverRouter,
-    createContext,
+    createContext: ({ req }) =>
+      createContext({
+        headers: new Headers(req.headers as Record<string, string>),
+      }),
   }),
 );
 

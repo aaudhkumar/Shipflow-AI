@@ -1,6 +1,6 @@
 import { Inngest, EventSchemas } from "inngest";
 import { z } from "zod";
-import { GithubPrOpenedEventSchema, GithubReleaseDraftedSchema, BillingPaymentSuccessSchema, DeploymentFailedSchema, FeatureStateTransitionSchema } from "./events";
+import { GithubPrOpenedEventSchema, GithubReleaseDraftedSchema, BillingPaymentSuccessSchema, DeploymentFailedSchema, FeatureStateTransitionSchema, RepoSyncRequestedSchema } from "./events";
 
 type Events = {
   "github.pr.opened": {
@@ -29,6 +29,9 @@ type Events = {
   };
   "feature.human.approved": {
     data: z.infer<typeof FeatureStateTransitionSchema>;
+  };
+  "repo.sync.requested": {
+    data: z.infer<typeof RepoSyncRequestedSchema>;
   };
 };
 
