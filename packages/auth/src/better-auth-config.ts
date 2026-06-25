@@ -3,7 +3,10 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@shipflow/db";
 import * as schema from "@shipflow/db/schema";
 
+import { dash } from "@better-auth/infra";
+
 export const auth = betterAuth({
+  plugins: [dash()],
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {

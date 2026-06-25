@@ -12,6 +12,7 @@ type ReviewComment = {
     | "EDGE_CASE"
     | "TEST_COVERAGE";
   comment: string;
+  isBlocking: boolean;
   suggestedFix?: string;
 };
 
@@ -24,7 +25,7 @@ type CodeReviewResult = {
  * Parses the unified diff patch to map file lines back to precise position indices
  * required by the GitHub Pull Request Review API.
  */
-function findDiffPosition(patch: string, targetLine: number): number | null {
+export function findDiffPosition(patch: string, targetLine: number): number | null {
   const lines = patch.split("\n");
   let currentLine = 0;
   let position = 0;
@@ -106,6 +107,8 @@ export async function postReviewComment(
     reviewBody += `#### General Findings\n\n${generalComments.map((c) => `- ${c}`).join("\n\n")}`;
   }
 
+  const hasBlockingFindings = reviewResult.comments.some((c) => c.isBlocking);
+
   // Post the review
   const response = await octokit.rest.pulls.createReview({
     owner,
@@ -113,7 +116,7 @@ export async function postReviewComment(
     pull_number: prNumber,
     commit_id: commitId,
     body: reviewBody,
-    event: "COMMENT",
+    event: hasBlockingFindings ? "REQUEST_CHANGES" : "COMMENT",
     comments: inlineComments,
   });
 

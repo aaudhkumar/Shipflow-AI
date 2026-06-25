@@ -1,6 +1,6 @@
 import { z, zodUndefinedModel } from "../../schema";
 import { userService } from "../../services";
-import { getAuthenticationMethodOutputSchema } from "@shipflow/services/user/model";
+import { getAuthenticationMethodOutputSchema } from "../../../../services/user/model";
 import { publicProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 

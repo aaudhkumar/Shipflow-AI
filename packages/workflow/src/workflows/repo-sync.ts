@@ -1,4 +1,4 @@
-import { inngest } from "@shipflow/services/src/workflow/client";
+import { inngest } from "../../../services/src/workflow/client";
 import { getInstallationOctokit } from "@shipflow/github";
 import { db } from "@shipflow/db";
 import { repositories } from "@shipflow/db/schema";

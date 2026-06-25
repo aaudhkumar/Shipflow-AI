@@ -1,4 +1,4 @@
-import { inngest } from "@shipflow/services/src/workflow/client";
+import { inngest } from "../../../services/src/workflow/client";
 import { runCodeReview } from "@shipflow/ai";
 import { getInstallationOctokit } from "@shipflow/github";
 import { fetchPrFiles } from "@shipflow/services/github/files";
@@ -39,6 +39,28 @@ export const reviewPullRequestWorkflow = inngest.createFunction(
       installationId,
     } = event.data;
 
+    // 0. Dismiss stale reviews on synchronize
+    if (action === "synchronize") {
+      await step.run("dismiss-stale-reviews", async () => {
+        const octokit = await getInstallationOctokit(installationId);
+        const { data: reviews } = await octokit.rest.pulls.listReviews({ 
+          owner: repoOwner, 
+          repo: repoName, 
+          pull_number: githubPrNumber 
+        });
+        const aiReviews = reviews.filter(r => r.user?.type === "Bot" && r.state === "CHANGES_REQUESTED");
+        for (const review of aiReviews) {
+          await octokit.rest.pulls.dismissReview({
+            owner: repoOwner, 
+            repo: repoName, 
+            pull_number: githubPrNumber, 
+            review_id: review.id,
+            message: `Superseded by new review for commit ${headSha}`
+          });
+        }
+      });
+    }
+
     // 1. Fetch PR Diff Patches
     const prFiles = await step.run("fetch-pr-files", async () => {
       const octokit = await getInstallationOctokit(installationId);
@@ -66,9 +88,41 @@ export const reviewPullRequestWorkflow = inngest.createFunction(
       }
     });
 
-    // 3. AI Generation
+    // 3. Fetch PRD for context
+    const prWithFeature = await step.run("fetch-feature-prd", async () => {
+      return db.query.pullRequests.findFirst({
+        where: eq(pullRequests.id, pullRequestId),
+        with: {
+          featureRequest: {
+            with: {
+              prds: {
+                with: {
+                  currentVersion: true
+                }
+              }
+            }
+          }
+        }
+      });
+    });
+    
+    const prdObj = prWithFeature?.featureRequest?.prds?.[0]?.currentVersion?.content;
+    const prd = typeof prdObj === "string" ? prdObj : (prdObj ? JSON.stringify(prdObj) : undefined);
+
+    const previousFindings = await step.run("fetch-previous-findings", async () => {
+      const prevReview = await db.query.pullRequestReviews.findFirst({
+        where: eq(pullRequestReviews.pullRequestId, pullRequestId),
+        orderBy: (reviews, { desc }) => [desc(reviews.createdAt)],
+        with: { findings: true },
+      });
+      return prevReview?.findings.map(f => 
+        `[${f.isBlocking ? 'BLOCKER' : 'non-blocking'}] ${f.filePath}:${f.lineNumber} — ${f.description}`
+      ).join('\n') || undefined;
+    });
+
+    // 4. AI Generation
     const reviewResult: any = await step.run("run-ai-review", async () => {
-      const { result } = await runCodeReview(diffContent, contextSnippets);
+      const { result } = await runCodeReview(diffContent, contextSnippets, prd ?? undefined, previousFindings ?? undefined);
       return result;
     });
 
@@ -93,15 +147,37 @@ export const reviewPullRequestWorkflow = inngest.createFunction(
 
     // 6. Persist the GitHub review id and keep the PR state fresh.
     await step.run("link-github-review", async () => {
-      await db
+      const hasBlockingFindings = reviewResult.comments.some((c: any) => c.isBlocking);
+
+      const [updatedPr] = await db
         .update(pullRequests)
-        .set({ state: action === "synchronize" ? "IN_REVIEW" : "IN_REVIEW" })
-        .where(eq(pullRequests.id, pullRequestId));
+        .set({ state: hasBlockingFindings ? "CHANGES_REQUESTED" : "IN_REVIEW" })
+        .where(eq(pullRequests.id, pullRequestId))
+        .returning();
 
       await db
         .update(pullRequestReviews)
-        .set({ githubReviewId: githubReview.id })
+        .set({ 
+          githubReviewId: githubReview.id,
+          state: githubReview.state === "CHANGES_REQUESTED" ? "CHANGES_REQUESTED" : "COMMENTED"
+        })
         .where(eq(pullRequestReviews.id, savedReview.id));
+
+      if (updatedPr && updatedPr.featureRequestId) {
+        const { featureService } = await import("../../../services/src/feature/feature.service");
+        try {
+          // Ensure we hit IN_REVIEW state first to satisfy transition rules
+          await featureService.markInReview(updatedPr.featureRequestId, updatedPr.orgId);
+          
+          if (hasBlockingFindings) {
+            await featureService.failReview(updatedPr.featureRequestId, updatedPr.orgId, "SYSTEM");
+          } else {
+            await featureService.markReviewPassed(updatedPr.featureRequestId, updatedPr.orgId);
+          }
+        } catch (e) {
+          console.warn("Failed to update feature status based on review findings", e);
+        }
+      }
     });
 
     return { success: true, commentsGenerated: reviewResult.comments.length };

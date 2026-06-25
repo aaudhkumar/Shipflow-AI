@@ -31,16 +31,18 @@ const dummyDeployments = [
   }
 ]
 
-export function DeploymentsList() {
+export function DeploymentsList({ deployments = [] }: { deployments?: any[] }) {
   return (
     <div className="rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm p-6 shadow-sm flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold text-lg">Recent Deployments</h3>
-        <Badge variant="outline" className="font-mono text-xs">Live Feed</Badge>
       </div>
       <div className="flex flex-col gap-3">
-        {dummyDeployments.map((dep) => (
-          <div key={dep.id} className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-background/50 hover:bg-muted/20 transition-colors">
+        {deployments.length === 0 ? (
+          <div className="text-sm text-muted-foreground pt-4 pb-4">No deployments yet</div>
+        ) : (
+          deployments.map((dep) => (
+            <div key={dep.id} className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-background/50 hover:bg-muted/20 transition-colors">
             <div className="flex items-center gap-4">
               <div className="flex-shrink-0">
                 {dep.status === "SUCCESS" && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
@@ -72,7 +74,8 @@ export function DeploymentsList() {
               </a>
             )}
           </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   )

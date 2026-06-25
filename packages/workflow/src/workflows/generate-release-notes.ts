@@ -1,4 +1,4 @@
-import { inngest } from "@shipflow/services/src/workflow/client";
+import { inngest } from "../../../services/src/workflow/client";
 import { runSummarizerAgent } from "@shipflow/ai";
 
 export const generateReleaseNotesWorkflow = inngest.createFunction(

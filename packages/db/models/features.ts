@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, boolean, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, boolean, jsonb, index } from "drizzle-orm/pg-core";
 import { organizations, members } from "./organizations";
 import { projects } from "./projects";
 import { featureRequestStatusEnum } from "./enums";
@@ -20,7 +20,9 @@ export const featureRequests = pgTable("feature_requests", {
   businessValueScore: integer("business_value_score"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
+}, (table) => ({
+  orgIdx: index("feature_requests_org_idx").on(table.orgId)
+}));
 
 export const clarificationThreads = pgTable("clarification_threads", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -39,5 +41,19 @@ export const clarificationMessages = pgTable("clarification_messages", {
     .references(() => clarificationThreads.id, { onDelete: "cascade" }),
   sender: text("sender").notNull(),
   content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const releaseReadiness = pgTable("release_readiness", {
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  featureRequestId: text("feature_request_id")
+    .notNull()
+    .references(() => featureRequests.id, { onDelete: "cascade" }),
+  isReady: boolean("is_ready").notNull(),
+  overallScore: integer("overall_score").notNull(),
+  blockers: jsonb("blockers").$type<string[]>(),
+  warnings: jsonb("warnings").$type<string[]>(),
+  recommendation: text("recommendation"),
+  releaseNotes: text("release_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

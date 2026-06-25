@@ -28,7 +28,7 @@ export default function RegisterPage() {
         fetchOptions: {
           onResponse: (ctx) => {
             if (ctx.response.status === 200) {
-              router.push("/onboarding");
+              router.push("/dashboard"); 
             }
           },
           onError: (ctx) => {
@@ -44,14 +44,14 @@ export default function RegisterPage() {
   const handleGithubLogin = async () => {
     await signIn.social({
       provider: "github",
-      callbackURL: "/onboarding",
+      callbackURL: "/dashboard",
     });
   };
 
   const handleGoogleLogin = async () => {
     await signIn.social({
       provider: "google",
-      callbackURL: "/onboarding",
+      callbackURL: "/dashboard",
     });
   };
 

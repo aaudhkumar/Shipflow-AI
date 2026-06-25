@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { organizations, members } from "./organizations";
 import { projects, repositories } from "./projects";
-import { featureRequests } from "./features";
+import { featureRequests, clarificationThreads, clarificationMessages } from "./features";
 import { auditLogs } from "./operations";
 import { tasks, epics, subtasks, taskDependencies } from "./tasks";
 import { pullRequests, pullRequestReviews, reviewFindings } from "./github";
@@ -16,9 +16,42 @@ export const organizationRelations = relations(organizations, ({ many, one }) =>
   subscription: one(subscriptions, { fields: [organizations.id], references: [subscriptions.orgId] }),
   usageRecords: many(usageRecords),
 }));
+import { prds, prdVersions } from "./prds";
+
+export const prdRelations = relations(prds, ({ one, many }) => ({
+  currentVersion: one(prdVersions, {
+    fields: [prds.currentVersionId],
+    references: [prdVersions.id]
+  }),
+  versions: many(prdVersions)
+}));
+
+export const prdVersionsRelations = relations(prdVersions, ({ one }) => ({
+  prd: one(prds, {
+    fields: [prdVersions.prdId],
+    references: [prds.id]
+  })
+}));
 
 export const featureRequestRelations = relations(featureRequests, ({ many }) => ({
   pullRequests: many(pullRequests),
+  prds: many(prds),
+  clarificationThreads: many(clarificationThreads),
+}));
+
+export const clarificationThreadRelations = relations(clarificationThreads, ({ one, many }) => ({
+  featureRequest: one(featureRequests, {
+    fields: [clarificationThreads.featureRequestId],
+    references: [featureRequests.id]
+  }),
+  messages: many(clarificationMessages),
+}));
+
+export const clarificationMessageRelations = relations(clarificationMessages, ({ one }) => ({
+  thread: one(clarificationThreads, {
+    fields: [clarificationMessages.threadId],
+    references: [clarificationThreads.id]
+  })
 }));
 
 export const taskRelations = relations(tasks, ({ one, many }) => ({

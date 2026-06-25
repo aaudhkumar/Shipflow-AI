@@ -1,135 +1,108 @@
-# Turborepo starter
+# ShipFlow AI — AI-Powered Product Delivery Platform
 
-This Turborepo starter is maintained by the Turborepo core team.
+## Overview
+ShipFlow AI is a comprehensive product delivery and workflow automation platform that accelerates software development by integrating AI agents natively into the product management and code review lifecycle. From feature request creation, automated clarification, PRD and Kanban generation, all the way to AI-powered pull request reviews with Pinecone RAG codebase context, ShipFlow ensures faster, more reliable product shipment with complete traceability.
 
-## Using this example
+## Tech Stack
+- Next.js 15 App Router
+- tRPC (type-safe API)
+- Drizzle ORM + PostgreSQL
+- BetterAuth (authentication)
+- Razorpay (billing)
+- Octokit (GitHub integration)
+- Vercel AI SDK (multi-provider: Gemini/OpenRouter/OpenAI/Anthropic)
+- Inngest (durable async workflows)
+- Pinecone (vector RAG for codebase context)
+- Shadcn UI + Tailwind CSS
+- Turborepo (monorepo)
 
-Run the following command:
-
-```sh
-npx create-turbo@latest
+## Architecture
+```mermaid
+graph TD
+    A[apps/web (Next.js)] -->|tRPC| B[packages/trpc (API Layer)]
+    B --> C[packages/services (Business Logic)]
+    C --> D[packages/db (Drizzle/PostgreSQL)]
+    C --> E[packages/ai (AI Agents)]
+    C --> F[packages/workflow (Inngest)]
+    F --> E
+    E --> G[Vercel AI SDK / LLMs]
+    E --> H[Pinecone Vector DB]
+    C --> I[GitHub / Octokit]
 ```
 
-## What's inside?
+## Setup Instructions
+### Prerequisites
+- Node.js >= 18
+- pnpm >= 9.0.0
+- PostgreSQL database (e.g., Neon or local)
+- Accounts for: GitHub (App creation), Inngest, Pinecone, and Razorpay.
 
-This Turborepo includes the following packages/apps:
+### Steps
+1. **Clone the repository:**
+   ```sh
+   git clone <repo-url>
+   cd shipflow
+   ```
+2. **Install dependencies:**
+   ```sh
+   pnpm install
+   ```
+3. **Configure Environment Variables:**
+   Copy `.env.example` to `.env` (create it if missing) and fill in your keys.
+4. **Database Setup:**
+   ```sh
+   pnpm db:generate
+   pnpm db:migrate
+   ```
+5. **Start the Development Server:**
+   ```sh
+   pnpm dev
+   ```
 
-### Apps and Packages
+## Environment Variables
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | PostgreSQL connection string | `postgres://user:pass@host:5432/db` |
+| `BETTER_AUTH_SECRET` | Secret for authentication | `generate-a-random-string` |
+| `BETTER_AUTH_URL` | Base URL for auth callbacks | `http://localhost:3000` |
+| `OPENAI_API_KEY` | (Or GEMINI / ANTHROPIC) LLM API key | `sk-...` |
+| `PINECONE_API_KEY` | Vector DB API key | `pcsk_...` |
+| `INNGEST_EVENT_KEY` | Key for Inngest dev/prod | `local` |
+| `GITHUB_APP_ID` | GitHub App ID | `123456` |
+| `GITHUB_PRIVATE_KEY` | GitHub App Private Key | `-----BEGIN RSA...` |
+| `GITHUB_WEBHOOK_SECRET` | Secret for GitHub webhooks | `my-webhook-secret` |
+| `RAZORPAY_KEY_ID` | Billing test/prod key | `rzp_test_...` |
+| `RAZORPAY_KEY_SECRET` | Billing secret | `...` |
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@shipflow/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@shipflow/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@shipflow/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## Database Schema Notes
+- `organizations` & `members`: Core multitenancy and RBAC.
+- `featureRequests`: Tracks product ideas across states (SUBMITTED -> CLARIFIED -> PRD_GENERATED -> TASKS_GENERATED -> PLAN_APPROVED -> IN_DEVELOPMENT -> IN_REVIEW -> AWAITING_HUMAN_APPROVAL -> SHIPPED).
+- `prds` & `prdVersions`: Versioned requirements linked to features.
+- `epics`, `tasks`, `subtasks`: Kanban board management.
+- `pullRequests`, `pullRequestReviews`, `reviewFindings`: Links GitHub PRs to features and stores AI review histories and line-by-line findings.
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## GitHub Integration Setup
+1. Go to GitHub Developer Settings > GitHub Apps > New GitHub App.
+2. Set Webhook URL to `<your-domain>/api/webhooks/github`.
+3. Provide a Webhook Secret.
+4. **Permissions needed:**
+   - Pull Requests (Read & Write)
+   - Issues (Read & Write)
+   - Contents (Read)
+5. Generate a private key and download it.
+6. Install the App on your desired repositories.
+7. Fill the `GITHUB_*` variables in your `.env`.
 
-### Utilities
+## Inngest Workflow Explanation
+- `featurePrdGenerated`: Triggered when a feature is clarified; runs the PRD generation AI and saves to `prdVersions`.
+- `featureTasksGenerated`: Triggered after PRD generation; runs the Planner agent to generate epics, tasks, and subtasks.
+- `reviewPullRequestWorkflow`: Triggered via GitHub webhooks (`pull_request` opened/synchronize); fetches diffs, runs Pinecone RAG and AI Code Reviewer, posts comments to GitHub, and inserts `reviewFindings`.
+- `billingSyncWorkflow`: Listens to Razorpay payment events and updates org billing plans.
+- `syncRepositoryWorkflow`: Background job to chunk and embed codebase into Pinecone for RAG.
 
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
-```
-
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+## AI Features Implemented
+- **Clarifier Agent**: Asks clarifying questions on vague feature requests and checks for duplicates.
+- **PRD Generator**: Structures raw descriptions and Q&A transcripts into fully fleshed-out PRDs (Goals, Non-Goals, Stories, Acceptance Criteria).
+- **Planner Agent**: Converts PRDs into actionable engineering tasks and epics.
+- **Code Reviewer**: Reviews PR diffs for `SECURITY`, `PERFORMANCE`, `ARCHITECTURE`, and `PRD_DEVIATION`, surfacing actionable `BLOCKING` vs `NON-BLOCKING` findings.
+- **Release Readiness Agent**: Evaluates the state of all tasks and code reviews to provide a final "Ship" recommendation.

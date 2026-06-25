@@ -13,6 +13,8 @@ type ReviewComment = {
     | "CODE_QUALITY"
     | "EDGE_CASE"
     | "TEST_COVERAGE";
+  isBlocking: boolean;
+  severity: "BLOCKER" | "MAJOR" | "MINOR" | "SUGGESTION";
   comment: string;
   suggestedFix?: string;
 };
@@ -49,13 +51,15 @@ export async function saveAiReviewToDatabase(
     };
   }
 
+  const hasBlockingFindings = reviewResult.comments.some((c) => c.isBlocking);
+
   // 1. Create the parent review record
   const [review] = await db
     .insert(pullRequestReviews)
     .values({
       pullRequestId,
       isAiReview: true,
-      state: "COMMENTED",
+      state: hasBlockingFindings ? "CHANGES_REQUESTED" : "COMMENTED",
       commitSha,
     })
     .returning();
@@ -79,6 +83,8 @@ export async function saveAiReviewToDatabase(
       filePath: comment.filePath,
       lineNumber: comment.lineNumber,
       findingType: comment.findingType,
+      isBlocking: comment.isBlocking,
+      severity: comment.severity,
       description: comment.comment,
       suggestion: comment.suggestedFix,
       status: "OPEN",

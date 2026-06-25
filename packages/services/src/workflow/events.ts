@@ -49,6 +49,11 @@ export const RepoSyncRequestedSchema = z.object({
   defaultBranch: z.string(),
 });
 
+export const GitHubRepositoriesSyncSchema = z.object({
+  orgId: z.string(),
+  actorId: z.string(),
+});
+
 export const ShipflowEvents = {
   "github.pr.opened": {
     data: GithubPrOpenedEventSchema,
@@ -77,7 +82,13 @@ export const ShipflowEvents = {
   "feature.human.approved": {
     data: FeatureStateTransitionSchema,
   },
+  "feature.awaiting.approval": {
+    data: FeatureStateTransitionSchema,
+  },
   "repo.sync.requested": {
     data: RepoSyncRequestedSchema,
+  },
+  "github.repositories.sync": {
+    data: GitHubRepositoriesSyncSchema,
   },
 };

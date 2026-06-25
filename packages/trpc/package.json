@@ -12,6 +12,8 @@
     "@shipflow/services": "workspace:*",
     "@shipflow/auth": "workspace:*",
     "@shipflow/db": "workspace:*",
+    "@shipflow/github": "workspace:*",
+    "@shipflow/workflow": "workspace:*",
     "@trpc/client": "^11.8.1",
     "@trpc/server": "^11.8.1",
     "trpc-to-openapi": "^3.1.0",

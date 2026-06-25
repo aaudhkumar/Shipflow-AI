@@ -19,7 +19,7 @@ test.describe('Billing and Usage Limits', () => {
     if (await getStartedButton.isVisible()) {
       await getStartedButton.click();
       // Should redirect to checkout or login if unauthenticated
-      await expect(page.url()).toContain('/login');
+      await expect(page).toHaveURL(/.*\/login/);
     }
   });
 });

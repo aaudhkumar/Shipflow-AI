@@ -4,7 +4,7 @@ import { getSession } from "@shipflow/auth";
 import { drizzle } from "drizzle-orm/node-postgres/driver";
 
 export interface Context {
-  db: ReturnType<typeof drizzle>;
+  db: Database;
   session: Awaited<ReturnType<typeof getSession>>;
 }
 

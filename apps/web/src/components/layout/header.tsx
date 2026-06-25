@@ -4,7 +4,26 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Bell, Search } from "lucide-react"
 
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { trpc } from "~/trpc/client"
+
 export function Header({ orgSlug }: { orgSlug: string }) {
+  const { data: org } = trpc.organization.getBySlug.useQuery({ slug: orgSlug });
+  const { data: notifications, refetch } = trpc.notification.list.useQuery({ orgId: org?.id! }, {
+    enabled: !!org?.id,
+    refetchInterval: 30000,
+  });
+
+  const markAsRead = trpc.notification.markAsRead.useMutation({
+    onSuccess: () => refetch(),
+  });
+
+  const markAllAsRead = trpc.notification.markAllAsRead.useMutation({
+    onSuccess: () => refetch(),
+  });
+
+  const unreadCount = notifications?.filter((n: any) => !n.isRead).length || 0;
+
   return (
     <header className="h-14 flex items-center justify-between px-6 border-b border-border/40 bg-background/60 backdrop-blur-xl sticky top-0 z-20">
       <div className="flex items-center gap-4 flex-1">
@@ -19,9 +38,50 @@ export function Header({ orgSlug }: { orgSlug: string }) {
       </div>
       
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
-          <Bell className="h-4 w-4" />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
+              <Bell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive border-2 border-background" />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-80">
+            <div className="flex items-center justify-between px-2 py-1.5">
+              <span className="font-semibold text-sm">Notifications</span>
+              {unreadCount > 0 && (
+                <Button variant="ghost" size="sm" onClick={() => markAllAsRead.mutate({ orgId: org?.id! })} className="h-auto text-xs px-2 py-1 text-muted-foreground">
+                  Mark all read
+                </Button>
+              )}
+            </div>
+            <DropdownMenuSeparator />
+            <div className="max-h-[300px] overflow-y-auto">
+              {!notifications?.length ? (
+                <div className="p-4 text-center text-sm text-muted-foreground">
+                  No notifications yet.
+                </div>
+              ) : (
+                notifications.map((notification: any) => (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${!notification.isRead ? 'bg-muted/50' : ''}`}
+                    onClick={() => {
+                      if (!notification.isRead) markAsRead.mutate({ orgId: org?.id!, notificationId: notification.id });
+                    }}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="font-medium text-sm leading-none">{notification.title}</span>
+                      {!notification.isRead && <span className="w-2 h-2 rounded-full bg-primary" />}
+                    </div>
+                    <span className="text-xs text-muted-foreground line-clamp-2">{notification.message}</span>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Avatar className="h-8 w-8 ring-1 ring-border/50">
           <AvatarImage src={`https://avatar.vercel.sh/${orgSlug}`} />
           <AvatarFallback>JD</AvatarFallback>

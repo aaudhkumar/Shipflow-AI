@@ -25,13 +25,23 @@ export default async function IntegrationsSettingsPage({ params }: { params: Pro
     .where(eq(githubInstallations.orgId, org.id))
     .limit(1);
 
-  // Get connected repo IDs
-  const connectedRepos = await db
-    .select({ githubRepoId: repositories.githubRepoId })
+  // Get connected repos
+  const dbRepos = await db
+    .select({ 
+      githubRepoId: repositories.githubRepoId,
+      syncStatus: repositories.syncStatus,
+      lastSyncedAt: repositories.lastSyncedAt
+    })
     .from(repositories)
     .where(eq(repositories.orgId, org.id));
 
-  const connectedRepoIds = connectedRepos.map((r) => r.githubRepoId);
+  const connectedReposMap = dbRepos.reduce((acc, repo) => {
+    acc[repo.githubRepoId] = {
+      syncStatus: repo.syncStatus,
+      lastSyncedAt: repo.lastSyncedAt,
+    };
+    return acc;
+  }, {} as Record<string, { syncStatus: string; lastSyncedAt: Date | null }>);
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -52,7 +62,7 @@ export default async function IntegrationsSettingsPage({ params }: { params: Pro
       {installation && (
         <ReposList
           orgId={org.id}
-          connectedRepoIds={connectedRepoIds}
+          connectedReposMap={connectedReposMap}
         />
       )}
     </div>

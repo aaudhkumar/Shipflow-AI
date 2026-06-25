@@ -3,9 +3,34 @@ import { featureRequests, members } from "@shipflow/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export class FeatureRepository {
-  async getFeatureById(featureId: string) {
+  async createFeature(orgId: string, projectId: string, authorId: string, title: string, rawDescription: string) {
+    const [feature] = await db.insert(featureRequests).values({
+      orgId,
+      projectId,
+      authorId,
+      title,
+      rawDescription,
+      status: "SUBMITTED"
+    }).returning();
+    return feature;
+  }
+
+  async getFeatureById(featureId: string, orgId: string) {
     return await db.query.featureRequests.findFirst({
-      where: eq(featureRequests.id, featureId),
+      where: and(
+        eq(featureRequests.id, featureId),
+        eq(featureRequests.orgId, orgId)
+      ),
+      with: {
+        prds: { with: { currentVersion: true } },
+      }
+    });
+  }
+
+  async getFeaturesByOrg(orgId: string) {
+    return await db.query.featureRequests.findMany({
+      where: eq(featureRequests.orgId, orgId),
+      orderBy: (featureRequests, { desc }) => [desc(featureRequests.createdAt)],
     });
   }
 
@@ -19,10 +44,13 @@ export class FeatureRepository {
     return member?.role;
   }
 
-  async updateFeatureStatus(featureId: string, status: string) {
+  async updateFeatureStatus(featureId: string, orgId: string, status: string) {
     return await db.update(featureRequests)
       .set({ status: status as any, updatedAt: new Date() })
-      .where(eq(featureRequests.id, featureId))
+      .where(and(
+        eq(featureRequests.id, featureId),
+        eq(featureRequests.orgId, orgId)
+      ))
       .returning();
   }
 }

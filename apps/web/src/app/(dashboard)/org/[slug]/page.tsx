@@ -5,8 +5,19 @@ import { Button } from "@/components/ui/button"
 import { Sparkles, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
+import { api } from "~/trpc/server"
+
+import { VolumeChart } from "@/components/dashboard/volume-chart"
+
 export default async function DashboardPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const org = await api.organization.getBySlug.query({ slug });
+  if (!org) return <div>Organization not found</div>;
+
+  const stats = await api.organization.getStats.query({ orgId: org.id });
+  const recentActivity = await api.organization.getRecentActivity.query({ orgId: org.id });
+  const chartData = await api.organization.getChartData.query({ orgId: org.id });
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -21,26 +32,26 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
             Release Notes <ArrowRight className="w-4 h-4 ml-2 opacity-70" />
           </Button>
           <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all">
-            <Link href={`/org/${slug}/pr/1`} className="absolute inset-0 z-10" />
+            <Link href={recentActivity && recentActivity.length > 0 ? `/org/${slug}/pr/${recentActivity[0]?.githubPrNumber}` : `/org/${slug}/features`} className="absolute inset-0 z-10" />
             <Sparkles className="w-4 h-4 mr-2" /> Trigger Analysis
           </Button>
         </div>
       </div>
 
-      <StatCards />
+      <StatCards stats={stats} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          <div className="h-[250px] rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm p-6 shadow-sm">
-            <h3 className="font-semibold mb-4 text-lg">Analysis Volume (Last 7 Days)</h3>
-            <div className="h-full w-full flex items-center justify-center text-muted-foreground/50 text-sm">
-              [Recharts AreaChart Placeholder]
+          <div className="h-[250px] rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm p-6 shadow-sm flex flex-col justify-center items-center text-muted-foreground/50 text-sm">
+            <h3 className="font-semibold mb-4 text-lg self-start">Analysis Volume (Last 7 Days)</h3>
+            <div className="w-full h-full">
+              <VolumeChart data={chartData} />
             </div>
           </div>
-          <DeploymentsList />
+          <DeploymentsList deployments={[]} />
         </div>
         <div className="lg:col-span-1">
-          <ActivityFeed />
+          <ActivityFeed activities={recentActivity} />
         </div>
       </div>
     </div>

@@ -26,7 +26,7 @@ export default function LoginPage() {
         fetchOptions: {
           onResponse: (ctx) => {
             if (ctx.response.status === 200) {
-              router.push("/onboarding"); // We'll redirect appropriately in middleware later, but start with onboarding flow mapping
+              router.push("/dashboard"); 
             }
           },
           onError: (ctx) => {
@@ -42,14 +42,14 @@ export default function LoginPage() {
   const handleGithubLogin = async () => {
     await signIn.social({
       provider: "github",
-      callbackURL: "/onboarding",
+      callbackURL: "/dashboard",
     });
   };
 
   const handleGoogleLogin = async () => {
     await signIn.social({
       provider: "google",
-      callbackURL: "/onboarding",
+      callbackURL: "/dashboard",
     });
   };
 

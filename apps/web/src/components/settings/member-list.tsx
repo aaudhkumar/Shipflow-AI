@@ -11,32 +11,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { MoreHorizontal, ShieldAlert, UserX } from "lucide-react"
+import { MoreHorizontal, ShieldAlert, UserX, Loader2 } from "lucide-react"
+import { trpc } from "~/trpc/client"
 
-export function MemberList() {
-  const members = [
-    {
-      id: "1",
-      name: "Alice Engineering",
-      email: "alice@example.com",
-      role: "Owner",
-      avatar: "https://avatar.vercel.sh/alice"
-    },
-    {
-      id: "2",
-      name: "Bob Developer",
-      email: "bob@example.com",
-      role: "Admin",
-      avatar: "https://avatar.vercel.sh/bob"
-    },
-    {
-      id: "3",
-      name: "Charlie Reviewer",
-      email: "charlie@example.com",
-      role: "Member",
-      avatar: "https://avatar.vercel.sh/charlie"
-    }
-  ]
+export function MemberList({ orgId }: { orgId: string }) {
+  const { data: members, isLoading } = trpc.member.list.useQuery({ orgId });
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center p-8">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm overflow-hidden shadow-sm">
@@ -50,22 +37,22 @@ export function MemberList() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {members.map((member) => (
+          {members?.map((member) => (
             <TableRow key={member.id} className="border-border/30 hover:bg-muted/10">
               <TableCell>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">
-                    <AvatarImage src={member.avatar} />
-                    <AvatarFallback>{member.name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={member.user.image || `https://avatar.vercel.sh/${member.user.name}`} />
+                    <AvatarFallback>{member.user.name?.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-sm">{member.name}</span>
-                    <span className="text-xs text-muted-foreground">{member.email}</span>
+                  <div>
+                    <div className="font-medium text-sm text-foreground/90">{member.user.name}</div>
+                    <div className="text-xs text-muted-foreground">{member.user.email}</div>
                   </div>
                 </div>
               </TableCell>
               <TableCell>
-                <Badge variant={member.role === "Owner" ? "default" : "secondary"} className="font-normal text-xs">
+                <Badge variant={member.role === "OWNER" ? "default" : "secondary"} className="font-normal text-xs">
                   {member.role}
                 </Badge>
               </TableCell>

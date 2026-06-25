@@ -1,32 +1,32 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GitPullRequest, Bug, Clock, CheckCircle } from "lucide-react"
 
-export function StatCards() {
+export function StatCards({ stats: realStats }: { stats: { totalPRsAnalyzed: number; criticalBugsCaught: number; approvalRate: number; activeFeatures: number } }) {
   const stats = [
     {
       title: "PRs Analyzed",
-      value: "142",
-      description: "+12% from last month",
+      value: realStats.totalPRsAnalyzed.toString(),
+      description: "Total PRs evaluated by AI",
       icon: GitPullRequest,
       trend: "up"
     },
     {
       title: "Critical Bugs Caught",
-      value: "28",
+      value: realStats.criticalBugsCaught.toString(),
       description: "Prevented reaching staging",
       icon: Bug,
       trend: "neutral"
     },
     {
-      title: "Dev Time Saved",
-      value: "104h",
-      description: "~45 min per PR",
+      title: "Active Features",
+      value: realStats.activeFeatures.toString(),
+      description: "Features currently in progress",
       icon: Clock,
       trend: "up"
     },
     {
       title: "Approval Rate",
-      value: "94%",
+      value: `${realStats.approvalRate}%`,
       description: "Code merged without human intervention",
       icon: CheckCircle,
       trend: "up"

@@ -104,6 +104,8 @@ export const reviewFindings = pgTable("review_findings", {
   description: text("description").notNull(),
   suggestion: text("suggestion"), // Suggested code block
   status: text("status").default("OPEN").notNull(), // OPEN, ADDRESSED, IGNORED
+  isBlocking: boolean("is_blocking").default(false).notNull(),
+  severity: text("severity").notNull().default("SUGGESTION"), // BLOCKER, MAJOR, MINOR, SUGGESTION
 });
 
 export const approvals = pgTable("approvals", {

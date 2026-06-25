@@ -3,7 +3,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Github, ExternalLink, CheckCircle2 } from "lucide-react"
+import { Github, ExternalLink, CheckCircle2, Loader2 } from "lucide-react"
+import { trpc } from "~/trpc/client"
+import { useState } from "react"
 
 interface GitHubConnectCardProps {
   orgId: string
@@ -13,12 +15,18 @@ interface GitHubConnectCardProps {
 }
 
 export function GitHubConnectCard({ orgId, orgSlug, isConnected, accountLogin }: GitHubConnectCardProps) {
-  const appName = process.env.NEXT_PUBLIC_GITHUB_APP_NAME || "shipflow-ai"
+  const [isLoading, setIsLoading] = useState(false)
+  const installMutation = trpc.organization.getGithubInstallUrl.useMutation()
 
-  const handleInstall = () => {
-    // Redirect to GitHub App installation page with org ID in state
-    const installUrl = `https://github.com/apps/${appName}/installations/new?state=${orgId}`
-    window.location.href = installUrl
+  const handleInstall = async () => {
+    try {
+      setIsLoading(true)
+      const installUrl = await installMutation.mutateAsync({ orgId })
+      window.location.href = installUrl
+    } catch (error) {
+      console.error("Failed to generate install URL", error)
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -55,15 +63,15 @@ export function GitHubConnectCard({ orgId, orgSlug, isConnected, accountLogin }:
               <Github className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">{accountLogin}</span>
             </div>
-            <Button variant="outline" size="sm" onClick={handleInstall}>
-              <ExternalLink className="w-3.5 h-3.5 mr-2" />
+            <Button variant="outline" size="sm" onClick={handleInstall} disabled={isLoading}>
+              {isLoading ? <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5 mr-2" />}
               Manage
             </Button>
           </div>
         ) : (
-          <Button onClick={handleInstall} className="w-full">
-            <Github className="w-4 h-4 mr-2" />
-            Install GitHub App
+          <Button className="w-full sm:w-auto" onClick={handleInstall} disabled={isLoading}>
+            {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Github className="w-4 h-4 mr-2" />}
+            Connect GitHub
           </Button>
         )}
       </CardContent>

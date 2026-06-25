@@ -1,5 +1,17 @@
 import { serve } from "inngest/next";
-import { inngest, generateReleaseNotesWorkflow, billingSyncWorkflow, syncRepositoryWorkflow, reviewPullRequestWorkflow } from "@shipflow/workflow";
+import { 
+  inngest, 
+  generateReleaseNotesWorkflow, 
+  billingSyncWorkflow, 
+  syncRepositoryWorkflow, 
+  reviewPullRequestWorkflow,
+  featurePrdGenerated,
+  featureTasksGenerated,
+  featurePlanApproved,
+  featureReviewFailed,
+  featureHumanApproved,
+  releaseReadinessWorkflow
+} from "@shipflow/workflow";
 
 
 export const { GET, POST, PUT } = serve({
@@ -9,5 +21,11 @@ export const { GET, POST, PUT } = serve({
     generateReleaseNotesWorkflow,
     billingSyncWorkflow,
     syncRepositoryWorkflow,
+    featurePrdGenerated,
+    featureTasksGenerated,
+    featurePlanApproved,
+    featureReviewFailed,
+    featureHumanApproved,
+    releaseReadinessWorkflow,
   ],
 });

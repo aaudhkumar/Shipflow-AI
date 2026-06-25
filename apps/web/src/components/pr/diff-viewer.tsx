@@ -1,56 +1,36 @@
 "use client"
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react"
+import { MessageSquare, FileCode } from "lucide-react"
 
-export function DiffViewer() {
-  const [expanded, setExpanded] = useState(true)
+export function DiffViewer({ findings = [] }: { findings?: any[] }) {
+  if (findings.length === 0) {
+    return (
+      <div className="p-8 text-center text-muted-foreground">
+        No findings found for this review.
+      </div>
+    )
+  }
+
+  // Group by file
+  const byFile = findings.reduce((acc, f) => {
+    if (!acc[f.filePath]) acc[f.filePath] = [];
+    acc[f.filePath].push(f);
+    return acc;
+  }, {} as Record<string, any[]>);
 
   return (
-    <div className="font-mono text-sm">
-      <div className="px-4 py-2 bg-muted/30 border-b border-border/30 text-xs flex justify-between">
-        <span>src/app/api/webhooks/razorpay/route.ts</span>
-        <span className="text-emerald-500">+12</span>
-        <span className="text-destructive">-4</span>
-      </div>
-      
-      <div className="bg-[#0f111a] text-[#a6accd] overflow-x-auto">
-        <div className="table w-full border-collapse">
-          {/* Unchanged */}
-          <div className="table-row hover:bg-white/5">
-            <div className="table-cell select-none border-r border-white/10 px-2 py-0.5 text-right text-white/30 w-12">42</div>
-            <div className="table-cell select-none border-r border-white/10 px-2 py-0.5 text-right text-white/30 w-12">42</div>
-            <div className="table-cell px-4 py-0.5 whitespace-pre">  const body = await req.text()</div>
+    <div className="font-mono text-sm flex flex-col">
+      {(Object.entries(byFile) as [string, any[]][]).map(([filePath, fileFindings]) => (
+        <div key={filePath} className="border-b border-border/30 last:border-0">
+          <div className="px-4 py-2 bg-muted/30 border-b border-border/30 text-xs flex items-center gap-2 text-muted-foreground">
+            <FileCode className="w-3.5 h-3.5" />
+            <span>{filePath}</span>
+            <span className="ml-auto text-primary">{fileFindings.length} findings</span>
           </div>
           
-          {/* Removed */}
-          <div className="table-row bg-rose-500/10 hover:bg-rose-500/20">
-            <div className="table-cell select-none border-r border-rose-500/20 px-2 py-0.5 text-right text-rose-400 w-12">43</div>
-            <div className="table-cell select-none border-r border-rose-500/20 px-2 py-0.5 text-right text-white/30 w-12"></div>
-            <div className="table-cell px-4 py-0.5 whitespace-pre text-rose-300">- const signature = req.headers.get("x-razorpay-signature")</div>
-          </div>
-          
-          {/* Added */}
-          <div className="table-row bg-emerald-500/10 hover:bg-emerald-500/20">
-            <div className="table-cell select-none border-r border-emerald-500/20 px-2 py-0.5 text-right text-white/30 w-12"></div>
-            <div className="table-cell select-none border-r border-emerald-500/20 px-2 py-0.5 text-right text-emerald-400 w-12">43</div>
-            <div className="table-cell px-4 py-0.5 whitespace-pre text-emerald-300">+ const signature = req.headers.get("x-razorpay-signature") as string</div>
-          </div>
-
-          <div className="table-row bg-emerald-500/10 hover:bg-emerald-500/20">
-            <div className="table-cell select-none border-r border-emerald-500/20 px-2 py-0.5 text-right text-white/30 w-12"></div>
-            <div className="table-cell select-none border-r border-emerald-500/20 px-2 py-0.5 text-right text-emerald-400 w-12">44</div>
-            <div className="table-cell px-4 py-0.5 whitespace-pre text-emerald-300">+ if (!signature) return new Response("Missing sig", {"{ status: 400 }"})</div>
-          </div>
-
-          {/* AI Annotation */}
-          {expanded && (
-            <div className="table-row bg-primary/10">
-              <div className="table-cell border-r border-primary/20"></div>
-              <div className="table-cell border-r border-primary/20"></div>
-              <div className="table-cell p-4">
+          <div className="bg-[#0f111a] text-[#a6accd] flex flex-col">
+            {fileFindings.map((finding) => (
+              <div key={finding.id} className="p-4 border-b border-white/5 last:border-0">
                 <div className="rounded-lg bg-card border border-primary/30 p-4 shadow-lg flex flex-col gap-3 font-sans relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
                   <div className="flex items-center justify-between">
@@ -58,29 +38,32 @@ export function DiffViewer() {
                       <MessageSquare className="w-4 h-4" />
                       <span className="font-semibold text-sm">ShipFlow AI Insight</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs uppercase bg-muted px-2 py-0.5 rounded text-muted-foreground font-mono">
+                        Line {finding.lineNumber || 'Unknown'}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-sm text-foreground">
-                    Good job adding the null check for the signature header. However, consider logging this failure to your monitoring stack (e.g. Sentry or Datadog) to track potential webhook probing attacks.
+                  <p className="text-sm text-card-foreground leading-relaxed">
+                    {finding.description}
                   </p>
-                  <Separator className="bg-border/50" />
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground mr-2">Was this helpful?</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6"><ThumbsUp className="w-3 h-3 text-muted-foreground" /></Button>
-                    <Button variant="ghost" size="icon" className="h-6 w-6"><ThumbsDown className="w-3 h-3 text-muted-foreground" /></Button>
-                  </div>
+                  
+                  {finding.suggestion && (
+                    <div className="mt-2 rounded-md bg-muted/50 border border-border/50 overflow-hidden font-mono text-xs">
+                      <div className="bg-muted px-3 py-1.5 text-muted-foreground border-b border-border/50 flex justify-between items-center">
+                        <span>Suggested Fix</span>
+                      </div>
+                      <div className="p-3 overflow-x-auto text-emerald-400">
+                        <pre><code>{finding.suggestion}</code></pre>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Unchanged */}
-          <div className="table-row hover:bg-white/5">
-            <div className="table-cell select-none border-r border-white/10 px-2 py-0.5 text-right text-white/30 w-12">44</div>
-            <div className="table-cell select-none border-r border-white/10 px-2 py-0.5 text-right text-white/30 w-12">45</div>
-            <div className="table-cell px-4 py-0.5 whitespace-pre">  </div>
+            ))}
           </div>
         </div>
-      </div>
+      ))}
     </div>
   )
 }

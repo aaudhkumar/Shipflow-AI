@@ -5,16 +5,13 @@ import { GitPullRequest, ArrowRight, ExternalLink, Clock, CheckCircle2, XCircle 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { api } from "~/trpc/server"
 
 export default async function PRListPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
   // Fetch the org by slug
-  const [org] = await db
-    .select()
-    .from(organizations)
-    .where(eq(organizations.slug, slug))
-    .limit(1);
+  const org = await api.organization.getBySlug.query({ slug });
 
   if (!org) {
     return (
@@ -25,20 +22,7 @@ export default async function PRListPage({ params }: { params: Promise<{ slug: s
   }
 
   // Fetch all PRs for this org
-  const prs = await db
-    .select({
-      id: pullRequests.id,
-      title: pullRequests.title,
-      githubPrNumber: pullRequests.githubPrNumber,
-      state: pullRequests.state,
-      createdAt: pullRequests.createdAt,
-      repoName: repositories.fullName,
-      url: pullRequests.url,
-    })
-    .from(pullRequests)
-    .leftJoin(repositories, eq(pullRequests.repositoryId, repositories.id))
-    .where(eq(pullRequests.orgId, org.id))
-    .orderBy(desc(pullRequests.createdAt));
+  const prs = await api.pullRequest.list.query({ orgId: org.id });
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">

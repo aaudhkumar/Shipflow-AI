@@ -9,15 +9,18 @@ import {
   GitPullRequestDraft, 
   Users, 
   Blocks,
-  Activity
+  Activity,
+  FileText,
+  History
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface SidebarProps {
   orgSlug: string
+  usage?: { used: number, total: number }
 }
 
-export function Sidebar({ orgSlug }: SidebarProps) {
+export function Sidebar({ orgSlug, usage = { used: 0, total: 500 } }: SidebarProps) {
   const pathname = usePathname()
 
   const routes = [
@@ -26,6 +29,18 @@ export function Sidebar({ orgSlug }: SidebarProps) {
       icon: LayoutDashboard,
       href: `/org/${orgSlug}`,
       active: pathname === `/org/${orgSlug}`,
+    },
+    {
+      label: "Analytics",
+      icon: Activity,
+      href: `/org/${orgSlug}/analytics`,
+      active: pathname.startsWith(`/org/${orgSlug}/analytics`),
+    },
+    {
+      label: "Feature Requests",
+      icon: FileText,
+      href: `/org/${orgSlug}/features`,
+      active: pathname.startsWith(`/org/${orgSlug}/features`),
     },
     {
       label: "PR Insights",
@@ -44,6 +59,24 @@ export function Sidebar({ orgSlug }: SidebarProps) {
       icon: Users,
       href: `/org/${orgSlug}/settings/members`,
       active: pathname === `/org/${orgSlug}/settings/members`,
+    },
+    {
+      label: "Review History",
+      icon: History,
+      href: `/org/${orgSlug}/reviews`,
+      active: pathname.startsWith(`/org/${orgSlug}/reviews`),
+    },
+    {
+      label: "Billing & Plans",
+      icon: Activity,
+      href: `/org/${orgSlug}/settings/billing`,
+      active: pathname === `/org/${orgSlug}/settings/billing`,
+    },
+    {
+      label: "Audit Logs",
+      icon: History,
+      href: `/org/${orgSlug}/settings/audit-logs`,
+      active: pathname === `/org/${orgSlug}/settings/audit-logs`,
     },
     {
       label: "Settings",
@@ -86,9 +119,9 @@ export function Sidebar({ orgSlug }: SidebarProps) {
       <div className="p-4 border-t border-border/40">
         <div className="rounded-lg border border-border/50 bg-muted/20 p-4 backdrop-blur-md">
           <h4 className="text-sm font-medium mb-1">PRO Plan</h4>
-          <p className="text-xs text-muted-foreground mb-3">142 / 500 AI PR Analyses used this month.</p>
+          <p className="text-xs text-muted-foreground mb-3">{usage.used} / {usage.total} AI PR Analyses used this month.</p>
           <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
-            <div className="bg-primary h-full w-[28%]" />
+            <div className="bg-primary h-full transition-all" style={{ width: `${Math.min(100, Math.round((usage.used / usage.total) * 100))}%` }} />
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { db } from "@shipflow/db";
 import { githubInstallations } from "@shipflow/db/schema";
 import { eq } from "drizzle-orm";
 import { getGithubApp } from "@shipflow/github";
+import { auth } from "@shipflow/auth";
 import { headers } from "next/headers";
 
 /**
@@ -35,6 +36,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
+  const session = await auth.api.getSession({
+    headers: req.headers,
+  });
+
+  if (!session?.user?.id) {
+    console.error("No authenticated user found during GitHub installation");
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+
   // Fetch installation details from GitHub to get the account login
   try {
     const app = getGithubApp();
@@ -46,11 +56,32 @@ export async function GET(req: NextRequest) {
 
     const accountLogin = (installation.account as any)?.login || "unknown";
 
-    // For now, we store with placeholder org/user IDs.
-    // The frontend will associate with the correct org after redirect.
+    const stateParam = searchParams.get("state");
+    if (!stateParam) return NextResponse.redirect(new URL("/?error=missing_state", req.url));
+
+    const stateString = Buffer.from(stateParam, "base64").toString("utf-8");
+    const [orgId, timestampStr, providedHmac] = stateString.split(":");
+    
+    if (!orgId || !timestampStr || !providedHmac) {
+      return NextResponse.json({ error: "Invalid state format" }, { status: 403 });
+    }
+
+    const timestamp = parseInt(timestampStr, 10);
+    if (Date.now() - timestamp > 10 * 60 * 1000) {
+      return NextResponse.json({ error: "State expired" }, { status: 403 });
+    }
+
+    const crypto = await import("crypto");
+    const secret = process.env.SESSION_SECRET || "fallback_secret_for_dev";
+    const expectedHmac = crypto.createHmac("sha256", secret).update(`${orgId}:${timestampStr}`).digest("hex");
+
+    if (providedHmac !== expectedHmac) {
+      return NextResponse.json({ error: "Invalid state signature" }, { status: 403 });
+    }
+
     await db.insert(githubInstallations).values({
-      orgId: searchParams.get("state") || "", // org ID passed via state param
-      userId: "", // Will be filled by the frontend session
+      orgId,
+      userId: session.user.id, 
       installationId: installationIdNum,
       accountLogin,
     });

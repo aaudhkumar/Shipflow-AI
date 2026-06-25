@@ -9,6 +9,7 @@
     "./pinecone/vector": "./src/pinecone/vector.ts",
     "./pinecone/client": "./src/pinecone/client.ts",
     "./utils/chunk": "./src/utils/chunk.ts",
+    "./user/model": "./user/model.ts",
     "./*": "./*"
   },
   "devDependencies": {
