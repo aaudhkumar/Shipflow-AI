@@ -36,6 +36,8 @@ const plans = [
   },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default async function PricingPage() {
   let defaultOrgId = null;
   try {

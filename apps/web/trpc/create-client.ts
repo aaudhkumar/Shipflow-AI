@@ -21,9 +21,26 @@ export const createTRPCHttpBatchClientClient = (opts?: CreateTRPCHttpBatchClient
     url: getUrl(),
     headers: opts?.headers as any,
     fetch(url, options) {
+      // Extract Better Auth token to send as Bearer for cross-domain backend (Render)
+      let cookieStr = "";
+      if (typeof document !== "undefined") {
+        cookieStr = document.cookie;
+      } else {
+        cookieStr = (options?.headers as any)?.cookie || "";
+      }
+
+      const tokenMatch = cookieStr.match(/(?:^| )(__Secure-)?better-auth\.session_token=([^;]+)/);
+      const token = tokenMatch ? tokenMatch[2] : null;
+
+      const newHeaders = { ...options?.headers } as any;
+      if (token) {
+        newHeaders["Authorization"] = `Bearer ${token}`;
+      }
+
       return fetch(url, {
         ...options,
-        credentials: "include",
+        credentials: "omit", // Rely on Bearer token instead of cross-domain cookies
+        headers: newHeaders,
       });
     },
   });
