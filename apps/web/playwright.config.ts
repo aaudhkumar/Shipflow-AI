@@ -15,6 +15,8 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
+  globalSetup: './e2e/global-setup',
+  globalTeardown: './e2e/global-teardown',
   use: {
     baseURL,
     trace: 'on-first-retry',
@@ -22,8 +24,16 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+    },
+    {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.auth/user.json',
+      },
+      dependencies: ['setup'],
     },
     // To speed up CI for the first integration test run, we can just test against Chromium.
     // Uncomment these to test across multiple browsers.

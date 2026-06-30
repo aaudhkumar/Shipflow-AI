@@ -17,6 +17,9 @@ export const featureRequests = pgTable("feature_requests", {
   title: text("title").notNull(),
   rawDescription: text("raw_description").notNull(),
   status: featureRequestStatusEnum("status").default("SUBMITTED").notNull(),
+  sourceChannel: text("source_channel", { 
+    enum: ["IN_APP", "EMAIL", "TICKET", "CALL"] 
+  }).notNull().default("IN_APP"),
   businessValueScore: integer("business_value_score"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

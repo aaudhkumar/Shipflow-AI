@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   allowedDevOrigins: [
-    "https://magnify-overbite-brought.ngrok-free.dev",
+    "https://deskbound-jailbird-jam.ngrok-free.dev",
   ],
 };
 

@@ -7,6 +7,14 @@ export async function createCheckoutSession(orgId: string, planId: PlanId) {
     throw new Error("Cannot create checkout session for a free plan.");
   }
 
+  // Handle placeholder plan IDs gracefully
+  if (plan.razorpayPlanId.startsWith("your_")) {
+    return {
+      subscriptionId: "sub_dummy_123",
+      shortUrl: "/billing/dummy-checkout",
+    };
+  }
+
   const razorpay = getRazorpayClient();
   
   const subscription = await razorpay.subscriptions.create({

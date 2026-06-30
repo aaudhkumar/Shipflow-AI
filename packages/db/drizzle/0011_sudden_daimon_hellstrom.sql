@@ -1,0 +1,1 @@
+ALTER TABLE "pull_request_reviews" ALTER COLUMN "github_review_id" SET DATA TYPE bigint;

@@ -2,27 +2,34 @@
 
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Bell, Search } from "lucide-react"
+import { Bell, Search, Moon, Sun } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { trpc } from "~/trpc/client"
 
 export function Header({ orgSlug }: { orgSlug: string }) {
+  const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const { data: org } = trpc.organization.getBySlug.useQuery({ slug: orgSlug });
   const { data: notifications, refetch } = trpc.notification.list.useQuery({ orgId: org?.id! }, {
     enabled: !!org?.id,
     refetchInterval: 30000,
   });
 
+  const { data: unreadCount = 0, refetch: refetchUnreadCount } = trpc.notification.getUnreadCount.useQuery(
+    { orgId: org?.id! },
+    { enabled: !!org?.id, refetchInterval: 10000 }
+  );
+
   const markAsRead = trpc.notification.markAsRead.useMutation({
-    onSuccess: () => refetch(),
+    onSuccess: () => { refetch(); refetchUnreadCount(); },
   });
 
   const markAllAsRead = trpc.notification.markAllAsRead.useMutation({
-    onSuccess: () => refetch(),
+    onSuccess: () => { refetch(); refetchUnreadCount(); },
   });
-
-  const unreadCount = notifications?.filter((n: any) => !n.isRead).length || 0;
 
   return (
     <header className="h-14 flex items-center justify-between px-6 border-b border-border/40 bg-background/60 backdrop-blur-xl sticky top-0 z-20">
@@ -38,6 +45,16 @@ export function Header({ orgSlug }: { orgSlug: string }) {
       </div>
       
       <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-foreground"
+          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        >
+          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative text-muted-foreground hover:text-foreground">
@@ -69,6 +86,9 @@ export function Header({ orgSlug }: { orgSlug: string }) {
                     className={`flex flex-col items-start gap-1 p-3 cursor-pointer ${!notification.isRead ? 'bg-muted/50' : ''}`}
                     onClick={() => {
                       if (!notification.isRead) markAsRead.mutate({ orgId: org?.id!, notificationId: notification.id });
+                      if (notification.actionUrl) {
+                        router.push(notification.actionUrl);
+                      }
                     }}
                   >
                     <div className="flex items-center justify-between w-full">

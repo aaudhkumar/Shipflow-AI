@@ -1,8 +1,8 @@
 import { router, orgMemberProcedure } from "../../trpc";
 import { z } from "zod";
 import { db } from "@shipflow/db";
-import { prds, epics, tasks } from "@shipflow/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { prds, epics, tasks, projects, featureRequests } from "@shipflow/db/schema";
+import { eq, inArray, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 export const taskRouter = router({
@@ -23,14 +23,21 @@ export const taskRouter = router({
       let allTasks: any[] = [];
       if (epicIds.length > 0) {
         allTasks = await db.query.tasks.findMany({
-          where: inArray(tasks.epicId, epicIds)
+          where: inArray(tasks.epicId, epicIds),
+          with: { subtasks: true }
         });
       }
       
+      let epic = null;
+      if (featureEpics.length > 0) {
+        epic = featureEpics[0];
+      }
+      
       const grouped = {
-        TODO: allTasks.filter(t => t.status === "TODO"),
+        TODO: allTasks.filter(t => t.status === "TODO" || t.status === "BACKLOG"),
         IN_PROGRESS: allTasks.filter(t => t.status === "IN_PROGRESS"),
         DONE: allTasks.filter(t => t.status === "DONE"),
+        epic
       };
       
       return grouped;
@@ -59,5 +66,44 @@ export const taskRouter = router({
         .returning();
         
       return updated;
+    }),
+    
+  assignTask: orgMemberProcedure
+    .input(z.object({ taskId: z.string(), assigneeId: z.string().nullable() }))
+    .mutation(async ({ input, ctx }) => {
+      const [updated] = await db.update(tasks)
+        .set({ assigneeId: input.assigneeId })
+        .where(eq(tasks.id, input.taskId))
+        .returning();
+      if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Task not found" });
+      return updated;
+    }),
+    
+  getMyTasks: orgMemberProcedure
+    .input(z.object({ orgId: z.string() }))
+    .query(async ({ input, ctx }) => {
+      const allTasks = await db.query.tasks.findMany({
+        where: and(eq(tasks.orgId, input.orgId), eq(tasks.assigneeId, ctx.member.id)),
+        with: {
+          epic: {
+            with: {
+              project: true,
+              prd: {
+                with: {
+                  featureRequest: true
+                }
+              }
+            }
+          }
+        }
+      });
+      
+      const grouped = {
+        TODO: allTasks.filter(t => t.status === "TODO" || t.status === "BACKLOG"),
+        IN_PROGRESS: allTasks.filter(t => t.status === "IN_PROGRESS"),
+        DONE: allTasks.filter(t => t.status === "DONE"),
+      };
+      
+      return grouped;
     })
 });

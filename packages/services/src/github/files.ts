@@ -82,14 +82,21 @@ export async function fetchRepoFiles(
           const content = Buffer.from(blob.content, "base64").toString("utf-8");
 
           return { path: file.path!, content };
-        } catch {
-          // Skip files that fail to fetch
+        } catch (error: any) {
+          // Log exactly why the blob fetch failed
+          console.error(`Blob fetch failed for ${file.path}:`, error.message || error);
           return null;
         }
       }),
     );
 
     results.push(...(batchResults.filter(Boolean) as { path: string; content: string }[]));
+  }
+
+  if (indexableFiles.length > 0 && results.length === 0) {
+    throw new Error(`Tree fetched ${indexableFiles.length} indexable files, but EVERY single blob fetch failed. Check server console for 403/404 errors.`);
+  } else if (indexableFiles.length === 0) {
+    throw new Error(`Tree fetched successfully (${tree.tree?.length || 0} total items), but 0 files passed the 'isIndexableFile' filter or size limits.`);
   }
 
   return results;

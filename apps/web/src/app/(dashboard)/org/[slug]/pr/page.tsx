@@ -24,6 +24,10 @@ export default async function PRListPage({ params }: { params: Promise<{ slug: s
   // Fetch all PRs for this org
   const prs = await api.pullRequest.list.query({ orgId: org.id });
 
+  // Fetch connected repositories to show the correct empty state
+  const connectedRepos = await db.select().from(repositories).where(eq(repositories.orgId, org.id));
+  const hasConnectedRepos = connectedRepos.length > 0;
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -43,13 +47,17 @@ export default async function PRListPage({ params }: { params: Promise<{ slug: s
             </div>
             <h3 className="text-lg font-medium">No Pull Requests found</h3>
             <p className="text-muted-foreground mt-2 max-w-md">
-              Connect a repository and open a pull request on GitHub to see AI insights appear here automatically.
+              {hasConnectedRepos 
+                ? "You have connected repositories. Open a pull request on GitHub to see AI insights appear here automatically." 
+                : "Connect a repository and open a pull request on GitHub to see AI insights appear here automatically."}
             </p>
-            <Button asChild className="mt-6" variant="outline">
-              <Link href={`/org/${slug}/settings/integrations`}>
-                Connect Repositories
-              </Link>
-            </Button>
+            {!hasConnectedRepos && (
+              <Button asChild className="mt-6" variant="outline">
+                <Link href={`/org/${slug}/settings/integrations`}>
+                  Connect Repositories
+                </Link>
+              </Button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-border/50">

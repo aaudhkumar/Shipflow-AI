@@ -1,7 +1,6 @@
 import { db } from "@shipflow/db";
 import type { Database } from "@shipflow/db";
 import { getSession } from "@shipflow/auth";
-import { drizzle } from "drizzle-orm/node-postgres/driver";
 
 export interface Context {
   db: Database;

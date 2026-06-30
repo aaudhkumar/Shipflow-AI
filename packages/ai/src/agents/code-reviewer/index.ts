@@ -1,32 +1,86 @@
-import { generateObject } from "ai";
+import { generateObject, generateText } from "ai";
 import { getDefaultModel } from "../../client";
-import { CodeReviewResultSchema } from "./schema";
+import { CodeReviewResult, CodeReviewResultSchema } from "./schema";
+import { ReflectionResult, ReflectionSchema } from "./reflection-schema";
 import { codeReviewerSystemPrompt } from "./prompt";
+import { GATHERING_SYSTEM_PROMPT } from "./gathering-prompt";
+import { createReviewerTools, ReviewerContext } from "./tools";
 
-export async function runCodeReview(diffContent: string, contextSnippets: string[] = [], prd?: string, previousFindings?: string) {
+export async function runCodeReviewerAgent(context: ReviewerContext, diffContent: string) {
   const model = getDefaultModel();
+  const tools = createReviewerTools(context);
 
-  let prompt = `Please review the following PR diff:\n\n${diffContent}`;
+  let toolCallCount = 0;
+  const toolsUsed: string[] = [];
 
-  if (previousFindings) {
-    prompt += `\n\n=== PREVIOUS REVIEW FINDINGS ===\nThe following issues were raised in the previous review. For each, explicitly state whether it has been RESOLVED, PARTIALLY ADDRESSED, or REMAINS in the new diff:\n\n${previousFindings}`;
-  }
-
-  if (prd) {
-    prompt += `\n\n=== PRODUCT REQUIREMENTS DOCUMENT (PRD) ===\nThe following PRD outlines the expected behavior and requirements for this feature. Please use it to verify that the implementation meets the business logic requirements:\n\n${prd}`;
-  }
-
-  if (contextSnippets.length > 0) {
-    prompt += `\n\n=== RELEVANT CODEBASE CONTEXT ===\nThe following snippets from the codebase may provide context for evaluating architectural alignment and existing patterns:\n\n`;
-    prompt += contextSnippets.join("\n\n---\n\n");
-  }
-
-  const { object, usage } = await generateObject({
+  // Step 1: Context gathering with autonomous tool use
+  const gatheringResult = await generateText({
     model,
-    system: codeReviewerSystemPrompt,
-    prompt,
-    schema: CodeReviewResultSchema,
+    system: GATHERING_SYSTEM_PROMPT,
+    messages: [
+      { role: 'user', content: `Please review this PR diff and gather any necessary context using tools.\n\nDiff:\n${diffContent}` }
+    ],
+    tools,
+    maxSteps: 8,
+    onStepFinish: (step) => {
+      if (step.toolCalls?.length) {
+        toolCallCount += step.toolCalls.length;
+        toolsUsed.push(...step.toolCalls.map(t => t.toolName));
+      }
+    },
   });
 
-  return { result: object, usage };
+  // Extract tool usage from steps - handled by onStepFinish now
+
+  // Step 2: Generate structured findings from gathered context
+  const { object: findingsResult } = await generateObject<CodeReviewResult>({
+    model,
+    system: codeReviewerSystemPrompt,
+    schema: CodeReviewResultSchema,
+    messages: [
+      { 
+        role: 'user', 
+        content: `Based on your gathered context and the initial diff, generate a structured code review findings report.\n\nCRITICAL INSTRUCTION: You MUST output a valid JSON object exactly matching the requested schema. Do not return an empty object. If there are no findings, return an empty array [] for "comments" and a brief text for "summary".\n\nDiff:\n${diffContent}\n\nGathered Context:\n${gatheringResult.text}` 
+      }
+    ],
+  });
+
+  // Step 3: Reflection — check all acceptance criteria are addressed
+  let reflectionApplied = false;
+  let finalFindings = findingsResult.comments;
+
+  if (context.prd && context.prd.acceptanceCriteria) {
+    const { object: reflectionResult } = await generateObject<ReflectionResult>({
+      model,
+      system: `You are a strict QA auditor. Compare the PRD acceptance criteria to the code review findings. Identify if any criteria are missed and require new findings.`,
+      schema: ReflectionSchema,
+      prompt: `
+        Acceptance Criteria:
+        ${JSON.stringify(context.prd.acceptanceCriteria, null, 2)}
+        
+        Current Findings:
+        ${JSON.stringify(findingsResult.comments, null, 2)}
+      `,
+    });
+
+    if (reflectionResult.missedCriteria.length > 0) {
+      reflectionApplied = true;
+      finalFindings = [...findingsResult.comments, ...reflectionResult.additionalFindings];
+    }
+  }
+
+  return {
+    result: {
+      comments: finalFindings,
+      summary: findingsResult.summary,
+      reviewMeta: {
+        toolCallCount,
+        toolsUsed: [...new Set(toolsUsed)],
+        reflectionApplied,
+        modelUsed: model.modelId,
+        shouldMerge: findingsResult.shouldMerge,
+      }
+    },
+    usage: gatheringResult.usage,
+  };
 }

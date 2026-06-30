@@ -14,7 +14,30 @@ export class OrganizationRepository {
         userId: userId,
         role: "OWNER"
       });
+      const aiUserId = `ai-agent-${organization.id}`;
+      // Use onConflictDoNothing in case this user is somehow global or already exists,
+      // but here we create an AI user per org or a global one.
+      // A global one is better.
+      const globalAiUserId = "shipflow-ai-agent-user";
       
+      const { users } = await import("@shipflow/db/schema");
+      await db.insert(users).values({
+        id: globalAiUserId,
+        email: "ai@shipflow.com",
+        name: "ShipFlow AI Agent",
+        image: "https://api.dicebear.com/7.x/bottts/svg?seed=shipflow",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        emailVerified: true
+      }).onConflictDoNothing();
+
+      await tx.insert(members).values({
+        id: crypto.randomUUID(),
+        orgId: organization.id,
+        userId: globalAiUserId,
+        role: "ENGINEER"
+      }).onConflictDoNothing();
+
       return organization;
     });
   }
@@ -53,38 +76,76 @@ export class OrganizationRepository {
       .innerJoin(pullRequests, eq(pullRequestReviews.pullRequestId, pullRequests.id))
       .where(and(eq(pullRequests.orgId, orgId), eq(reviewFindings.isBlocking, true)));
 
-    const [activeFeatures] = await db
+    const activeFeaturesQuery = await db
       .select({ count: sql<number>`count(*)` })
       .from(featureRequests)
       .where(and(eq(featureRequests.orgId, orgId), not(eq(featureRequests.status, "SHIPPED"))));
+    const [activeFeatures] = activeFeaturesQuery;
+
+    const prReviews = await db
+      .select({ reviewMeta: pullRequestReviews.reviewMeta })
+      .from(pullRequestReviews)
+      .innerJoin(pullRequests, eq(pullRequestReviews.pullRequestId, pullRequests.id))
+      .where(and(eq(pullRequests.orgId, orgId), eq(pullRequestReviews.isAiReview, true)));
+
+    let approved = 0;
+    let totalAssessed = 0;
+    prReviews.forEach(r => {
+      const meta = r.reviewMeta as any;
+      if (meta && typeof meta === 'object' && meta.shouldMerge !== undefined) {
+        totalAssessed++;
+        if (meta.shouldMerge === true) {
+          approved++;
+        }
+      }
+    });
+    
+    // Default to 100% if no PRs have been assessed yet
+    const approvalRate = totalAssessed > 0 ? Math.round((approved / totalAssessed) * 100) : 0 ;
 
     return {
       totalPRsAnalyzed: Number(totalPRs?.count || 0),
       criticalBugsCaught: Number(criticalBugs?.count || 0),
-      approvalRate: 94, // Simplified
+      approvalRate,
       activeFeatures: Number(activeFeatures?.count || 0),
     };
   }
 
   async getRecentActivity(orgId: string) {
-    const { pullRequests, pullRequestReviews, repositories } = await import("@shipflow/db/schema");
+    const { pullRequests, pullRequestReviews, repositories, githubInstallations } = await import("@shipflow/db/schema");
     const { eq, desc } = await import("drizzle-orm");
 
-    const activity = await db
+    const activityQuery = await db
       .select({
         reviewId: pullRequestReviews.id,
+        pullRequestId: pullRequests.id,
         prTitle: pullRequests.title,
         githubPrNumber: pullRequests.githubPrNumber,
         repoName: repositories.fullName,
+        installationId: githubInstallations.installationId,
         state: pullRequestReviews.state,
         createdAt: pullRequestReviews.createdAt,
+        isAiReview: pullRequestReviews.isAiReview,
+        reviewMeta: pullRequestReviews.reviewMeta,
       })
       .from(pullRequestReviews)
       .innerJoin(pullRequests, eq(pullRequestReviews.pullRequestId, pullRequests.id))
       .innerJoin(repositories, eq(pullRequests.repositoryId, repositories.id))
+      .leftJoin(githubInstallations, eq(pullRequests.orgId, githubInstallations.orgId))
       .where(eq(pullRequests.orgId, orgId))
       .orderBy(desc(pullRequestReviews.createdAt))
       .limit(10);
+      
+    const activity = activityQuery.map(a => {
+      const parts = a.repoName.split('/');
+      const repoOwner = parts[0] || '';
+      const repoName = parts[1] || a.repoName;
+      return {
+        ...a,
+        repoOwner,
+        repoName,
+      };
+    });
 
     return activity;
   }
@@ -253,5 +314,99 @@ export class OrganizationRepository {
       securityTrends,
       aiAccuracy
     };
+  }
+
+  async updateSettings(orgId: string, data: { name?: string; retentionDays?: number }) {
+    const { organizations } = await import("@shipflow/db/schema");
+    const { eq } = await import("drizzle-orm");
+    const [updated] = await db.update(organizations).set({ ...data, updatedAt: new Date() }).where(eq(organizations.id, orgId)).returning();
+    return updated;
+  }
+
+  async inviteMember(orgId: string, email: string, role: string) {
+    const { users, members } = await import("@shipflow/db/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    // Simplified logic: If user exists, add them directly
+    const user = await db.query.users.findFirst({ where: eq(users.email, email) });
+    if (!user) {
+      throw new Error("User with this email not found. They must sign up first.");
+    }
+    
+    // Check if already member
+    const existing = await db.query.members.findFirst({
+      where: (members, { and, eq }) => and(eq(members.orgId, orgId), eq(members.userId, user.id))
+    });
+    
+    if (existing) {
+      throw new Error("User is already a member");
+    }
+
+    const [member] = await db.insert(members).values({
+      id: crypto.randomUUID(),
+      orgId,
+      userId: user.id,
+      role: role as any,
+    }).returning();
+    
+    return member;
+  }
+
+  async updateMemberRole(orgId: string, memberId: string, newRole: string) {
+    const { members } = await import("@shipflow/db/schema");
+    const { eq, and } = await import("drizzle-orm");
+    
+    const [updated] = await db.update(members)
+      .set({ role: newRole as any })
+      .where(and(eq(members.orgId, orgId), eq(members.id, memberId)))
+      .returning();
+      
+    return updated;
+  }
+
+  async removeMember(orgId: string, memberId: string) {
+    const { members } = await import("@shipflow/db/schema");
+    const { eq, and } = await import("drizzle-orm");
+    
+    await db.delete(members).where(and(eq(members.orgId, orgId), eq(members.id, memberId)));
+    return { success: true };
+  }
+
+  async getMembers(orgId: string) {
+    const { members, users } = await import("@shipflow/db/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    // Ensure AI Agent exists in this org
+    const globalAiUserId = "shipflow-ai-agent-user";
+    await db.insert(users).values({
+      id: globalAiUserId,
+      email: "ai@shipflow.com",
+      name: "ShipFlow AI Agent",
+      image: "https://api.dicebear.com/7.x/bottts/svg?seed=shipflow",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      emailVerified: true
+    }).onConflictDoNothing();
+
+    await db.insert(members).values({
+      id: crypto.randomUUID(),
+      orgId: orgId,
+      userId: globalAiUserId,
+      role: "ENGINEER"
+    }).onConflictDoNothing();
+
+    const orgMembers = await db.select({
+      id: members.id,
+      role: members.role,
+      joinedAt: members.joinedAt,
+      user: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        image: users.image,
+      }
+    }).from(members).innerJoin(users, eq(members.userId, users.id)).where(eq(members.orgId, orgId));
+    
+    return orgMembers;
   }
 }

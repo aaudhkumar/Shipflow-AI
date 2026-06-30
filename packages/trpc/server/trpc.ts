@@ -38,3 +38,4 @@ export const orgMemberProcedure = protectedProcedure
     if (!member) throw new TRPCError({ code: "FORBIDDEN", message: "Not a member of this org" });
     return next({ ctx: { ...ctx, member, orgId: (input as any).orgId } });
   });
+

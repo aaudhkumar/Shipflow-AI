@@ -13,16 +13,20 @@ export const GithubPrOpenedEventSchema = z.object({
   deliveryId: z.string(),
 });
 
-export const GithubReleaseDraftedSchema = z.object({
+export const GithubReleasePublishedSchema = z.object({
   repositoryId: z.string(),
   tagName: z.string(),
   orgId: z.string(),
+  releaseId: z.number(),
+  publishedAt: z.string().nullable(),
 });
 
 export const BillingPaymentSuccessSchema = z.object({
-  subscriptionId: z.string(),
+  subscriptionId: z.string().nullable(),
   paymentId: z.string(),
   amount: z.number(),
+  orgId: z.string().nullable(),
+  planId: z.string().nullable(),
 });
 
 export const DeploymentFailedSchema = z.object({
@@ -40,6 +44,18 @@ export const FeatureStateTransitionSchema = z.object({
   actorId: z.string(),
 });
 
+export const TasksApprovedForDevSchema = z.object({
+  prdId: z.string(),
+  orgId: z.string(),
+  taskIds: z.array(z.string()),
+});
+
+export const FeatureCreatedEventSchema = z.object({
+  featureId: z.string(),
+  orgId: z.string(),
+  actorId: z.string(),
+});
+
 export const RepoSyncRequestedSchema = z.object({
   repositoryId: z.string(),
   orgId: z.string(),
@@ -54,18 +70,53 @@ export const GitHubRepositoriesSyncSchema = z.object({
   actorId: z.string(),
 });
 
+export const GithubIssueOpenedSchema = z.object({
+  orgId: z.string(),
+  repositoryId: z.string(),
+  issueNumber: z.number(),
+  title: z.string(),
+  body: z.string(),
+  state: z.string(),
+  authorLogin: z.string(),
+  actionAt: z.string(),
+});
+
+export const GithubIssueClosedSchema = z.object({
+  orgId: z.string(),
+  repositoryId: z.string(),
+  issueNumber: z.number(),
+  title: z.string(),
+  body: z.string(),
+  state: z.string(),
+  authorLogin: z.string(),
+  actionAt: z.string(),
+});
+
+export const GithubIssueCommentCreatedSchema = z.object({
+  orgId: z.string(),
+  repositoryId: z.string(),
+  issueNumber: z.number(),
+  githubCommentId: z.number(),
+  body: z.string(),
+  authorLogin: z.string(),
+  createdAt: z.string(),
+});
+
 export const ShipflowEvents = {
   "github.pr.opened": {
     data: GithubPrOpenedEventSchema,
   },
-  "github.release.drafted": {
-    data: GithubReleaseDraftedSchema,
+  "github.release.published": {
+    data: GithubReleasePublishedSchema,
   },
   "billing.payment.success": {
     data: BillingPaymentSuccessSchema,
   },
   "deployment.failed": {
     data: DeploymentFailedSchema,
+  },
+  "feature.created": {
+    data: FeatureCreatedEventSchema,
   },
   "feature.prd.generated": {
     data: FeatureStateTransitionSchema,
@@ -90,5 +141,17 @@ export const ShipflowEvents = {
   },
   "github.repositories.sync": {
     data: GitHubRepositoriesSyncSchema,
+  },
+  "github.issue.opened": {
+    data: GithubIssueOpenedSchema,
+  },
+  "github.issue.closed": {
+    data: GithubIssueClosedSchema,
+  },
+  "github.issue_comment.created": {
+    data: GithubIssueCommentCreatedSchema,
+  },
+  "tasks.approved_for_dev": {
+    data: TasksApprovedForDevSchema,
   },
 };

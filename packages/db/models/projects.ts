@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, boolean, integer, uniqueIndex, index } from "drizzle-orm/pg-core";
-import { organizations } from "./organizations";
+import { organizations, members } from "./organizations";
 import { projectStatusEnum, repoSyncStatusEnum } from "./enums";
 
 export const projects = pgTable(
@@ -50,6 +50,23 @@ export const projectRepositories = pgTable(
   (table) => {
     return {
       pk: uniqueIndex("project_repo_pk").on(table.projectId, table.repositoryId),
+    };
+  },
+);
+
+export const projectMembers = pgTable(
+  "project_members",
+  {
+    projectId: text("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    memberId: text("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+  },
+  (table) => {
+    return {
+      pk: uniqueIndex("project_member_pk").on(table.projectId, table.memberId),
     };
   },
 );

@@ -8,12 +8,17 @@
   "scripts": {
     "db:migrate": "dotenv -- drizzle-kit migrate",
     "db:generate": "dotenv -- drizzle-kit generate",
+    "db:seed": "dotenv -- tsx seed.ts",
     "dev": "dotenv -- drizzle-kit studio"
   },
   "devDependencies": {
+    "@better-auth/utils": "^0.4.2",
+    "@faker-js/faker": "^10.5.0",
     "@shipflow/eslint-config": "workspace:*",
     "@shipflow/typescript-config": "workspace:*",
+    "@types/bcryptjs": "^3.0.0",
     "@types/pg": "^8.16.0",
+    "bcryptjs": "^3.0.3",
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.8",
     "tsx": "^4.21.0",

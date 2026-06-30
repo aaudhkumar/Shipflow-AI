@@ -6,6 +6,8 @@ export * from "./workflows/feature-lifecycle";
 export * from "./workflows/repo-sync";
 export * from "./workflows/review-pull-request";
 export * from "./workflows/release-readiness";
+export * from "./workflows/github-issues";
+export * from "./workflows/implement-tasks";
 
 export { inngest } from "../../services/src/workflow/client";
 export * from "../../services/src/workflow/events";

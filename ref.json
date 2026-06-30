@@ -1,0 +1,10 @@
+{
+  "ref": "refs/heads/canary",
+  "node_id": "MDM6UmVmNzAxMDc3ODY6cmVmcy9oZWFkcy9jYW5hcnk=",
+  "url": "https://api.github.com/repos/vercel/next.js/git/refs/heads/canary",
+  "object": {
+    "sha": "64a39af5edd8ac3b89111028e7bdf2d42a638c4e",
+    "type": "commit",
+    "url": "https://api.github.com/repos/vercel/next.js/git/commits/64a39af5edd8ac3b89111028e7bdf2d42a638c4e"
+  }
+}

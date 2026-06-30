@@ -1,3 +1,4 @@
+import { requireEnv } from "@shipflow/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@shipflow/db";
 import { githubInstallations } from "@shipflow/db/schema";
@@ -6,6 +7,7 @@ import { getGithubApp } from "@shipflow/github";
 import { auth } from "@shipflow/auth";
 import { headers } from "next/headers";
 
+const GITHUB_STATE_SECRET = requireEnv("GITHUB_STATE_SECRET");
 /**
  * GitHub App installation callback handler.
  *
@@ -72,7 +74,7 @@ export async function GET(req: NextRequest) {
     }
 
     const crypto = await import("crypto");
-    const secret = process.env.SESSION_SECRET || "fallback_secret_for_dev";
+    const secret = GITHUB_STATE_SECRET;
     const expectedHmac = crypto.createHmac("sha256", secret).update(`${orgId}:${timestampStr}`).digest("hex");
 
     if (providedHmac !== expectedHmac) {

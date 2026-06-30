@@ -3,6 +3,7 @@ import {
   text,
   timestamp,
   integer,
+  bigint,
   boolean,
   uniqueIndex,
   jsonb,
@@ -51,6 +52,9 @@ export const pullRequests = pgTable(
     state: prStateEnum("state").notNull(),
     headSha: text("head_sha").notNull(),
     baseBranch: text("base_branch").notNull(),
+    body: text("body"),
+    authorLogin: text("author_login"),
+    mergedAt: timestamp("merged_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -75,7 +79,8 @@ export const pullRequestReviews = pgTable("pull_request_reviews", {
   isAiReview: boolean("is_ai_review").default(false).notNull(),
   state: reviewStateEnum("state").notNull(),
   commitSha: text("commit_sha").notNull(),
-  githubReviewId: integer("github_review_id"),
+  githubReviewId: bigint("github_review_id", { mode: "number" }),
+  reviewMeta: jsonb("review_meta"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -121,3 +126,45 @@ export const approvals = pgTable("approvals", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   signature: text("signature").notNull(),
 });
+
+export const githubIssues = pgTable(
+  "github_issues",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    orgId: text("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    repositoryId: text("repository_id").notNull().references(() => repositories.id, { onDelete: "cascade" }),
+    issueNumber: integer("issue_number").notNull(),
+    title: text("title").notNull(),
+    body: text("body"),
+    state: text("state").default("open").notNull(),
+    authorLogin: text("author_login"),
+    featureRequestId: text("feature_request_id").references(() => featureRequests.id, { onDelete: "set null" }),
+    openedAt: timestamp("opened_at").notNull(),
+    closedAt: timestamp("closed_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    repoIssueUnique: uniqueIndex("github_issues_repo_issue_unique").on(
+      table.repositoryId,
+      table.issueNumber
+    ),
+  })
+);
+
+export const githubIssueComments = pgTable(
+  "github_issue_comments",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    issueId: text("issue_id").notNull().references(() => githubIssues.id, { onDelete: "cascade" }),
+    githubCommentId: integer("github_comment_id").notNull(),
+    body: text("body"),
+    authorLogin: text("author_login"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    issueCommentUnique: uniqueIndex("github_issue_comments_issue_comment_unique").on(
+      table.issueId,
+      table.githubCommentId
+    ),
+  })
+);

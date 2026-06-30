@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { GitPullRequest, Bug, Clock, CheckCircle } from "lucide-react"
 
-export function StatCards({ stats: realStats }: { stats: { totalPRsAnalyzed: number; criticalBugsCaught: number; approvalRate: number; activeFeatures: number } }) {
+export function StatCards({ stats: realStats }: { stats: { totalPRsAnalyzed: number; criticalBugsCaught: number; approvalRate: number | null; activeFeatures: number } }) {
   const stats = [
     {
       title: "PRs Analyzed",
@@ -26,8 +26,8 @@ export function StatCards({ stats: realStats }: { stats: { totalPRsAnalyzed: num
     },
     {
       title: "Approval Rate",
-      value: `${realStats.approvalRate}%`,
-      description: "Code merged without human intervention",
+      value: realStats.approvalRate === null ? "N/A" : `${realStats.approvalRate}%`,
+      description: realStats.approvalRate === null ? "Not enough data yet" : "Code merged without human intervention",
       icon: CheckCircle,
       trend: "up"
     }

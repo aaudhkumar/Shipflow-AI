@@ -2,7 +2,7 @@ import { pgTable, text, timestamp, integer, boolean, uniqueIndex } from "drizzle
 import { organizations, members } from "./organizations";
 import { projects } from "./projects";
 import { prds } from "./prds";
-import { taskStatusEnum, taskDependencyTypeEnum } from "./enums";
+import { taskStatusEnum, taskDependencyTypeEnum, taskExecutionStatusEnum } from "./enums";
 
 export const epics = pgTable("epics", {
   id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -34,6 +34,13 @@ export const tasks = pgTable("tasks", {
   technicalImplementationDetails: text("technical_implementation_details").notNull(),
   status: taskStatusEnum("status").default("BACKLOG").notNull(),
   estimationPoints: integer("estimation_points"),
+  executionStatus: taskExecutionStatusEnum("execution_status").default("not_started").notNull(),
+  claimedByRunId: text("claimed_by_run_id"),
+  claimedAt: timestamp("claimed_at"),
+  attemptCount: integer("attempt_count").default(0).notNull(),
+  lastError: text("last_error"),
+  branchName: text("branch_name"),
+  commitSha: text("commit_sha"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

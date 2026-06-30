@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { billingPlanEnum, memberRoleEnum } from "./enums";
 
@@ -8,6 +8,7 @@ export const organizations = pgTable("organizations", {
   slug: text("slug").unique().notNull(),
   billingPlan: billingPlanEnum("billing_plan").default("FREE").notNull(),
   stripeCustomerId: text("stripe_customer_id"),
+  retentionDays: integer("retention_days").notNull().default(90),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   deletedAt: timestamp("deleted_at", { withTimezone: true }),

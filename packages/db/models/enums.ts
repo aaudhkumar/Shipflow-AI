@@ -25,6 +25,15 @@ export const taskStatusEnum = pgEnum("task_status", [
   "IN_REVIEW",
   "DONE",
 ]);
+export const taskExecutionStatusEnum = pgEnum("task_execution_status", [
+  "not_started",
+  "ready",
+  "claimed",
+  "in_progress",
+  "done",
+  "failed",
+  "blocked",
+]);
 export const taskDependencyTypeEnum = pgEnum("task_dependency_type", ["BLOCKS", "RELATES_TO"]);
 export const prStateEnum = pgEnum("pr_state", [
   "OPEN",

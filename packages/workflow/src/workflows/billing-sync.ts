@@ -8,31 +8,60 @@ export const billingSyncWorkflow = inngest.createFunction(
   { event: "billing.payment.success" },
   async ({ event, step }) => {
     await step.run("update-subscription-and-invoice", async () => {
-      const { subscriptionId, amount, paymentId } = event.data;
+      let { subscriptionId, amount, paymentId, orgId, planId } = event.data;
 
-      const sub = await db.query.subscriptions.findFirst({
-        where: eq(subscriptions.razorpaySubscriptionId, subscriptionId),
-      });
-
-      if (!sub) {
-        throw new Error(`Subscription ${subscriptionId} not found in DB`);
+      if (planId) {
+        planId = planId.toUpperCase();
       }
 
-      const newPeriodEnd = new Date(sub.currentPeriodEnd);
+      if (!orgId) {
+        throw new Error(`No orgId provided in webhook notes for payment ${paymentId}`);
+      }
+
+      const existingSub = await db.query.subscriptions.findFirst({
+        where: eq(subscriptions.orgId, orgId),
+      });
+
+      const newPeriodEnd = new Date();
       newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
 
-      await db.update(subscriptions)
-        .set({ status: "ACTIVE", currentPeriodEnd: newPeriodEnd })
-        .where(eq(subscriptions.id, sub.id));
+      let subId = existingSub?.id;
 
-      await db.insert(invoices).values({
-        id: crypto.randomUUID(),
-        subscriptionId: sub.id,
-        amount,
-        razorpayInvoiceId: paymentId,
-        status: "paid",
-        currency: "USD",
-      });
+      if (!existingSub) {
+         const [newSub] = await db.insert(subscriptions).values({
+           id: crypto.randomUUID(),
+           orgId,
+           razorpaySubscriptionId: subscriptionId,
+           status: "ACTIVE",
+           planId: planId || "PRO",
+           currentPeriodEnd: newPeriodEnd,
+           usageCount: 0,
+           usageLimit: planId === "ENTERPRISE" ? 70 : 30,
+         }).returning();
+         if (!newSub) throw new Error("Failed to create new subscription");
+         subId = newSub.id;
+      } else {
+        await db.update(subscriptions)
+          .set({ 
+            status: "ACTIVE", 
+            currentPeriodEnd: newPeriodEnd,
+            planId: planId || existingSub.planId,
+            razorpaySubscriptionId: subscriptionId || existingSub.razorpaySubscriptionId,
+            usageLimit: (planId || existingSub.planId) === "ENTERPRISE" ? 70 : 30,
+          })
+          .where(eq(subscriptions.id, existingSub.id));
+      }
+
+      if (subId) {
+        await db.insert(invoices).values({
+          id: crypto.randomUUID(),
+          subscriptionId: subId,
+          amount,
+          razorpayInvoiceId: paymentId,
+          status: "paid",
+          currency: "USD",
+        });
+      }
 
       return { success: true };
     });

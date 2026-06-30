@@ -3,13 +3,14 @@ import { featureRequests, members } from "@shipflow/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export class FeatureRepository {
-  async createFeature(orgId: string, projectId: string, authorId: string, title: string, rawDescription: string) {
+  async createFeature(orgId: string, projectId: string, authorId: string, title: string, rawDescription: string, sourceChannel: "IN_APP" | "EMAIL" | "TICKET" | "CALL") {
     const [feature] = await db.insert(featureRequests).values({
       orgId,
       projectId,
       authorId,
       title,
       rawDescription,
+      sourceChannel,
       status: "SUBMITTED"
     }).returning();
     return feature;
@@ -22,14 +23,29 @@ export class FeatureRepository {
         eq(featureRequests.orgId, orgId)
       ),
       with: {
-        prds: { with: { currentVersion: true } },
+        prds: { 
+          orderBy: (prds, { desc }) => [desc(prds.createdAt)],
+          with: { currentVersion: true } 
+        },
+        clarificationThreads: {
+          with: {
+            messages: {
+              orderBy: (messages, { asc }) => [asc(messages.createdAt)]
+            }
+          },
+          limit: 1,
+        }
       }
     });
   }
 
-  async getFeaturesByOrg(orgId: string) {
+  async getFeaturesByOrg(orgId: string, channel?: "IN_APP" | "EMAIL" | "TICKET" | "CALL", projectId?: string) {
     return await db.query.featureRequests.findMany({
-      where: eq(featureRequests.orgId, orgId),
+      where: and(
+        eq(featureRequests.orgId, orgId),
+        channel ? eq(featureRequests.sourceChannel, channel) : undefined,
+        projectId ? eq(featureRequests.projectId, projectId) : undefined
+      ),
       orderBy: (featureRequests, { desc }) => [desc(featureRequests.createdAt)],
     });
   }
@@ -47,6 +63,15 @@ export class FeatureRepository {
   async updateFeatureStatus(featureId: string, orgId: string, status: string) {
     return await db.update(featureRequests)
       .set({ status: status as any, updatedAt: new Date() })
+      .where(and(
+        eq(featureRequests.id, featureId),
+        eq(featureRequests.orgId, orgId)
+      ))
+      .returning();
+  }
+
+  async deleteFeature(featureId: string, orgId: string) {
+    return await db.delete(featureRequests)
       .where(and(
         eq(featureRequests.id, featureId),
         eq(featureRequests.orgId, orgId)

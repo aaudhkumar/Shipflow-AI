@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 
 export function FeatureStatusBadge({ status }: { status: string }) {
   let colorClass = "bg-muted text-muted-foreground border-border";
-  let label = status.replace(/_/g, " ");
+  const label = status.replace(/_/g, " ");
 
   switch (status) {
     case "SUBMITTED":

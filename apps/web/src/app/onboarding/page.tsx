@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { Workflow } from "lucide-react";
 
 export default function OnboardingPage() {
-  const [orgName, setOrgName] = useState("");
+  const [orgName, setOrgName] = useState("Personal");
+  const [isAutoCreating, setIsAutoCreating] = useState(false);
   const router = useRouter();
   
   // We use the session hook from better-auth to greet the user
@@ -24,8 +25,15 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (organizations && organizations.length > 0) {
       router.push(`/org/${organizations[0]?.slug}`);
+    } else if (session?.user && organizations?.length === 0 && !isAutoCreating) {
+      setIsAutoCreating(true);
+      const slug = `personal-${session.user.id.substring(0, 8)}`;
+      createOrg.mutate({
+        name: "Personal",
+        slug,
+      });
     }
-  }, [organizations, router]);
+  }, [organizations, router, session, isAutoCreating]);
 
   // TRPC Mutation to create an organization
   const createOrg = trpc.organization.create.useMutation({
@@ -50,12 +58,12 @@ export default function OnboardingPage() {
     });
   };
 
-  if (isPending || isLoadingOrgs || (organizations && organizations.length > 0)) {
+  if (isPending || isLoadingOrgs || (organizations && organizations.length > 0) || isAutoCreating) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="animate-pulse flex items-center gap-2">
           <Workflow className="h-6 w-6 text-zinc-400" />
-          <span className="text-zinc-500">Loading...</span>
+          <span className="text-zinc-500">Setting up your personal workspace...</span>
         </div>
       </div>
     );

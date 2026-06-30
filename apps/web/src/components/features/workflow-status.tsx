@@ -46,9 +46,9 @@ export function WorkflowStatus({ featureId }: { featureId: string }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div >
       {timeline.map((step, index) => {
-        const isCurrent = step.completed && (index === timeline.length - 1 || !timeline[index + 1]?.completed);
+        const isCurrent = step.completed && (index < timeline.length - 1 && !timeline[index + 1]?.completed);
         const isPast = step.completed && !isCurrent;
         
         return (

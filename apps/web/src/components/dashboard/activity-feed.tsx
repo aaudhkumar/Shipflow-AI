@@ -1,8 +1,32 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useState } from "react"
+import { trpc } from "~/trpc/client"
+import { toast } from "sonner"
+import { Loader2, GitMerge } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
-export function ActivityFeed({ activities = [] }: { activities?: any[] }) {
+export function ActivityFeed({ activities = [], orgId }: { activities?: any[], orgId: string }) {
+  const [mergePr, setMergePr] = useState<any>(null);
+  const utils = trpc.useUtils();
+
+  const mergeMutation = trpc.pullRequest.merge.useMutation({
+    onSuccess: () => {
+      toast.success("Pull Request successfully merged!");
+      setMergePr(null);
+      utils.organization.getRecentActivity.invalidate({ orgId });
+    },
+    onError: (err) => {
+      toast.error(`Merge failed: ${err.message}`);
+      setMergePr(null);
+    }
+  });
+
+  // The confirmMerge function is no longer used, as it's directly inside the JSX now
 
   return (
     <Card className="h-full bg-card/40 backdrop-blur-md border-border/50 shadow-sm flex flex-col">
@@ -41,6 +65,17 @@ export function ActivityFeed({ activities = [] }: { activities?: any[] }) {
                     {item.state === "DISMISSED" && (
                       <Badge variant="secondary" className="text-[10px] bg-gray-500/10 text-gray-500 hover:bg-gray-500/20">Dismissed</Badge>
                     )}
+                    {item.isAiReview && item.reviewMeta && typeof item.reviewMeta === 'object' && (item.reviewMeta as any).shouldMerge && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-6 px-2 text-[10px] bg-indigo-600 hover:bg-indigo-700 ml-auto"
+                        onClick={() => setMergePr(item)}
+                      >
+                        <GitMerge className="w-3 h-3 mr-1" />
+                        Merge PR
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -48,6 +83,40 @@ export function ActivityFeed({ activities = [] }: { activities?: any[] }) {
           </div>
         </ScrollArea>
       </CardContent>
+
+      <Dialog open={!!mergePr} onOpenChange={(open) => !open && setMergePr(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Merge</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to merge PR #{mergePr?.githubPrNumber} ({mergePr?.prTitle}) into the repository?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergePr(null)} disabled={mergeMutation.isPending}>
+              Cancel
+            </Button>
+            <Button 
+              className="bg-indigo-600 hover:bg-indigo-700 text-white" 
+              onClick={() => {
+                if (!mergePr) return;
+                mergeMutation.mutate({
+                  orgId,
+                  pullRequestId: mergePr.pullRequestId,
+                  repoOwner: mergePr.repoOwner,
+                  repoName: mergePr.repoName,
+                  githubPrNumber: mergePr.githubPrNumber,
+                  installationId: mergePr.installationId
+                });
+              }}
+              disabled={mergeMutation.isPending}
+            >
+              {mergeMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Yes, Merge PR
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   )
 }

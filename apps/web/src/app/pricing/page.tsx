@@ -1,9 +1,13 @@
 import { CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { CheckoutButton } from "@/components/billing/checkout-button";
+import { api } from "~/trpc/server";
+import { redirect } from "next/navigation";
 
 const plans = [
   {
+    id: "FREE",
     name: "Free",
     price: "$0",
     description: "For small teams and side projects.",
@@ -12,6 +16,7 @@ const plans = [
     popular: false,
   },
   {
+    id: "PRO_MONTHLY",
     name: "Pro Plan",
     price: "$29",
     period: "/mo",
@@ -21,6 +26,7 @@ const plans = [
     popular: true,
   },
   {
+    id: "ENTERPRISE",
     name: "Enterprise",
     price: "Custom",
     description: "For large organizations with complex needs.",
@@ -30,7 +36,17 @@ const plans = [
   },
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  let defaultOrgId = null;
+  try {
+    const orgs = await api.organization.list.query();
+    if (orgs && orgs.length > 0 && orgs[0]) {
+      defaultOrgId = orgs[0].id;
+    }
+  } catch (e) {
+    // User is likely not authenticated
+  }
+
   return (
     <div className="min-h-screen bg-background pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -78,14 +94,33 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Button
-                asChild
-                variant={plan.popular ? "default" : "outline"}
-                className="w-full"
-                size="lg"
-              >
-                <Link href="/login">{plan.buttonText}</Link>
-              </Button>
+              
+              {plan.id === "ENTERPRISE" ? (
+                 <Button asChild variant="outline" className="w-full" size="lg">
+                   <Link href="/contact">Contact Sales</Link>
+                 </Button>
+              ) : (
+                <form action={async () => {
+                  "use server"
+                  if (!defaultOrgId) redirect("/login");
+                  if (plan.id === "FREE") redirect(`/org`);
+                  
+                  const session = await api.billing.createCheckoutSession.mutate({ 
+                    orgId: defaultOrgId, 
+                    plan: plan.id 
+                  });
+                  redirect(session.url);
+                }}>
+                  <CheckoutButton
+                    variant={plan.popular ? "default" : "outline"}
+                    className="w-full"
+                    size="lg"
+                    loadingText="Redirecting..."
+                  >
+                    {plan.buttonText}
+                  </CheckoutButton>
+                </form>
+              )}
             </div>
           ))}
         </div>

@@ -21,6 +21,6 @@
     "@shipflow/services": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "inngest": "^3.22.12",
-    "zod": "^4.3.5"
+    "zod": "^3.23.8"
   }
 }

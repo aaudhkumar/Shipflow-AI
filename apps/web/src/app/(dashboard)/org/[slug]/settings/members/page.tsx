@@ -1,6 +1,5 @@
 import { MemberList } from "@/components/settings/member-list"
-import { Button } from "@/components/ui/button"
-import { UserPlus } from "lucide-react"
+import { InviteMemberDialog } from "@/components/settings/invite-member-dialog"
 
 import { api } from "~/trpc/server"
 
@@ -18,9 +17,7 @@ export default async function MembersSettingsPage({ params }: { params: Promise<
             Manage who has access to {slug} and their permission levels.
           </p>
         </div>
-        <Button className="bg-primary hover:bg-primary/90">
-          <UserPlus className="w-4 h-4 mr-2" /> Invite Member
-        </Button>
+        <InviteMemberDialog orgId={org.id} />
       </div>
 
       <MemberList orgId={org.id} />

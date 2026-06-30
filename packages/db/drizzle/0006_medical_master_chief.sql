@@ -1,0 +1,1 @@
+ALTER TABLE "feature_requests" ADD COLUMN "source_channel" text DEFAULT 'IN_APP' NOT NULL;

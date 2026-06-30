@@ -1,4 +1,4 @@
-import { getPineconeIndex } from "./client";
+import { getPineconeIndex, getPineconeClient } from "./client";
 
 /**
  * Namespace conventions:
@@ -28,8 +28,16 @@ export async function upsertRecords(
   namespace: string,
   records: VectorRecord[],
 ): Promise<void> {
-  const index = getPineconeIndex();
-  const ns = index.namespace(namespace);
+  const apiKey = process.env.PINECONE_API_KEY;
+  if (!apiKey) throw new Error("PINECONE_API_KEY is missing");
+
+  const pc = getPineconeClient();
+  const indexName = process.env.PINECONE_INDEX;
+  if (!indexName) throw new Error("PINECONE_INDEX is missing");
+
+  // Get index host
+  const desc = await pc.describeIndex(indexName);
+  const host = desc.host;
 
   // Pinecone supports batches of up to 100 records
   const BATCH_SIZE = 96;
@@ -37,16 +45,54 @@ export async function upsertRecords(
   for (let i = 0; i < records.length; i += BATCH_SIZE) {
     const batch = records.slice(i, i + BATCH_SIZE);
 
-    await ns.upsert(
-      batch.map((record) => ({
-        id: record.id,
-        values: [], // Placeholder — integrated embeddings generate these server-side
-        metadata: {
-          ...record.metadata,
-          text: record.text,
-        },
-      })) as any,
-    );
+    const res = await fetch("https://api.pinecone.io/embed", {
+      method: "POST",
+      headers: {
+        "Api-Key": apiKey,
+        "Content-Type": "application/json",
+        "X-Pinecone-API-Version": "2024-10"
+      },
+      body: JSON.stringify({
+        model: "multilingual-e5-large",
+        parameters: { input_type: "passage", truncate: "END" },
+        inputs: batch.map((r) => ({ text: r.text }))
+      })
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`Pinecone Inference API error: ${res.status} ${errText}`);
+    }
+
+    const response = await res.json();
+
+    if (!response || !response.data || !response.data[0] || !response.data[0].values) {
+       throw new Error(`Pinecone embed response was missing values: ${JSON.stringify(response).substring(0, 500)}`);
+    }
+
+    const upsertRes = await fetch(`https://${host}/vectors/upsert`, {
+      method: "POST",
+      headers: {
+        "Api-Key": apiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        namespace,
+        vectors: batch.map((record, idx) => ({
+          id: record.id,
+          values: response.data[idx].values as number[],
+          metadata: {
+            ...record.metadata,
+            text: record.text,
+          }
+        }))
+      })
+    });
+
+    if (!upsertRes.ok) {
+       const err = await upsertRes.text();
+       throw new Error(`Pinecone Upsert API error: ${upsertRes.status} ${err}`);
+    }
   }
 }
 
@@ -59,15 +105,39 @@ export async function searchRecords(
   namespace: string,
   queryText: string,
   topK: number = 5,
+  filter?: Record<string, any>
 ): Promise<{ id: string; score: number; text: string; metadata: Record<string, any> }[]> {
   const index = getPineconeIndex();
   const ns = index.namespace(namespace);
+  const apiKey = process.env.PINECONE_API_KEY;
 
-  // For integrated embeddings, we use the query endpoint with text
-  // Pinecone handles vectorization of the query text
+  if (!apiKey) throw new Error("PINECONE_API_KEY is missing");
+
+  const res = await fetch("https://api.pinecone.io/embed", {
+    method: "POST",
+    headers: {
+      "Api-Key": apiKey,
+      "Content-Type": "application/json",
+      "X-Pinecone-API-Version": "2024-10"
+    },
+    body: JSON.stringify({
+      model: "multilingual-e5-large",
+      parameters: { input_type: "query", truncate: "END" },
+      inputs: [{ text: queryText }]
+    })
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Pinecone Inference API error: ${res.status} ${errText}`);
+  }
+
+  const response = await res.json();
+
   const results = await ns.query({
-    vector: [], // Will be generated from the query text by Pinecone
+    vector: response.data[0].values as number[],
     topK,
+    filter,
     includeMetadata: true,
   });
 
@@ -86,5 +156,14 @@ export async function searchRecords(
 export async function deleteNamespace(namespace: string): Promise<void> {
   const index = getPineconeIndex();
   const ns = index.namespace(namespace);
-  await ns.deleteAll();
+  try {
+    await ns.deleteAll();
+  } catch (error: any) {
+    // Pinecone serverless returns a 404 if the namespace has never been written to
+    if (error.status === 404 || error.message?.includes("404")) {
+      console.warn(`Namespace ${namespace} not found (likely empty), skipping delete.`);
+      return;
+    }
+    throw error;
+  }
 }

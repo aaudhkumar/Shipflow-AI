@@ -1,10 +1,12 @@
 import { api } from "~/trpc/server"
+import { StatCards } from "@/components/dashboard/stat-cards"
 import { PRVolumeChart } from "@/components/analytics/pr-volume-chart"
 import { ReviewTimeChart } from "@/components/analytics/review-time-chart"
 import { FeatureTimeline } from "@/components/analytics/feature-timeline"
 import { ProductivityHeatmap } from "@/components/analytics/productivity-heatmap"
 import { SecurityTrendsChart } from "@/components/analytics/security-trends-chart"
 import { AiAccuracyMetrics } from "@/components/analytics/ai-accuracy-metrics"
+import { SourceChannelChart } from "@/components/analytics/source-channel-chart"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { CalendarRange, Sparkles } from "lucide-react"
@@ -23,6 +25,7 @@ export default async function AnalyticsPage({
   const org = await api.organization.getBySlug.query({ slug });
   if (!org) return <div className="p-8">Organization not found</div>;
 
+  const stats = await api.organization.getStats.query({ orgId: org.id });
   const analytics = await api.organization.getAnalytics.query({ orgId: org.id, days });
 
   return (
@@ -58,6 +61,8 @@ export default async function AnalyticsPage({
         </div>
       </div>
 
+      <StatCards stats={stats} />
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="lg:col-span-2">
           <PRVolumeChart data={analytics.volumeTrend} />
@@ -81,6 +86,10 @@ export default async function AnalyticsPage({
         
         <div className="lg:col-span-2">
           <ProductivityHeatmap data={analytics.productivityHeatmap} />
+        </div>
+        
+        <div className="lg:col-span-1">
+          <SourceChannelChart data={(analytics as any).sourceChannelBreakdown} />
         </div>
       </div>
     </div>

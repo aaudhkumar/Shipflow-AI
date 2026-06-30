@@ -8,8 +8,11 @@ export async function POST(req: Request) {
     const signature = req.headers.get("x-razorpay-signature");
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
-    if (!signature || !secret) {
-      return new NextResponse("Missing signature or secret", { status: 400 });
+    if (!secret) {
+      throw new Error("RAZORPAY_WEBHOOK_SECRET is not set");
+    }
+    if (!signature) {
+      return new NextResponse("Missing signature", { status: 400 });
     }
 
     const expectedSignature = crypto
@@ -17,19 +20,25 @@ export async function POST(req: Request) {
       .update(rawBody)
       .digest("hex");
 
-    if (expectedSignature !== signature) {
+    if (
+      expectedSignature.length !== signature.length ||
+      !crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(signature))
+    ) {
       return new NextResponse("Invalid signature", { status: 400 });
     }
 
     const event = JSON.parse(rawBody);
 
-    if (event.event === "subscription.charged") {
+    if (event.event === "subscription.charged" || event.event === "payment.captured") {
+      const payload = event.payload.payment?.entity || event.payload.subscription?.entity;
       await inngest.send({
         name: "billing.payment.success",
         data: {
-          subscriptionId: event.payload.subscription.entity.id,
-          paymentId: event.payload.payment.entity.id,
-          amount: event.payload.payment.entity.amount,
+          subscriptionId: event.payload.subscription?.entity?.id || null,
+          paymentId: event.payload.payment?.entity?.id || payload?.id,
+          amount: payload?.amount || 0,
+          orgId: payload?.notes?.orgId || null,
+          planId: payload?.notes?.planId || null,
         },
       });
     }

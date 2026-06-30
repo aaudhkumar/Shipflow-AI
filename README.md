@@ -49,6 +49,7 @@ graph TD
    ```
 3. **Configure Environment Variables:**
    Copy `.env.example` to `.env` (create it if missing) and fill in your keys.
+   **Note**: All secret environment variables must be set. The application will throw a startup error if any are missing.
 4. **Database Setup:**
    ```sh
    pnpm db:generate

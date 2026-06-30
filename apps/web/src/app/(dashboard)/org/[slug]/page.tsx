@@ -1,4 +1,3 @@
-import { StatCards } from "@/components/dashboard/stat-cards"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { DeploymentsList } from "@/components/dashboard/deployments-list"
 import { Button } from "@/components/ui/button"
@@ -7,19 +6,18 @@ import Link from "next/link"
 
 import { api } from "~/trpc/server"
 
-import { VolumeChart } from "@/components/dashboard/volume-chart"
+import { MyTasksKanban } from "@/components/dashboard/my-tasks-kanban"
 
 export default async function DashboardPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const org = await api.organization.getBySlug.query({ slug });
   if (!org) return <div>Organization not found</div>;
 
-  const stats = await api.organization.getStats.query({ orgId: org.id });
   const recentActivity = await api.organization.getRecentActivity.query({ orgId: org.id });
-  const chartData = await api.organization.getChartData.query({ orgId: org.id });
+  const deploymentsData = await api.deployment.list.query({ orgId: org.id });
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className="space-y-8 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 w-full">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Command Center</h1>
@@ -38,20 +36,13 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
         </div>
       </div>
 
-      <StatCards stats={stats} />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="h-[250px] rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm p-6 shadow-sm flex flex-col justify-center items-center text-muted-foreground/50 text-sm">
-            <h3 className="font-semibold mb-4 text-lg self-start">Analysis Volume (Last 7 Days)</h3>
-            <div className="w-full h-full">
-              <VolumeChart data={chartData} />
-            </div>
-          </div>
-          <DeploymentsList deployments={[]} />
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        <div className="lg:col-span-3 space-y-6">
+          <MyTasksKanban orgId={org.id} slug={slug} />
         </div>
-        <div className="lg:col-span-1">
-          <ActivityFeed activities={recentActivity} />
+        <div className="lg:col-span-1 space-y-6">
+          <ActivityFeed activities={recentActivity} orgId={org.id} />
+          <DeploymentsList deployments={deploymentsData} />
         </div>
       </div>
     </div>

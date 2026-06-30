@@ -13,6 +13,7 @@ export const CodeReviewResultSchema = z.object({
     })
   ),
   summary: z.string().describe("A high level summary of the overall PR quality"),
+  shouldMerge: z.boolean().describe("Whether this PR should be merged or it does not provide any valuable addons to the project. Evaluate if it's genuinely useful."),
 });
 
 export type CodeReviewResult = z.infer<typeof CodeReviewResultSchema>;

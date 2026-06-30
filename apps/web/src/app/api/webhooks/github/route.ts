@@ -68,6 +68,49 @@ export async function POST(req: NextRequest) {
     const headSha = data.pull_request.head.sha;
     const prUrl = data.pull_request.html_url;
     const baseBranch = data.pull_request.base.ref;
+    const headBranch = data.pull_request.head.ref;
+
+    // Extract potential UUIDs from PR title and branch name
+    const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+    const matches = new Set<string>();
+    for (const match of prTitle.matchAll(uuidRegex)) matches.add(match[0].toLowerCase());
+    for (const match of headBranch.matchAll(uuidRegex)) matches.add(match[0].toLowerCase());
+
+    let featureRequestId: string | null = null;
+    let taskId: string | null = null;
+
+    if (matches.size > 0) {
+      const { featureRequests, tasks, epics, prds } = await import("@shipflow/db/schema");
+      for (const uuid of matches) {
+        if (featureRequestId && taskId) break;
+        
+        if (!featureRequestId) {
+          const [feature] = await db.select().from(featureRequests).where(eq(featureRequests.id, uuid)).limit(1);
+          if (feature) {
+            featureRequestId = feature.id;
+            continue;
+          }
+        }
+        
+        if (!taskId) {
+          const taskData = await db
+            .select({
+              taskId: tasks.id,
+              featureRequestId: prds.featureRequestId
+            })
+            .from(tasks)
+            .innerJoin(epics, eq(tasks.epicId, epics.id))
+            .innerJoin(prds, eq(epics.prdId, prds.id))
+            .where(eq(tasks.id, uuid))
+            .limit(1);
+            
+          if (taskData.length > 0) {
+            taskId = taskData[0]!.taskId;
+            featureRequestId = featureRequestId || taskData[0]!.featureRequestId;
+          }
+        }
+      }
+    }
 
     const existingPrs = await db
       .select()
@@ -89,6 +132,8 @@ export async function POST(req: NextRequest) {
           state: "OPEN",
           headSha,
           baseBranch,
+          featureRequestId,
+          taskId,
         })
         .returning();
       prRecord = inserted!;
@@ -96,7 +141,13 @@ export async function POST(req: NextRequest) {
       // Update head SHA on synchronize
       await db
         .update(pullRequests)
-        .set({ headSha, title: prTitle, updatedAt: new Date() })
+        .set({ 
+          headSha, 
+          title: prTitle, 
+          updatedAt: new Date(),
+          ...(featureRequestId && !prRecord.featureRequestId ? { featureRequestId } : {}),
+          ...(taskId && !prRecord.taskId ? { taskId } : {}),
+        })
         .where(eq(pullRequests.id, prRecord.id));
     }
 
@@ -116,6 +167,110 @@ export async function POST(req: NextRequest) {
         installationId,
         action: data.action,
         deliveryId,
+      },
+    });
+  } else if (eventType === "release" && data.action === "published") {
+    // Record the webhook event
+    await db
+      .insert(webhookEvents)
+      .values({
+        source: "GITHUB",
+        eventId: deliveryId,
+        eventType: `release.${data.action}`,
+        payload: data,
+        status: "RECEIVED",
+      })
+      .onConflictDoNothing();
+
+    const ghRepoId = String(data.repository.id);
+    const installationId = data.installation?.id;
+
+    if (!installationId) {
+      return NextResponse.json({ error: "No installation context" }, { status: 400 });
+    }
+
+    const [repo] = await db
+      .select()
+      .from(repositories)
+      .where(eq(repositories.githubRepoId, ghRepoId))
+      .limit(1);
+
+    if (!repo) {
+      return NextResponse.json({ error: "Repository not connected" }, { status: 404 });
+    }
+
+    await inngest.send({
+      name: "github.release.published",
+      data: {
+        orgId: repo.orgId,
+        repositoryId: repo.id,
+        releaseId: data.release.id,
+        tagName: data.release.tag_name,
+        publishedAt: data.release.published_at,
+      },
+    });
+  } else if (eventType === "issues" && (data.action === "opened" || data.action === "closed")) {
+    await db
+      .insert(webhookEvents)
+      .values({
+        source: "GITHUB",
+        eventId: deliveryId,
+        eventType: `issues.${data.action}`,
+        payload: data,
+        status: "RECEIVED",
+      })
+      .onConflictDoNothing();
+
+    const ghRepoId = String(data.repository.id);
+    const [repo] = await db.select().from(repositories).where(eq(repositories.githubRepoId, ghRepoId)).limit(1);
+
+    if (!repo) {
+      return NextResponse.json({ error: "Repository not connected" }, { status: 404 });
+    }
+
+    const eventName = data.action === "opened" ? "github.issue.opened" : "github.issue.closed";
+    await inngest.send({
+      name: eventName,
+      data: {
+        orgId: repo.orgId,
+        repositoryId: repo.id,
+        issueNumber: data.issue.number,
+        title: data.issue.title,
+        body: data.issue.body || "",
+        state: data.issue.state,
+        authorLogin: data.issue.user.login,
+        actionAt: data.action === "opened" ? data.issue.created_at : data.issue.closed_at,
+      },
+    });
+  } else if (eventType === "issue_comment" && data.action === "created") {
+    await db
+      .insert(webhookEvents)
+      .values({
+        source: "GITHUB",
+        eventId: deliveryId,
+        eventType: `issue_comment.${data.action}`,
+        payload: data,
+        status: "RECEIVED",
+      })
+      .onConflictDoNothing();
+
+    const ghRepoId = String(data.repository.id);
+    const [repo] = await db.select().from(repositories).where(eq(repositories.githubRepoId, ghRepoId)).limit(1);
+
+    if (!repo) {
+      return NextResponse.json({ error: "Repository not connected" }, { status: 404 });
+    }
+
+    await inngest.send({
+      name: "github.issue_comment.created",
+      data: {
+        orgId: repo.orgId,
+        repositoryId: repo.id,
+        issueNumber: data.issue.number,
+        githubCommentId: data.comment.id,
+        body: data.comment.body || "",
+        authorLogin: data.comment.user.login,
+        createdAt: data.comment.created_at,
       },
     });
   }

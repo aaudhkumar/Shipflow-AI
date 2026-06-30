@@ -1,4 +1,5 @@
 import { router, orgMemberProcedure } from "../../trpc";
+import { getInstallationOctokit } from "@shipflow/github";
 import { z } from "zod";
 import { db } from "@shipflow/db";
 import { pullRequests, pullRequestReviews, reviewFindings } from "@shipflow/db/schema";
@@ -103,5 +104,44 @@ export const pullRequestRouter = router({
         if (input.filter === "CLEAN") return r.findingCounts.blocking === 0;
         return true;
       });
+    }),
+
+  merge: orgMemberProcedure
+    .input(z.object({ 
+      orgId: z.string(), 
+      pullRequestId: z.string(),
+      repoOwner: z.string(),
+      repoName: z.string(),
+      githubPrNumber: z.number(),
+      installationId: z.number()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      try {
+        const octokit = await getInstallationOctokit(input.installationId);
+        
+        const response = await octokit.rest.pulls.merge({
+          owner: input.repoOwner,
+          repo: input.repoName,
+          pull_number: input.githubPrNumber,
+          commit_title: `Merge PR #${input.githubPrNumber} via ShipFlow AI`,
+          merge_method: "squash"
+        });
+
+        if (response.status === 200 && response.data.merged) {
+          // Update local DB status if needed
+          await db.update(pullRequests)
+            .set({ state: "MERGED" })
+            .where(eq(pullRequests.id, input.pullRequestId));
+            
+          return { success: true, message: "Pull Request successfully merged" };
+        } else {
+          throw new Error("GitHub reported PR was not merged");
+        }
+      } catch (error: any) {
+        throw new TRPCError({ 
+          code: "INTERNAL_SERVER_ERROR", 
+          message: error.message || "Failed to merge Pull Request" 
+        });
+      }
     })
 });

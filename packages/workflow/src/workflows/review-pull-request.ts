@@ -1,5 +1,5 @@
 import { inngest } from "../../../services/src/workflow/client";
-import { runCodeReview } from "@shipflow/ai";
+import { runCodeReviewerAgent } from "@shipflow/ai";
 import { getInstallationOctokit } from "@shipflow/github";
 import { fetchPrFiles } from "@shipflow/services/github/files";
 import { searchRecords, getRepoNamespace } from "@shipflow/services/pinecone/vector";
@@ -107,7 +107,7 @@ export const reviewPullRequestWorkflow = inngest.createFunction(
     });
     
     const prdObj = prWithFeature?.featureRequest?.prds?.[0]?.currentVersion?.content;
-    const prd = typeof prdObj === "string" ? prdObj : (prdObj ? JSON.stringify(prdObj) : undefined);
+    const prd = typeof prdObj === "object" && prdObj !== null ? prdObj : (typeof prdObj === "string" ? JSON.parse(prdObj) : {});
 
     const previousFindings = await step.run("fetch-previous-findings", async () => {
       const prevReview = await db.query.pullRequestReviews.findFirst({
@@ -115,14 +115,31 @@ export const reviewPullRequestWorkflow = inngest.createFunction(
         orderBy: (reviews, { desc }) => [desc(reviews.createdAt)],
         with: { findings: true },
       });
-      return prevReview?.findings.map(f => 
-        `[${f.isBlocking ? 'BLOCKER' : 'non-blocking'}] ${f.filePath}:${f.lineNumber} — ${f.description}`
-      ).join('\n') || undefined;
+      return prevReview?.findings.map(f => ({
+        filePath: f.filePath,
+        lineNumber: f.lineNumber,
+        description: f.description,
+        isBlocking: f.isBlocking
+      })) || [];
     });
 
     // 4. AI Generation
     const reviewResult: any = await step.run("run-ai-review", async () => {
-      const { result } = await runCodeReview(diffContent, contextSnippets, prd ?? undefined, previousFindings ?? undefined);
+      const octokit = await getInstallationOctokit(installationId);
+      const repoNamespace = getRepoNamespace(repositoryId);
+      const { result } = await runCodeReviewerAgent({
+        octokit,
+        repoOwner,
+        repoName,
+        repoNamespace,
+        headSha,
+        prd,
+        previousFindings,
+        searchRecords: async (query, topK, filter) => {
+          const res = await searchRecords(repoNamespace, query, topK, filter);
+          return res.map((r: any) => ({ text: r.text, metadata: r.metadata, score: r.score }));
+        }
+      }, diffContent);
       return result;
     });
 

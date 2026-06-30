@@ -18,6 +18,6 @@
     "@shipflow/db": "workspace:*",
     "drizzle-orm": "^0.45.1",
     "razorpay": "^2.9.4",
-    "zod": "^3.22.4"
+    "zod": "^3.25.76"
   }
 }

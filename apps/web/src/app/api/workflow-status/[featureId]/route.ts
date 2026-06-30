@@ -16,32 +16,33 @@ export async function GET(request: Request, context: any) {
       return NextResponse.json({ error: "Feature not found" }, { status: 404 });
     }
 
-    // Map feature status to timeline steps
+    // Assign numeric weights to correctly track the active step
+    const statusOrder: Record<string, number> = {
+      SUBMITTED: 0,
+      CLARIFYING: 0.5,
+      CLARIFIED: 1,
+      PRD_GENERATED: 1.5,
+      TASKS_GENERATED: 1.8,
+      PLAN_APPROVED: 2,
+      IN_DEVELOPMENT: 3,
+      IN_REVIEW: 4,
+      FIX_NEEDED: 4,
+      AWAITING_HUMAN_APPROVAL: 5,
+      SHIPPED: 6,
+      REJECTED: -1
+    };
+    
     const status = feature.status;
-    
-    // Determine the current step index
-    const steps = [
-      "SUBMITTED",
-      "CLARIFIED",
-      "PLAN_APPROVED",
-      "IN_DEVELOPMENT",
-      "IN_REVIEW",
-      "AWAITING_HUMAN_APPROVAL",
-      "SHIPPED"
-    ];
-    
-    let currentIndex = steps.indexOf(status);
-    // Handle FIX_NEEDED
-    if (status === "FIX_NEEDED") currentIndex = steps.indexOf("IN_REVIEW");
+    const order = statusOrder[status] ?? 0;
 
     const timeline = [
-      { id: "submitted", label: "Feature Submitted", completed: currentIndex >= 0 },
-      { id: "clarified", label: "AI Clarification", completed: currentIndex >= 1 },
-      { id: "plan_approved", label: "Plan Generated & Approved", completed: currentIndex >= 2 },
-      { id: "development", label: "In Development", completed: currentIndex >= 3 },
-      { id: "review", label: "Code Review", completed: currentIndex >= 4, isError: status === "FIX_NEEDED" },
-      { id: "human_approval", label: "Human Approval", completed: currentIndex >= 5 },
-      { id: "shipped", label: "Shipped", completed: currentIndex >= 6 },
+      { id: "submitted", label: "Feature Submitted", completed: order >= 0 },
+      { id: "clarified", label: "AI Clarification", completed: order >= 0.5 },
+      { id: "plan_approved", label: "Plan Generated & Approved", completed: order >= 1.5 },
+      { id: "development", label: "In Development", completed: order >= 3 },
+      { id: "review", label: "Code Review", completed: order >= 4, isError: status === "FIX_NEEDED" },
+      { id: "human_approval", label: "Human Approval", completed: order >= 5 },
+      { id: "shipped", label: "Shipped", completed: order >= 6 },
     ];
 
     return NextResponse.json({ timeline, currentStatus: status });

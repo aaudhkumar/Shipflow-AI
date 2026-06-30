@@ -3,34 +3,6 @@
 import { CheckCircle2, XCircle, Clock, ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
-const dummyDeployments = [
-  {
-    id: "1",
-    repo: "acme/frontend",
-    env: "production",
-    commit: "7d8e9f0",
-    status: "SUCCESS",
-    time: "2 mins ago",
-    url: "https://acme.vercel.app"
-  },
-  {
-    id: "2",
-    repo: "acme/api",
-    env: "preview",
-    commit: "3a4b5c6",
-    status: "PENDING",
-    time: "15 mins ago",
-  },
-  {
-    id: "3",
-    repo: "acme/backend",
-    env: "production",
-    commit: "1x2y3z4",
-    status: "FAILED",
-    time: "2 hours ago",
-  }
-]
-
 export function DeploymentsList({ deployments = [] }: { deployments?: any[] }) {
   return (
     <div className="rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm p-6 shadow-sm flex flex-col gap-4">
@@ -51,14 +23,14 @@ export function DeploymentsList({ deployments = [] }: { deployments?: any[] }) {
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{dep.repo}</span>
+                  <span className="font-medium text-sm">{dep.repositoryName}</span>
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0 uppercase bg-primary/10 text-primary">
-                    {dep.env}
+                    {dep.environment}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  <span className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">{dep.commit}</span>
-                  <span>• {dep.time}</span>
+                  <span className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">{dep.commitSha}</span>
+                  <span>• {new Date(dep.deployedAt).toLocaleString()}</span>
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { trpc } from "~/trpc/client";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,49 @@ export default function NewFeaturePage() {
     { enabled: !!org?.id }
   );
   
+  const searchParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const initialProjectId = searchParams?.get("projectId") || "";
+
+  const [projectId, setProjectId] = useState(initialProjectId);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [channel, setChannel] = useState("IN_APP");
   const [error, setError] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Load from session storage
+  useEffect(() => {
+    setIsMounted(true);
+    const saved = sessionStorage.getItem(`new-feature-${slug}`);
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        if (data.title) setTitle(data.title);
+        if (data.description) setDescription(data.description);
+        if (data.channel) setChannel(data.channel);
+        if (data.projectId && !initialProjectId) setProjectId(data.projectId);
+      } catch (e) {}
+    }
+  }, [slug, initialProjectId]);
+
+  // Save to session storage
+  useEffect(() => {
+    if (isMounted) {
+      const data = { title, description, channel, projectId };
+      sessionStorage.setItem(`new-feature-${slug}`, JSON.stringify(data));
+    }
+  }, [title, description, channel, projectId, slug, isMounted]);
+
+  // Update initial project ID once projects load if not set from URL or session storage
+  useEffect(() => {
+    if (projects && projects.length > 0 && !projectId && !initialProjectId) {
+      setProjectId(projects[0]!.id);
+    }
+  }, [projects, projectId, initialProjectId]);
 
   const createFeature = trpc.feature.create.useMutation({
     onSuccess: (data) => {
+      sessionStorage.removeItem(`new-feature-${slug}`);
       if (data?.id) {
         router.push(`/org/${slug}/features/${data.id}`);
       } else {
@@ -45,18 +81,17 @@ export default function NewFeaturePage() {
       return;
     }
     
-    if (!projects || projects.length === 0) {
-      setError("No projects found in this organization. Please create a project first.");
+    if (!projectId) {
+      setError("Please select a project.");
       return;
     }
-
-    const projectId = projects[0]!.id;
 
     createFeature.mutate({
       orgId: org.id,
       projectId,
       title,
       rawDescription: description,
+      sourceChannel: channel as "IN_APP" | "EMAIL" | "TICKET" | "CALL",
     });
   };
 
@@ -102,6 +137,26 @@ export default function NewFeaturePage() {
           </div>
 
           <div className="space-y-2">
+            <label htmlFor="project" className="text-sm font-medium">
+              Project
+            </label>
+            <select
+              id="project"
+              value={projectId}
+              onChange={(e) => setProjectId(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              required
+            >
+              <option value="" disabled>Select a project</option>
+              {projects?.map((project: any) => (
+                <option key={project.id} value={project.id}>
+                  {project.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-2">
             <label htmlFor="channel" className="text-sm font-medium">
               Source Channel
             </label>
@@ -113,7 +168,7 @@ export default function NewFeaturePage() {
             >
               <option value="IN_APP">In-App Feedback</option>
               <option value="EMAIL">Email Request</option>
-              <option value="SUPPORT_TICKET">Support Ticket</option>
+              <option value="TICKET">Support Ticket</option>
               <option value="CALL">Customer Call</option>
             </select>
           </div>

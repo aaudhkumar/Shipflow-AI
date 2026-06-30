@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Clock } from "lucide-react";
 
 interface ReviewTimeChartProps {
-  data: { severity: string; avgHours: number }[];
+  data: { severity: string; avgHours: number }[] | null;
 }
 
 const getSeverityColor = (severity: string) => {
@@ -29,9 +29,10 @@ export function ReviewTimeChart({ data }: ReviewTimeChartProps) {
         <CardDescription>Average time to address findings (hours)</CardDescription>
       </CardHeader>
       <CardContent>
-        {data.length === 0 ? (
-          <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-            <span>No severity data available</span>
+        {!data || data.length === 0 ? (
+          <div className="h-[250px] flex flex-col items-center justify-center text-muted-foreground/60 text-sm">
+            <Clock className="w-8 h-8 mb-4 opacity-40" />
+            <span>Not enough data yet</span>
           </div>
         ) : (
           <div className="h-[250px] w-full mt-2">

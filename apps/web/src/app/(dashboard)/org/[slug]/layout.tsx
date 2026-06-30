@@ -11,10 +11,14 @@ export default async function DashboardLayout({
   const { slug } = await params;
   return (
     <div className="flex min-h-screen w-full bg-background/95">
-      <Sidebar orgSlug={slug} />
-      <div className="flex flex-col w-full flex-1 md:pl-64">
-        <Header orgSlug={slug} />
-        <main className="flex-1 p-6 lg:p-8 animate-in fade-in zoom-in-95 duration-200">
+      <div className="print:hidden">
+        <Sidebar orgSlug={slug} />
+      </div>
+      <div className="flex flex-col w-full flex-1 md:pl-64 print:pl-0">
+        <div className="print:hidden">
+          <Header orgSlug={slug} />
+        </div>
+        <main className="flex-1 p-6 lg:p-8">
           {children}
         </main>
       </div>

@@ -6,8 +6,17 @@ import { eq } from "drizzle-orm";
 import { inngest } from "@shipflow/workflow";
 import { getInstallationOctokit } from "@shipflow/github";
 import { TRPCError } from "@trpc/server";
+import { createAuditLog, AuditAction } from "@shipflow/services/audit";
 
 export const repositoryRouter = router({
+  connectedList: orgMemberProcedure
+    .input(z.object({ orgId: z.string() }))
+    .query(async ({ input }) => {
+      return await db
+        .select()
+        .from(repositories)
+        .where(eq(repositories.orgId, input.orgId));
+    }),
   list: orgMemberProcedure
     .input(z.object({ orgId: z.string() }))
     .query(async ({ input }) => {
@@ -91,22 +100,62 @@ export const repositoryRouter = router({
         language: z.string().nullable(),
       })
     }))
-    .mutation(async ({ input }) => {
-      await db.insert(repositories).values({
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.member.role !== "OWNER") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only organization owners can connect repositories" });
+      }
+
+      // Free plan limit check
+      const { subscriptions } = await import("@shipflow/db/schema");
+      const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.orgId, input.orgId)).limit(1);
+      
+      if (!sub || sub.planId === "FREE") {
+        const repoCountResult = await db.select({ count: db.$count(repositories) })
+                                      .from(repositories)
+                                      .where(eq(repositories.orgId, input.orgId));
+        const currentRepoCount = repoCountResult[0]?.count || 0;
+        
+        if (currentRepoCount >= 3) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Upgrade to Pro to connect more repositories" });
+        }
+      }
+
+      const [newRepo] = await db.insert(repositories).values({
         orgId: input.orgId,
         githubRepoId: input.repo.id,
         fullName: input.repo.fullName,
         isPrivate: input.repo.private,
         defaultBranch: input.repo.defaultBranch,
+      }).returning({ id: repositories.id });
+      
+      await createAuditLog({
+        orgId: input.orgId,
+        actorId: ctx.session.user.id,
+        action: AuditAction.REPO_CONNECTED,
+        resourceType: 'REPOSITORY',
+        resourceId: newRepo!.id
       });
+      
       return { success: true };
     }),
   disconnect: orgMemberProcedure
     .input(z.object({ orgId: z.string(), githubRepoId: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.member.role !== "OWNER") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Only organization owners can disconnect repositories" });
+      }
+
       await db
         .delete(repositories)
         .where(eq(repositories.githubRepoId, input.githubRepoId));
+        
+      await createAuditLog({
+        orgId: input.orgId,
+        actorId: ctx.session.user.id,
+        action: AuditAction.REPO_DISCONNECTED,
+        resourceType: 'REPOSITORY',
+        resourceId: input.githubRepoId
+      });
       return { success: true };
     })
 });

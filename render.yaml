@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: shipflow-code-worker
+    env: docker
+    region: oregon # Or any preferred region
+    plan: free
+    dockerContext: .
+    dockerfilePath: apps/code-worker/Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: OPENAI_API_KEY
+        sync: false # Requires manual entry in Render Dashboard
+      - key: DATABASE_URL
+        sync: false # Requires manual entry in Render Dashboard
+      - key: GITHUB_APP_ID
+        sync: false # Requires manual entry in Render Dashboard
+      - key: GITHUB_PRIVATE_KEY
+        sync: false # Requires manual entry in Render Dashboard
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false # Requires manual entry in Render Dashboard

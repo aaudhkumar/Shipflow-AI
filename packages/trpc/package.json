@@ -9,15 +9,20 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@shipflow/services": "workspace:*",
     "@shipflow/auth": "workspace:*",
+    "@shipflow/billing": "workspace:*",
+    "@shipflow/email": "workspace:*",
     "@shipflow/db": "workspace:*",
     "@shipflow/github": "workspace:*",
+    "@shipflow/services": "workspace:*",
+    "@shipflow/utils": "workspace:*",
     "@shipflow/workflow": "workspace:*",
     "@trpc/client": "^11.8.1",
     "@trpc/server": "^11.8.1",
-    "trpc-to-openapi": "^3.1.0",
+    "@types/jsonwebtoken": "^9.0.10",
     "drizzle-orm": "^0.45.1",
+    "jsonwebtoken": "^9.0.3",
+    "trpc-to-openapi": "^3.1.0",
     "zod": "^4.3.5"
   },
   "type": "module"

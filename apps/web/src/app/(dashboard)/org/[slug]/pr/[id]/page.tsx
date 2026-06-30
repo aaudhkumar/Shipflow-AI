@@ -17,6 +17,7 @@ export default async function PRInsightsPage({ params }: { params: Promise<{ slu
   try {
     pr = await api.pullRequest.getWithReviews.query({ orgId: org.id, githubPrNumber: parseInt(id) });
   } catch (err) {
+    console.error("Failed to fetch PR:", err);
     return (
       <div className="space-y-6 max-w-6xl mx-auto p-8 text-center">
         <h2 className="text-xl font-semibold">Pull Request #{id} not found</h2>
@@ -82,6 +83,32 @@ export default async function PRInsightsPage({ params }: { params: Promise<{ slu
           )}
         </div>
       </div>
+
+      {(latestReview?.reviewMeta as any)?.shouldMerge !== undefined && (
+        <div className={`rounded-xl border p-5 flex items-start gap-4 ${
+          (latestReview?.reviewMeta as any)?.shouldMerge 
+            ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-700 dark:text-emerald-400" 
+            : "border-destructive/20 bg-destructive/5 text-destructive dark:text-destructive"
+        }`}>
+          <div className="mt-0.5">
+            {(latestReview?.reviewMeta as any)?.shouldMerge ? (
+              <ShieldCheck className="w-5 h-5" />
+            ) : (
+              <GitPullRequest className="w-5 h-5 text-destructive" />
+            )}
+          </div>
+          <div>
+            <h3 className="text-base font-semibold mb-1">
+              AI Merge Recommendation
+            </h3>
+            <p className="text-sm font-medium opacity-90">
+              {(latestReview?.reviewMeta as any)?.shouldMerge 
+                ? "This PR provides valuable additions and should be merged." 
+                : "This PR does not seem to provide valuable addons and is likely not suitable for merging."}
+            </p>
+          </div>
+        </div>
+      )}
 
       {readiness && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 space-y-4">

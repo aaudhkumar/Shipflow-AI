@@ -3,10 +3,10 @@ import { getDefaultModel } from "../../client";
 import { ClarifierOutputSchema } from "./schema";
 import { clarifierSystemPrompt } from "./prompt";
 
-export async function runClarifierAgent(featureDescription: string, existingFeaturesContext?: string, previousThread?: string) {
+export async function runClarifierAgent(title: string, description: string, existingFeaturesContext?: string, previousThread?: string) {
   const model = getDefaultModel();
 
-  let prompt = `Evaluate the following Feature Request:\n\n<FEATURE_REQUEST>\n${featureDescription}\n</FEATURE_REQUEST>\n\n`;
+  let prompt = `Evaluate the following Feature Request:\n\n<FEATURE_REQUEST>\nTitle: ${title}\nDescription: ${description}\n</FEATURE_REQUEST>\n\n`;
 
   if (previousThread) {
     prompt += `Previous conversation history with the user regarding this request:\n\n<HISTORY>\n${previousThread}\n</HISTORY>\n\n`;

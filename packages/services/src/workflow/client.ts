@@ -1,19 +1,22 @@
 import { Inngest, EventSchemas } from "inngest";
 import { z } from "zod";
-import { GithubPrOpenedEventSchema, GithubReleaseDraftedSchema, BillingPaymentSuccessSchema, DeploymentFailedSchema, FeatureStateTransitionSchema, RepoSyncRequestedSchema, GitHubRepositoriesSyncSchema } from "./events";
+import { GithubPrOpenedEventSchema, GithubReleasePublishedSchema, BillingPaymentSuccessSchema, DeploymentFailedSchema, FeatureStateTransitionSchema, RepoSyncRequestedSchema, GitHubRepositoriesSyncSchema, GithubIssueOpenedSchema, GithubIssueClosedSchema, GithubIssueCommentCreatedSchema, FeatureCreatedEventSchema, TasksApprovedForDevSchema } from "./events";
 
 type Events = {
   "github.pr.opened": {
     data: z.infer<typeof GithubPrOpenedEventSchema>;
   };
-  "github.release.drafted": {
-    data: z.infer<typeof GithubReleaseDraftedSchema>;
+  "github.release.published": {
+    data: z.infer<typeof GithubReleasePublishedSchema>;
   };
   "billing.payment.success": {
     data: z.infer<typeof BillingPaymentSuccessSchema>;
   };
   "deployment.failed": {
     data: z.infer<typeof DeploymentFailedSchema>;
+  };
+  "feature.created": {
+    data: z.infer<typeof FeatureCreatedEventSchema>;
   };
   "feature.prd.generated": {
     data: z.infer<typeof FeatureStateTransitionSchema>;
@@ -38,6 +41,18 @@ type Events = {
   };
   "github.repositories.sync": {
     data: z.infer<typeof GitHubRepositoriesSyncSchema>;
+  };
+  "github.issue.opened": {
+    data: z.infer<typeof GithubIssueOpenedSchema>;
+  };
+  "github.issue.closed": {
+    data: z.infer<typeof GithubIssueClosedSchema>;
+  };
+  "github.issue_comment.created": {
+    data: z.infer<typeof GithubIssueCommentCreatedSchema>;
+  };
+  "tasks.approved_for_dev": {
+    data: z.infer<typeof TasksApprovedForDevSchema>;
   };
 };
 

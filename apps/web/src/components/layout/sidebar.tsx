@@ -1,5 +1,6 @@
 "use client"
 
+import { trpc } from "~/trpc/client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -7,13 +8,16 @@ import {
   LayoutDashboard, 
   Settings, 
   GitPullRequestDraft, 
+  FolderGit2, 
   Users, 
   Blocks,
+  History,
   Activity,
   FileText,
-  History
+  Inbox
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { OrgSwitcher } from "./org-switcher"
 
 interface SidebarProps {
   orgSlug: string
@@ -31,6 +35,12 @@ export function Sidebar({ orgSlug, usage = { used: 0, total: 500 } }: SidebarPro
       active: pathname === `/org/${orgSlug}`,
     },
     {
+      label: "Projects",
+      icon: FolderGit2,
+      href: `/org/${orgSlug}/projects`,
+      active: pathname.startsWith(`/org/${orgSlug}/projects`),
+    },
+    {
       label: "Analytics",
       icon: Activity,
       href: `/org/${orgSlug}/analytics`,
@@ -41,6 +51,12 @@ export function Sidebar({ orgSlug, usage = { used: 0, total: 500 } }: SidebarPro
       icon: FileText,
       href: `/org/${orgSlug}/features`,
       active: pathname.startsWith(`/org/${orgSlug}/features`),
+    },
+    {
+      label: "Issues Inbox",
+      icon: Inbox,
+      href: `/org/${orgSlug}/issues`,
+      active: pathname.startsWith(`/org/${orgSlug}/issues`),
     },
     {
       label: "PR Insights",
@@ -86,6 +102,25 @@ export function Sidebar({ orgSlug, usage = { used: 0, total: 500 } }: SidebarPro
     },
   ]
 
+  const { data: orgs, isLoading: isLoadingOrgs } = trpc.organization.list.useQuery()
+  const currentOrg = orgs?.find((org) => org.slug === orgSlug)
+
+  const { data: subscription, isLoading: isLoadingSub } = trpc.billing.getSubscription.useQuery(
+    { orgId: currentOrg?.id as string },
+    { enabled: !!currentOrg?.id }
+  )
+
+  console.log("DEBUG SIDEBAR:", { orgSlug, currentOrgId: currentOrg?.id, subscription, isLoadingOrgs, isLoadingSub })
+
+  const normalizedPlan = subscription?.plan?.toUpperCase()
+  const planName = isLoadingOrgs || isLoadingSub ? "Loading Plan..." 
+                 : normalizedPlan === "PRO" ? "PRO Plan" 
+                 : normalizedPlan === "ENTERPRISE" ? "Enterprise Plan" 
+                 : "Free Plan"
+                 
+  const used = subscription?.usageCount || 0
+  const total = subscription?.usageLimit || 10
+
   return (
     <aside className="hidden md:flex flex-col w-64 h-screen fixed top-0 left-0 border-r border-border/40 bg-card/60 backdrop-blur-xl z-30">
       <div className="h-14 flex items-center px-6 border-b border-border/40">
@@ -117,13 +152,14 @@ export function Sidebar({ orgSlug, usage = { used: 0, total: 500 } }: SidebarPro
       </div>
       
       <div className="p-4 border-t border-border/40">
-        <div className="rounded-lg border border-border/50 bg-muted/20 p-4 backdrop-blur-md">
-          <h4 className="text-sm font-medium mb-1">PRO Plan</h4>
-          <p className="text-xs text-muted-foreground mb-3">{usage.used} / {usage.total} AI PR Analyses used this month.</p>
+        <div className="rounded-lg border border-border/50 bg-muted/20 p-4 backdrop-blur-md mb-4">
+          <h4 className="text-sm font-medium mb-1">{planName}</h4>
+          <p className="text-xs text-muted-foreground mb-3">{used} / {total} AI PR & Feature sessions used this month.</p>
           <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
-            <div className="bg-primary h-full transition-all" style={{ width: `${Math.min(100, Math.round((usage.used / usage.total) * 100))}%` }} />
+            <div className="bg-primary h-full transition-all" style={{ width: `${Math.min(100, Math.round((used / total) * 100))}%` }} />
           </div>
         </div>
+        <OrgSwitcher currentSlug={orgSlug} />
       </div>
     </aside>
   )

@@ -17,13 +17,21 @@ const openApiDocument = generateOpenApiDocument(serverRouter, {
   baseUrl: env.BASE_URL.concat("/api"),
 });
 
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS ?? 'http://localhost:3000').split(',').map(s => s.trim());
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Unconditionally allow any origin to prevent internal server errors masking as CORS
-      callback(null, origin || true);
+      // Wildcard origin with credentials is a security vulnerability — see SEC-02 in roadmap
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, origin);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 

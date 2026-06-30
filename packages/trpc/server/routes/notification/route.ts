@@ -16,6 +16,22 @@ export const notificationRouter = router({
       });
     }),
 
+  getUnreadCount: orgMemberProcedure
+    .query(async ({ ctx }) => {
+      const { db } = await import("@shipflow/db");
+      const { notifications } = await import("@shipflow/db/schema");
+      const { eq, and } = await import("drizzle-orm");
+
+      const result = await db.select({ count: db.$count(notifications) })
+        .from(notifications)
+        .where(and(
+          eq(notifications.orgId, ctx.orgId),
+          eq(notifications.userId, ctx.session.user.id),
+          eq(notifications.isRead, false)
+        ));
+      return result[0]?.count || 0;
+    }),
+
   markAsRead: orgMemberProcedure
     .input(z.object({ notificationId: z.string() }))
     .mutation(async ({ ctx, input }) => {

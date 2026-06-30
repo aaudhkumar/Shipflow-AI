@@ -1,7 +1,74 @@
 import { inngest } from "../../../services/src/workflow/client";
 import { db } from "@shipflow/db";
-import { featureRequests } from "@shipflow/db/schema";
+import { featureRequests, clarificationThreads, clarificationMessages } from "@shipflow/db/schema";
 import { eq } from "drizzle-orm";
+
+export const featureCreated = inngest.createFunction(
+  { id: "feature-created" },
+  { event: "feature.created" },
+  async ({ event, step }) => {
+    const { featureId, orgId, actorId } = event.data;
+
+    const featureData = await step.run("fetch-feature", async () => {
+      const feature = await db.query.featureRequests.findFirst({
+        where: eq(featureRequests.id, featureId),
+        with: {
+          clarificationThreads: true
+        }
+      });
+      if (!feature) throw new Error("Feature not found");
+      return feature;
+    });
+
+    const clarifierResult = await step.run("run-clarifier", async () => {
+      // 1. Fetch existing features for duplicate detection (scoped to project)
+      const { featureService } = await import("@shipflow/services/feature");
+      const features = await featureService.listFeatures(orgId, undefined, featureData.projectId);
+      const existingFeaturesContext = features
+        .filter(f => f.id !== featureId)
+        .map(f => `ID: ${f.id}\nTitle: ${f.title}\nDescription: ${f.rawDescription}`)
+        .join("\n\n");
+
+      // 2. Run clarifier agent
+      const { runClarifierAgent } = await import("@shipflow/ai");
+      // Run with empty transcript since it's the first time
+      const { result } = await runClarifierAgent(featureData.title, featureData.rawDescription, existingFeaturesContext, "");
+      return result;
+    });
+
+    await step.run("save-clarifier-response", async () => {
+      const thread = featureData.clarificationThreads?.[0];
+      if (!thread) throw new Error("Thread not found");
+
+      let content = clarifierResult.message || "";
+      if (clarifierResult.action === "ask_question" && clarifierResult.questions) {
+        content = JSON.stringify({
+          message: clarifierResult.message,
+          questions: clarifierResult.questions
+        });
+      }
+
+      await db.insert(clarificationMessages).values({
+        threadId: thread.id,
+        sender: "AI_QUESTIONS", // A special sender to indicate structured questions
+        content,
+      });
+
+      // Optionally update status to CLARIFYING
+      if (clarifierResult.action === "ask_question") {
+        await db.update(featureRequests)
+          .set({ status: "CLARIFYING", updatedAt: new Date() })
+          .where(eq(featureRequests.id, featureId));
+      } else if (clarifierResult.action === "mark_ready") {
+        await db.update(featureRequests)
+          .set({ status: "CLARIFIED", updatedAt: new Date() })
+          .where(eq(featureRequests.id, featureId));
+      }
+    });
+
+    return { success: true, featureId, action: clarifierResult.action };
+  }
+);
 
 export const featurePrdGenerated = inngest.createFunction(
   { id: "feature-prd-generated" },
@@ -48,11 +115,21 @@ export const featurePrdGenerated = inngest.createFunction(
 
     // 4. Insert prdVersions row
     const prdVersion = await step.run("insert-prd-version", async () => {
-      const { prdVersions, prds } = await import("@shipflow/db/schema");
+      const { prdVersions, prds, members } = await import("@shipflow/db/schema");
+      const { and, eq } = await import("drizzle-orm");
+      
+      const [member] = await db
+        .select({ id: members.id })
+        .from(members)
+        .where(and(eq(members.userId, actorId), eq(members.orgId, orgId)))
+        .limit(1);
+
+      if (!member) throw new Error("User is not a member of this organization");
+
       const [version] = await db.insert(prdVersions)
         .values({
           prdId: prd.id,
-          authorId: actorId,
+          authorId: member.id,
           versionNumber: 1,
           content: prdContent,
           changeSummary: "Initial AI generation",
@@ -126,6 +203,7 @@ export const featureTasksGenerated = inngest.createFunction(
           title: task.title,
           technicalImplementationDetails: task.description,
           estimationPoints: task.storyPoints,
+          status: "TODO",
         }).returning();
         if (!taskRow) continue;
         

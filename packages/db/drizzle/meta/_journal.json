@@ -36,6 +36,76 @@
       "when": 1782349365361,
       "tag": "0004_aberrant_misty_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782396273982,
+      "tag": "0005_high_manta",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782397010815,
+      "tag": "0006_medical_master_chief",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782399345481,
+      "tag": "0007_furry_fixer",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782401800727,
+      "tag": "0008_broken_spyke",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782401877976,
+      "tag": "0009_large_the_call",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782403583090,
+      "tag": "0010_dapper_white_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1782483720702,
+      "tag": "0011_sudden_daimon_hellstrom",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1782496926526,
+      "tag": "0012_solid_psynapse",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1782506884458,
+      "tag": "0013_rainy_black_panther",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1782697017863,
+      "tag": "0014_fat_serpent_society",
+      "breakpoints": true
     }
   ]
 }

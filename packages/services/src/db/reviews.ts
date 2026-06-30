@@ -22,6 +22,13 @@ type ReviewComment = {
 type CodeReviewResult = {
   comments: ReviewComment[];
   summary: string;
+  reviewMeta?: {
+    toolCallCount: number;
+    toolsUsed: string[];
+    reflectionApplied: boolean;
+    modelUsed: string;
+    shouldMerge?: boolean;
+  };
 };
 
 /**
@@ -61,6 +68,7 @@ export async function saveAiReviewToDatabase(
       isAiReview: true,
       state: hasBlockingFindings ? "CHANGES_REQUESTED" : "COMMENTED",
       commitSha,
+      reviewMeta: reviewResult.reviewMeta,
     })
     .returning();
 

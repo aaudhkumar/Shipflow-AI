@@ -9,6 +9,9 @@ export const subscriptions = pgTable("subscription", {
   status: subscriptionStatusEnum("status").notNull().default("ACTIVE"),
   planId: text("plan_id").notNull(),
   currentPeriodEnd: timestamp("current_period_end").notNull(),
+  usageCount: integer("usage_count").default(0),
+  usageLimit: integer("usage_limit").default(10),
+  renewalDate: timestamp("renewal_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
