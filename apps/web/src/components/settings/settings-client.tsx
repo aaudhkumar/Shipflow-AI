@@ -9,18 +9,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Key, LogOut, User, Shield, Mail, CheckCircle2 } from "lucide-react"
-import { toast } from "sonner"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Key, LogOut, User, Shield, Mail } from "lucide-react"
 
 export function SettingsClient({ orgId }: { orgId: string }) {
   const { data: session } = useSession()
   const user = session?.user
   
-  const trpcContext = trpc.useUtils()
   
-  const { data: orgSettings, isLoading: isLoadingSettings } = trpc.organization.getSettings.useQuery({ orgId })
-  const { data: members, isLoading: isLoadingMembers } = trpc.organization.getMembers.useQuery({ orgId })
+  const { isLoading: isLoadingSettings } = trpc.organization.getSettings.useQuery({ orgId })
+  const { data: members } = trpc.organization.getMembers.useQuery({ orgId })
 
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -152,8 +150,6 @@ export function SettingsClient({ orgId }: { orgId: string }) {
 
             </CardContent>
           </Card>
-        </div>
-
         </div>
       </div>
     </div>
