@@ -1,7 +1,7 @@
-import express from "express";
+import express, { type Express } from "express";
 import { handleImplement } from "./implement";
 
-export const app = express();
+export const app: Express = express();
 app.use(express.json());
 
 app.post("/implement", async (req, res) => {
