@@ -12,7 +12,7 @@ FROM base AS builder
 # Set working directory
 WORKDIR /app
 # Install turbo
-RUN pnpm install turbo --global
+RUN npm install -g turbo
 
 COPY . .
 # Prune the workspace to only include the code-worker and its dependencies
