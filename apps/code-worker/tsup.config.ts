@@ -5,5 +5,9 @@ export default defineConfig({
   format: ["esm"],
   dts: true,
   clean: true,
-  noExternal: ["@shipflow/db", "@shipflow/services", "@shipflow/logger", "@shipflow/ai", "@shipflow/github"],
+  noExternal: [/^@shipflow\//],
+  skipNodeModulesBundle: true,
+  banner: {
+    js: `import { createRequire } from 'module';const require = createRequire(import.meta.url);`,
+  },
 });

@@ -2,7 +2,9 @@ import { defineConfig } from "tsup";
 
 export default defineConfig({
   entry: ["./src/index.ts"],
-  noExternal: ["@teachyst"], // transpile packages starting with `@teachyst` and their dependencies
+  format: ["esm"],
+  noExternal: [/^@shipflow\//],
+  skipNodeModulesBundle: true,
   splitting: false,
   bundle: true,
   outDir: "./dist",
@@ -11,4 +13,7 @@ export default defineConfig({
   loader: { ".json": "copy" },
   minify: true,
   sourcemap: false,
+  banner: {
+    js: `import { createRequire } from 'module';const require = createRequire(import.meta.url);`,
+  },
 });
