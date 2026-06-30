@@ -19,7 +19,8 @@ export const implementFeatureTasks = inngest.createFunction(
       const result = await step.run(`implement-${claimed.id}`, async () => {
         // Will implement in Step 7
         try {
-          const res = await fetch("http://localhost:3004/implement", {
+          const workerUrl = process.env.CODE_WORKER_URL || "http://localhost:3004";
+          const res = await fetch(`${workerUrl}/implement`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ taskId: claimed.id }),
