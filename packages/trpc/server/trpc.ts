@@ -6,6 +6,7 @@ import { Context, createContext } from "./context";
 export const tRPCContext = initTRPC.meta<OpenApiMeta>().context<Context>().create({});
 
 export const router = tRPCContext.router;
+export const createCallerFactory = tRPCContext.createCallerFactory;
 
 export const publicProcedure = tRPCContext.procedure;
 

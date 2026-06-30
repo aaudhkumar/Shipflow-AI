@@ -36,5 +36,6 @@ export const serverRouter = router({
 });
 
 export { createContext } from "./context";
+export { createCallerFactory } from "./trpc";
 export type ServerRouter = typeof serverRouter;
 

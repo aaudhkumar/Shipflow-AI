@@ -1,37 +1,46 @@
-import type { ServerRouter } from "@shipflow/trpc/client";
-import { createTRPCProxyClient } from "@shipflow/trpc/client";
-import { createTRPCHttpBatchClientClient } from "~/trpc/create-client";
+import { serverRouter, createContext, createCallerFactory } from "@shipflow/trpc/server";
 import { headers } from "next/headers";
+import { cache } from "react";
 
-export const api = createTRPCProxyClient<ServerRouter>({
-  links: [createTRPCHttpBatchClientClient({
-    get headers() {
-      return async () => {
-        const h = await headers();
-        const heads = Object.fromEntries(h.entries());
-        delete heads["host"];
-        delete heads["connection"];
-        delete heads["content-length"];
-        delete heads["content-type"];
-        return heads;
-      };
-    }
-  })],
+const createCaller = createCallerFactory(serverRouter);
+
+const getCaller = cache(async () => {
+  const h = await headers();
+  return createCaller(await createContext({ headers: h }));
 });
 
-export const apiStreaming = createTRPCProxyClient<ServerRouter>({
-  links: [createTRPCHttpBatchClientClient({
-    enableStreaming: true,
-    get headers() {
-      return async () => {
-        const h = await headers();
-        const heads = Object.fromEntries(h.entries());
-        delete heads["host"];
-        delete heads["connection"];
-        delete heads["content-length"];
-        delete heads["content-type"];
-        return heads;
-      };
-    }
-  })],
-});
+const createRecursiveProxy = (path: string[] = []): any => {
+  return new Proxy(() => {}, {
+    get(_, prop) {
+      if (typeof prop === "string") {
+        return createRecursiveProxy([...path, prop]);
+      }
+      return undefined;
+    },
+    async apply(_, __, args) {
+      const caller = await getCaller();
+      
+      // Remove 'query' or 'mutate' from the end of the path
+      const actualPath = [...path];
+      const lastProp = actualPath[actualPath.length - 1];
+      if (lastProp === "query" || lastProp === "mutate") {
+        actualPath.pop();
+      }
+
+      // Traverse the caller to get the actual tRPC function
+      let tRPCFunction: any = caller;
+      for (const p of actualPath) {
+        tRPCFunction = tRPCFunction[p];
+      }
+
+      return tRPCFunction(...args);
+    },
+  });
+};
+
+import type { ServerRouter } from "@shipflow/trpc/client";
+import type { CreateTRPCProxyClient } from "@trpc/client";
+
+export const api = createRecursiveProxy() as CreateTRPCProxyClient<ServerRouter>;
+
+export const apiStreaming = api;
