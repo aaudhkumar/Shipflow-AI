@@ -24,10 +24,6 @@ export const createTRPCHttpBatchClientClient = (opts?: CreateTRPCHttpBatchClient
       return fetch(url, {
         ...options,
         credentials: "include",
-        headers: {
-          ...options?.headers,
-          "ngrok-skip-browser-warning": "true",
-        },
       });
     },
   });
