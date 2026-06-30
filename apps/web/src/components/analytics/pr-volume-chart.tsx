@@ -52,19 +52,19 @@ export function PRVolumeChart({ data }: PRVolumeChartProps) {
                     dataKey="date" 
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
                     dy={10}
                   />
                   <YAxis 
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }}
+                    tick={{ fontSize: 12, fill: "var(--muted-foreground)" }}
                   />
                   <Tooltip
-                    contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}
-                    itemStyle={{ color: "hsl(var(--foreground))", fontWeight: 500 }}
-                    labelStyle={{ color: "hsl(var(--muted-foreground))", marginBottom: "4px" }}
-                    cursor={{ stroke: "hsl(var(--muted))", strokeWidth: 1, strokeDasharray: "4 4" }}
+                    contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", backgroundColor: "var(--card)" }}
+                    itemStyle={{ color: "var(--foreground)", fontWeight: 500 }}
+                    labelStyle={{ color: "var(--muted-foreground)", marginBottom: "4px" }}
+                    cursor={{ stroke: "var(--muted)", strokeWidth: 1, strokeDasharray: "4 4" }}
                   />
                   <Area
                     type="monotone"

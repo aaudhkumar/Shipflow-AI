@@ -9,17 +9,44 @@ import { WorkflowStatus } from "@/components/features/workflow-status";
 import { KanbanBoard } from "@/components/tasks/kanban-board";
 import { PRDViewer } from "@/components/prd/prd-viewer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, CheckCircle2, Sparkles, LayoutList, Printer, Trash2, Code2 } from "lucide-react";
+import { ArrowLeft, FileText, CheckCircle2, Sparkles, LayoutList, Printer, Trash2, Code2, RotateCcw, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { RelatedIssuesPanel } from "@/components/features/related-issues-panel";
 import { LinkPRInstructions } from "@/components/features/link-pr-instructions";
 import { ClarificationModal } from "@/components/features/clarification-modal";
+import { ReviewSubmissionModal } from "@/components/features/review-submission-modal";
 import { BackgroundJobTracker } from "@/components/ui/background-job-tracker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExpandableContent } from "@/components/ui/expandable-content";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+function ReleaseNotesViewer({ featureId, orgId }: { featureId: string, orgId: string }) {
+  const { data: releaseReadiness, isLoading } = trpc.feature.getReleaseReadiness.useQuery({ featureId, orgId });
+  
+  if (isLoading) return <Skeleton className="h-32 w-full" />;
+  if (!releaseReadiness || !releaseReadiness.releaseNotes) return null;
+  
+  return (
+    <div className="w-full print:hidden mb-4">
+      <ExpandableContent
+        title="Release Notes"
+        icon={<BookOpen className="w-4 h-4 text-purple-500" />}
+        contentToCopy={releaseReadiness.releaseNotes}
+        copyLabel="Copy Notes"
+        copiedLabel="Copied Notes"
+        maxHeight="400px"
+      >
+        <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {releaseReadiness.releaseNotes}
+          </ReactMarkdown>
+        </div>
+      </ExpandableContent>
+    </div>
+  );
+}
 
 function ExecutionPlanViewer({ featureId, orgId }: { featureId: string, orgId: string }) {
   const { data: board } = trpc.task.getKanban.useQuery({ featureId, orgId });
@@ -76,6 +103,7 @@ export default function FeatureDetailPage() {
   const [isGeneratingPRD, setIsGeneratingPRD] = useState(false);
   const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
   const [isStartingClarification, setIsStartingClarification] = useState(false);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
   const { data: feature, isLoading, refetch } = trpc.feature.getById.useQuery(
     { featureId, orgId: org?.id! },
@@ -96,9 +124,9 @@ export default function FeatureDetailPage() {
     if (!feature) return;
     
     // Check if clarifier is running (in CLARIFYING state and waiting for AI)
+    const messages = feature.clarificationThreads?.[0]?.messages;
     const isClarifying = feature.status === 'CLARIFYING' && 
-      (!feature.clarificationThreads?.[0]?.messages?.length || 
-       feature.clarificationThreads[0].messages[feature.clarificationThreads[0].messages.length - 1].sender !== 'AI_QUESTIONS');
+      (!messages?.length || messages[messages.length - 1]?.sender !== 'AI_QUESTIONS');
        
     if (isClarifying && !isStartingClarification) {
       setIsStartingClarification(true);
@@ -129,17 +157,25 @@ export default function FeatureDetailPage() {
     onSuccess: () => refetch()
   });
 
-  const submitForReview = trpc.feature.submitForReview.useMutation({
-    onSuccess: () => refetch()
-  });
+
 
   const approveForDev = trpc.taskExecution.approveForDevelopment.useMutation({
-    onSuccess: (data) => {
-      toast.success(`Agent initiated! Sent ${data.taskCount} tasks to the code worker.`);
+    onSuccess: () => {
+      toast.success("Tasks approved for AI implementation");
       refetch();
     },
-    onError: (err) => {
-      toast.error(`Failed to assign tasks: ${err.message}`);
+    onError: (error) => {
+      toast.error(`Failed to approve tasks: ${error.message}`);
+    }
+  });
+
+  const approveRelease = trpc.feature.approveHumanRelease.useMutation({
+    onSuccess: () => {
+      toast.success("Release approved successfully!");
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(`Failed to approve release: ${error.message}`);
     }
   });
 
@@ -178,7 +214,7 @@ export default function FeatureDetailPage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight">{feature.title}</h1>
-            <FeatureStatusBadge status={feature.status} />
+            <FeatureStatusBadge status={feature.status} hasIssue={feature.githubIssues && feature.githubIssues.length > 0} />
             <SourceChannelBadge channel={feature.sourceChannel as any} />
             {startClarification.isPending && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 animate-pulse">
@@ -253,12 +289,32 @@ export default function FeatureDetailPage() {
 
           {feature.status === "IN_DEVELOPMENT" && (
             <Button
-              onClick={() => submitForReview.mutate({ featureId, orgId: org!.id })}
-              disabled={submitForReview.isPending}
+              onClick={() => setIsReviewModalOpen(true)}
               className="bg-yellow-600 hover:bg-yellow-700 text-white shadow-lg shadow-yellow-500/20"
             >
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              {submitForReview.isPending ? "Submitting..." : "Submit for Review"}
+              Submit for Review
+            </Button>
+          )}
+
+          {feature.status === "FIX_NEEDED" && (
+            <Button
+              onClick={() => setIsReviewModalOpen(true)}
+              className="bg-amber-600 hover:bg-amber-700 text-white shadow-lg shadow-amber-500/20"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Submit Fixes for Review
+            </Button>
+          )}
+
+          {feature.status === "AWAITING_HUMAN_APPROVAL" && (
+            <Button
+              onClick={() => approveRelease.mutate({ featureId: feature.id, orgId: org!.id })}
+              disabled={approveRelease.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20"
+            >
+              <CheckCircle2 className="w-4 h-4 mr-2" />
+              {approveRelease.isPending ? "Approving..." : "Approve Release"}
             </Button>
           )}
 
@@ -283,20 +339,7 @@ export default function FeatureDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 mt-8 items-start print:block">
         <div className="flex flex-col gap-6 print:block">
           {(() => {
-            const statusWeight = {
-              SUBMITTED: 0,
-              CLARIFYING: 1,
-              CLARIFIED: 2,
-              PRD_GENERATED: 3,
-              TASKS_GENERATED: 4,
-              PLAN_APPROVED: 5,
-              IN_DEVELOPMENT: 6,
-              IN_REVIEW: 7,
-              FIX_NEEDED: 7,
-              AWAITING_HUMAN_APPROVAL: 8,
-              SHIPPED: 9,
-              REJECTED: -1
-            }[feature.status] ?? 0;
+
 
             const renderKanban = () => (
               <div key="kanban" className="w-full print:hidden">
@@ -464,7 +507,7 @@ export default function FeatureDetailPage() {
               return null;
             };
 
-            const isRunningClarifier = feature.status === 'CLARIFYING' && (!feature.clarificationThreads?.[0]?.messages?.length || feature.clarificationThreads[0].messages[feature.clarificationThreads[0].messages.length - 1].sender !== 'AI_QUESTIONS');
+            const isRunningClarifier = feature.status === 'CLARIFYING' && (!feature.clarificationThreads?.[0]?.messages?.length || feature.clarificationThreads?.[0]?.messages?.[feature.clarificationThreads[0].messages.length - 1]?.sender !== 'AI_QUESTIONS');
             const renderClarifierTracker = () => {
               if (isRunningClarifier) {
                 return (
@@ -499,6 +542,7 @@ export default function FeatureDetailPage() {
               renderKanban(), 
               renderClarifierTracker(),
               renderTasksPlaceholder(),
+              <ReleaseNotesViewer key="release-notes" featureId={feature.id} orgId={org!.id} />,
               <ExecutionPlanViewer key="epic" featureId={feature.id} orgId={org!.id} />,
               renderPRD(), 
               renderDescription()
@@ -523,6 +567,15 @@ export default function FeatureDetailPage() {
         messages={feature.clarificationThreads?.[0]?.messages || []}
         onComplete={() => refetch()}
       />
+
+      <ReviewSubmissionModal
+        featureId={feature.id}
+        orgId={org!.id}
+        isOpen={isReviewModalOpen}
+        onOpenChange={setIsReviewModalOpen}
+        onComplete={() => refetch()}
+      />
+
     </div>
   );
 }

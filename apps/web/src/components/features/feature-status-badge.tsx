@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 
-export function FeatureStatusBadge({ status }: { status: string }) {
+export function FeatureStatusBadge({ status, hasIssue }: { status: string; hasIssue?: boolean }) {
   let colorClass = "bg-muted text-muted-foreground border-border";
   const label = status.replace(/_/g, " ");
 
@@ -34,8 +34,15 @@ export function FeatureStatusBadge({ status }: { status: string }) {
   }
 
   return (
-    <Badge variant="outline" className={`${colorClass} font-medium tracking-tight whitespace-nowrap`}>
-      {label}
-    </Badge>
+    <div className="flex items-center gap-2">
+      <Badge variant="outline" className={`${colorClass} font-medium tracking-tight whitespace-nowrap`}>
+        {label}
+      </Badge>
+      {hasIssue && (
+        <Badge variant="outline" className="bg-red-500/10 text-red-600 dark:text-red-500 border-red-500/20 font-medium tracking-tight whitespace-nowrap">
+          ISSUE
+        </Badge>
+      )}
+    </div>
   );
 }

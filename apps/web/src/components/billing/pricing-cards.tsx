@@ -72,7 +72,7 @@ export function PricingCards({ orgId, currentPlan }: PricingCardsProps) {
             })
             toast.success("Payment successful! Your plan has been upgraded.")
             window.location.reload()
-          } catch (error) {
+          } catch (_error) {
             toast.error("Payment verification failed.")
           }
         },
@@ -86,7 +86,7 @@ export function PricingCards({ orgId, currentPlan }: PricingCardsProps) {
         toast.error(`Payment failed: ${response.error.description}`)
       })
       rzp.open()
-    } catch (error) {
+    } catch (_error) {
       toast.error("An error occurred during checkout. Please try again.")
     } finally {
       setLoadingPlan(null)

@@ -39,7 +39,7 @@ export default function NewFeaturePage() {
         if (data.description) setDescription(data.description);
         if (data.channel) setChannel(data.channel);
         if (data.projectId && !initialProjectId) setProjectId(data.projectId);
-      } catch (e) {}
+      } catch {}
     }
   }, [slug, initialProjectId]);
 

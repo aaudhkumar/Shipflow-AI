@@ -43,7 +43,7 @@ export default async function PricingPage() {
     if (orgs && orgs.length > 0 && orgs[0]) {
       defaultOrgId = orgs[0].id;
     }
-  } catch (e) {
+  } catch {
     // User is likely not authenticated
   }
 

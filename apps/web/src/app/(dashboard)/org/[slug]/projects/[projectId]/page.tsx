@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Plus, Inbox, ArrowLeft, FolderGit2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+import { ManageProjectMembersDialog } from "@/components/projects/manage-members-dialog";
+
 export default function ProjectDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -64,6 +66,14 @@ export default function ProjectDetailsPage() {
               {project.description || "No description provided."}
             </p>
           </div>
+          {org && (
+            <ManageProjectMembersDialog 
+              orgId={org.id} 
+              projectId={project.id} 
+              projectName={project.name}
+              currentMemberIds={project.members?.map((m: any) => m.memberId) || []}
+            />
+          )}
         </div>
       ) : (
         <div className="text-red-500">Project not found.</div>
@@ -143,7 +153,7 @@ export default function ProjectDetailsPage() {
                         <SourceChannelBadge channel={feature.sourceChannel as any} />
                       </td>
                       <td className="px-6 py-4">
-                        <FeatureStatusBadge status={feature.status} />
+                        <FeatureStatusBadge status={feature.status} hasIssue={feature.githubIssues && feature.githubIssues.length > 0} />
                       </td>
                       <td className="px-6 py-4 text-muted-foreground">
                         {new Date(feature.createdAt).toLocaleDateString(undefined, { 

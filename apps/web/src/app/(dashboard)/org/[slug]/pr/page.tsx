@@ -1,6 +1,6 @@
 import { db } from "@shipflow/db"
-import { organizations, pullRequests, repositories } from "@shipflow/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { repositories } from "@shipflow/db/schema"
+import { eq } from "drizzle-orm"
 import { GitPullRequest, ArrowRight, ExternalLink, Clock, CheckCircle2, XCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

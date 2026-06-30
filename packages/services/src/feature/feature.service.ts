@@ -335,6 +335,8 @@ export class FeatureService {
       await db.insert(approvals).values(approvalData);
     }
 
+    await this.featureRepo.updateFeatureStatus(featureId, orgId, "SHIPPED");
+
     await inngest.send({
       name: "feature.human.approved",
       data: { featureId, orgId, previousState: feature.status, newState: "SHIPPED", actorId: userId }
@@ -455,6 +457,68 @@ export class FeatureService {
       resourceType: 'FEATURE', resourceId: featureId,
     });
     return { status: "IN_REVIEW" };
+  }
+
+  async redoExecutionPlan(featureId: string, orgId: string, userId: string) {
+    const role = await this.featureRepo.getMemberRole(orgId, userId);
+    if (role !== "ADMIN" && role !== "OWNER" && role !== "PM" && role !== "ENGINEER") {
+      throw new Error("Unauthorized to redo execution plan");
+    }
+
+    const feature = await this.featureRepo.getFeatureById(featureId, orgId);
+    if (!feature) throw new Error("Feature not found");
+    if (feature.status !== "IN_DEVELOPMENT" && feature.status !== "FIX_NEEDED" && feature.status !== "IN_REVIEW") {
+      throw new Error("Invalid state transition to PLAN_APPROVED for execution redo");
+    }
+
+    const { tasks, subtasks } = await import("@shipflow/db/schema");
+    const { inArray, notInArray } = await import("drizzle-orm");
+
+    // Fetch tasks belonging to this feature
+    const schema = await import("@shipflow/db/schema");
+    const prd = await db.query.prds.findFirst({
+      where: eq(schema.prds.featureRequestId, featureId),
+    });
+    
+    let epicTasks = null;
+    if (prd) {
+      epicTasks = await db.query.epics.findFirst({
+        where: eq(schema.epics.prdId, prd.id),
+        with: { tasks: true }
+      });
+    }
+
+    if (epicTasks && epicTasks.tasks.length > 0) {
+      const taskIds = epicTasks.tasks.map(t => t.id);
+      
+      // Update tasks that are NOT done back to TODO
+      await db.update(tasks)
+        .set({ status: "TODO", executionStatus: "ready" })
+        .where(
+          and(
+            inArray(tasks.id, taskIds),
+            notInArray(tasks.status, ["DONE"])
+          )
+        );
+        
+      // Reset subtask completions for non-done tasks
+      const nonDoneTaskIds = epicTasks.tasks.filter(t => t.status !== "DONE").map(t => t.id);
+      if (nonDoneTaskIds.length > 0) {
+        await db.update(subtasks)
+          .set({ isCompleted: false })
+          .where(inArray(subtasks.taskId, nonDoneTaskIds));
+      }
+    }
+
+    await this.featureRepo.updateFeatureStatus(featureId, orgId, "PLAN_APPROVED");
+    
+    await createAuditLog({
+      orgId, actorId: userId, action: AuditAction.FEATURE_PLAN_APPROVED,
+      resourceType: 'FEATURE', resourceId: featureId,
+      metadata: { reason: "redo_execution_plan" }
+    });
+
+    return { status: "PLAN_APPROVED" };
   }
 
   async submitClarificationAnswers(featureId: string, orgId: string, userId: string, answers: Array<{ question: string, recommendation: string, accepted: boolean, feedback?: string }>) {

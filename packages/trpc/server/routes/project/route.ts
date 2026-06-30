@@ -44,4 +44,32 @@ export const projectRouter = router({
     .query(async ({ input }) => {
       return projectService.getProjectWithDetails(input.projectId);
     }),
+
+  updateMembers: protectedProcedure
+    .input(
+      z.object({
+        orgId: z.string(),
+        projectId: z.string(),
+        memberIds: z.array(z.string()),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await projectService.updateMembers({
+          ...input,
+          userId: ctx.session.user.id,
+        });
+      } catch (err: any) {
+        if (err.message.startsWith("UNAUTHORIZED")) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: err.message });
+        }
+        if (err.message.startsWith("FORBIDDEN")) {
+          throw new TRPCError({ code: "FORBIDDEN", message: err.message });
+        }
+        if (err.message.startsWith("NOT_FOUND")) {
+          throw new TRPCError({ code: "NOT_FOUND", message: err.message });
+        }
+        throw err;
+      }
+    }),
 });

@@ -5,7 +5,7 @@ import { Check, Plus, Monitor, Sun, Moon, LogOut } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 
-import { cn } from "@/lib/utils"
+
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {

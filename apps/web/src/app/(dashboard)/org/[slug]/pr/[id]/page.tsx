@@ -7,6 +7,8 @@ import Link from "next/link"
 import { api } from "~/trpc/server"
 import { redirect } from "next/navigation"
 
+import { ReviewRatingButtons } from "@/components/pr/review-rating-buttons"
+
 export default async function PRInsightsPage({ params }: { params: Promise<{ slug: string, id: string }> }) {
   const { slug, id } = await params;
   
@@ -97,15 +99,16 @@ export default async function PRInsightsPage({ params }: { params: Promise<{ slu
               <GitPullRequest className="w-5 h-5 text-destructive" />
             )}
           </div>
-          <div>
+          <div className="flex-1">
             <h3 className="text-base font-semibold mb-1">
               AI Merge Recommendation
             </h3>
-            <p className="text-sm font-medium opacity-90">
+            <p className="text-sm font-medium opacity-90 mb-4">
               {(latestReview?.reviewMeta as any)?.shouldMerge 
                 ? "This PR provides valuable additions and should be merged." 
                 : "This PR does not seem to provide valuable addons and is likely not suitable for merging."}
             </p>
+            {latestReview && <ReviewRatingButtons orgId={org.id} reviewId={latestReview.id} />}
           </div>
         </div>
       )}

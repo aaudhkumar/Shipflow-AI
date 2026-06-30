@@ -102,7 +102,7 @@ export default function FeaturesPage() {
                       <SourceChannelBadge channel={feature.sourceChannel as any} />
                     </td>
                     <td className="px-6 py-4">
-                      <FeatureStatusBadge status={feature.status} />
+                      <FeatureStatusBadge status={feature.status} hasIssue={feature.githubIssues && feature.githubIssues.length > 0} />
                     </td>
                     <td className="px-6 py-4 text-muted-foreground">
                       {new Date(feature.createdAt).toLocaleDateString(undefined, { 

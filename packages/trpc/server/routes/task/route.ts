@@ -24,7 +24,14 @@ export const taskRouter = router({
       if (epicIds.length > 0) {
         allTasks = await db.query.tasks.findMany({
           where: inArray(tasks.epicId, epicIds),
-          with: { subtasks: true }
+          with: { 
+            subtasks: true,
+            pullRequests: {
+              with: {
+                reviews: true
+              }
+            }
+          }
         });
       }
       
@@ -36,7 +43,7 @@ export const taskRouter = router({
       const grouped = {
         TODO: allTasks.filter(t => t.status === "TODO" || t.status === "BACKLOG"),
         IN_PROGRESS: allTasks.filter(t => t.status === "IN_PROGRESS"),
-        DONE: allTasks.filter(t => t.status === "DONE"),
+        DONE: allTasks.filter(t => t.status === "DONE" || t.status === "IN_REVIEW"),
         epic
       };
       

@@ -61,6 +61,51 @@ export class ProjectService {
   async getProjectWithDetails(projectId: string) {
     return projectRepository.getProjectWithDetails(projectId);
   }
+  async updateMembers(data: {
+    orgId: string;
+    projectId: string;
+    userId: string;
+    memberIds: string[];
+  }) {
+    // 1. Authorize: Check if user is OWNER, ADMIN, or PM
+    const [member] = await db
+      .select({ role: members.role })
+      .from(members)
+      .where(and(eq(members.userId, data.userId), eq(members.orgId, data.orgId)))
+      .limit(1);
+
+    if (!member) {
+      throw new Error("UNAUTHORIZED: User is not a member of this organization");
+    }
+
+    if (member.role !== "OWNER" && member.role !== "ADMIN" && member.role !== "PM") {
+      throw new Error("FORBIDDEN: Only Owners, Admins, or PMs can manage project members");
+    }
+
+    // 2. Verify project belongs to org
+    const project = await this.getProjectWithDetails(data.projectId);
+    if (!project || project.orgId !== data.orgId) {
+      throw new Error("NOT_FOUND: Project not found in this organization");
+    }
+
+    // 3. Update members in repository
+    await projectRepository.updateMembers(data.projectId, data.memberIds);
+
+    // 4. Write to Audit Log
+    await createAuditLog({
+      orgId: data.orgId,
+      actorId: data.userId,
+      action: "PROJECT_MEMBERS_UPDATED",
+      resourceType: "PROJECT",
+      resourceId: project.id,
+      metadata: { 
+        projectName: project.name,
+        newMemberCount: data.memberIds.length
+      },
+    });
+
+    return true;
+  }
 }
 
 export const projectService = new ProjectService();

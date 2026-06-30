@@ -1,8 +1,6 @@
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { DeploymentsList } from "@/components/dashboard/deployments-list"
-import { Button } from "@/components/ui/button"
-import { Sparkles, ArrowRight } from "lucide-react"
-import Link from "next/link"
+
 
 import { api } from "~/trpc/server"
 
@@ -24,15 +22,6 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
           <p className="text-muted-foreground mt-1">
             Welcome back to {slug}. Here's what your AI has been up to.
           </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="border-border/60 bg-background/50 backdrop-blur-sm">
-            Release Notes <ArrowRight className="w-4 h-4 ml-2 opacity-70" />
-          </Button>
-          <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all">
-            <Link href={recentActivity && recentActivity.length > 0 ? `/org/${slug}/pr/${recentActivity[0]?.githubPrNumber}` : `/org/${slug}/features`} className="absolute inset-0 z-10" />
-            <Sparkles className="w-4 h-4 mr-2" /> Trigger Analysis
-          </Button>
         </div>
       </div>
 

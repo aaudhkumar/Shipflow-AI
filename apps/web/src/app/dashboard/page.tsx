@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { api } from "~/trpc/server";
-import { headers } from "next/headers";
 
 export default async function DashboardRedirect() {
   let orgs;

@@ -105,8 +105,8 @@ class TaskExecutionService {
     }).where(eq(tasks.id, taskId));
 
     if (executionStatus === "done") {
-      // Done executing, needs review - not fully shipped yet.
-      await db.update(tasks).set({ status: "IN_REVIEW" }).where(eq(tasks.id, taskId));
+      // Done executing, moving to DONE column
+      await db.update(tasks).set({ status: "DONE" }).where(eq(tasks.id, taskId));
     }
     
     console.log(`task ${taskId} -> ${executionStatus}`, { taskId, executionStatus });

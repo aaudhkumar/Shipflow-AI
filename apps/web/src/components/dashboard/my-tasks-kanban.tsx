@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { trpc } from "~/trpc/client";
 import { Loader2, ExternalLink } from "lucide-react";
-import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable, DragOverlay } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,7 +30,7 @@ function DraggableTaskCard({ task, orgSlug }: { task: any, orgSlug: string }) {
       <div 
         {...attributes} 
         {...listeners} 
-        className="absolute inset-0 z-0" 
+        className="absolute inset-0 z-0 touch-none" 
       />
       <div className="z-10 pointer-events-none w-full flex justify-between items-start">
         <p className="text-sm font-medium leading-tight">{task.title}</p>
@@ -79,8 +79,17 @@ export function MyTasksKanban({ orgId, slug }: { orgId: string, slug: string }) 
   const { data: board, isLoading } = trpc.task.getMyTasks.useQuery({ orgId });
   const [activeTask, setActiveTask] = useState<any>(null);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
+
   const updateTaskStatus = trpc.task.updateStatus.useMutation({
-    onMutate: async ({ taskId, status }) => {
+    onMutate: async ({ _taskId, _status }) => {
       await utils.task.getMyTasks.cancel({ orgId });
       const prev = utils.task.getMyTasks.getData({ orgId });
       return { prev };
@@ -143,7 +152,7 @@ export function MyTasksKanban({ orgId, slug }: { orgId: string, slug: string }) 
         <h2 className="text-xl font-bold tracking-tight">My Tasks</h2>
       </div>
 
-      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {['TODO', 'IN_PROGRESS', 'DONE'].map(status => {
             const tasks = board[status as keyof typeof board] || [];

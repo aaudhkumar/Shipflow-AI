@@ -236,6 +236,7 @@ async function main() {
   }
 
   for (let i = 0; i < 25; i++) {
+    await db.insert(auditLogs).values({
       id: faker.string.uuid(),
       orgId,
       actorId: memberId,

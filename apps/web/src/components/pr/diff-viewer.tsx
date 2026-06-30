@@ -28,9 +28,9 @@ export function DiffViewer({ findings = [] }: { findings?: any[] }) {
             <span className="ml-auto text-primary">{fileFindings.length} findings</span>
           </div>
           
-          <div className="bg-[#0f111a] text-[#a6accd] flex flex-col">
+          <div className="bg-muted/10 flex flex-col">
             {fileFindings.map((finding) => (
-              <div key={finding.id} className="p-4 border-b border-white/5 last:border-0">
+              <div key={finding.id} className="p-4 border-b border-border/50 last:border-0">
                 <div className="rounded-lg bg-card border border-primary/30 p-4 shadow-lg flex flex-col gap-3 font-sans relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1 h-full bg-primary" />
                   <div className="flex items-center justify-between">

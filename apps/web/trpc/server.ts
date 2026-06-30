@@ -11,6 +11,8 @@ export const api = createTRPCProxyClient<ServerRouter>({
         const heads = Object.fromEntries(h.entries());
         delete heads["host"];
         delete heads["connection"];
+        delete heads["content-length"];
+        delete heads["content-type"];
         return heads;
       };
     }
@@ -26,6 +28,8 @@ export const apiStreaming = createTRPCProxyClient<ServerRouter>({
         const heads = Object.fromEntries(h.entries());
         delete heads["host"];
         delete heads["connection"];
+        delete heads["content-length"];
+        delete heads["content-type"];
         return heads;
       };
     }

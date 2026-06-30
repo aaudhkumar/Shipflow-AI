@@ -36,6 +36,9 @@ jobs:
       env:
         # Pass required environment variables here
         NEXT_PUBLIC_APP_URL: http://localhost:3000
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+        BETTER_AUTH_URL: http://localhost:3000
         # Mocks or CI specific vars 
         CI: true
 

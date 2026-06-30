@@ -1,9 +1,14 @@
-import "dotenv/config";
-import { db } from "./packages/db/index.ts";
-import { repositories } from "./packages/db/schema.ts";
-async function run() {
-  const repos = await db.select().from(repositories);
-  console.log(repos);
+import { db } from './packages/db/src/index';
+import { webhookEvents } from './packages/db/models/index';
+import { desc, like } from 'drizzle-orm';
+
+async function check() {
+  const events = await db.query.webhookEvents.findMany({
+    where: like(webhookEvents.eventType, 'issues%'),
+    orderBy: [desc(webhookEvents.createdAt)],
+    limit: 5
+  });
+  console.log(JSON.stringify(events, null, 2));
   process.exit(0);
 }
-run();
+check();

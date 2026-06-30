@@ -8,9 +8,9 @@ export const implementFeatureTasks = inngest.createFunction(
   { id: "implement-feature-tasks", concurrency: { limit: 1, key: "event.data.prdId" }, retries: 2 },
   { event: "tasks.approved_for_dev" },
   async ({ event, step }) => {
-    let claimed;
+    let claimed: any;
     while ((claimed = await step.run("claim-next-task", () =>
-      taskExecutionService.claimNextReadyTask(event.data.prdId, event.id),
+      taskExecutionService.claimNextReadyTask(event.data.prdId, event.id as string),
     ))) {
       await step.run(`mark-in-progress-${claimed.id}`, () =>
         taskExecutionService.markTaskStatus(claimed.id, "in_progress"));
@@ -30,7 +30,7 @@ export const implementFeatureTasks = inngest.createFunction(
           console.error(e);
           return { success: false, error: String(e) };
         }
-      }, { retries: 1 });
+      });
 
       await step.run(`mark-result-${claimed.id}`, () =>
         taskExecutionService.markTaskStatus(claimed.id, result.success ? "done" : "failed", {

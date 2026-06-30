@@ -1,11 +1,19 @@
-import Link from "next/link";
 import { Workflow } from "lucide-react";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { getSession } from "@shipflow/auth";
 
-export default function AuthLayout({
+export default async function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getSession(await headers());
+  
+  if (session && session.user) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
       {/* Left Column: Branding / Marketing (Sleek Dark) */}

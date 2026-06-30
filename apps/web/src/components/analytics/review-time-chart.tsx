@@ -42,7 +42,7 @@ export function ReviewTimeChart({ data }: ReviewTimeChartProps) {
                   type="number" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} 
+                  tick={{ fontSize: 12, fill: "var(--muted-foreground)" }} 
                   unit="h"
                 />
                 <YAxis 
@@ -50,12 +50,12 @@ export function ReviewTimeChart({ data }: ReviewTimeChartProps) {
                   type="category" 
                   axisLine={false} 
                   tickLine={false}
-                  tick={{ fontSize: 11, fontWeight: 500, fill: "hsl(var(--foreground))" }}
+                  tick={{ fontSize: 11, fontWeight: 500, fill: "var(--foreground)" }}
                   width={80}
                 />
                 <Tooltip
-                  cursor={{ fill: "hsl(var(--muted))", opacity: 0.4 }}
-                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}
+                  cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", boxShadow: "0 4px 12px rgba(0,0,0,0.05)", backgroundColor: "var(--card)" }}
                   formatter={(value: number) => [`${value} hours`, "Avg Duration"]}
                   labelStyle={{ display: "none" }}
                 />

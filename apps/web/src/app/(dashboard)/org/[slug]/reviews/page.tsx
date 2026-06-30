@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { trpc } from "~/trpc/client";
 import { ReviewSummaryCard } from "@/components/reviews/review-summary-card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Inbox } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 

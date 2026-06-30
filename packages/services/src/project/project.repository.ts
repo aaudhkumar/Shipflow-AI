@@ -80,6 +80,24 @@ export class ProjectRepository {
       }
     });
   }
+  async updateMembers(projectId: string, memberIds: string[]) {
+    return await db.transaction(async (tx) => {
+      // 1. Remove all existing members from this project
+      await tx.delete(projectMembers).where(eq(projectMembers.projectId, projectId));
+
+      // 2. Insert new members
+      if (memberIds.length > 0) {
+        await tx.insert(projectMembers).values(
+          memberIds.map((memberId) => ({
+            projectId,
+            memberId,
+          }))
+        );
+      }
+
+      return true;
+    });
+  }
 }
 
 export const projectRepository = new ProjectRepository();

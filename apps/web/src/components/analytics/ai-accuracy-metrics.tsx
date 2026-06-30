@@ -18,8 +18,10 @@ export function AiAccuracyMetrics({ data }: AiAccuracyMetricsProps) {
   const chartData = [
     { name: "Addressed (True Positive)", value: data.truePositives, color: "#059669" }, // emerald-600
     { name: "Ignored (False Positive)", value: data.falsePositives, color: "#64748b" }, // slate-500
-    { name: "Open", value: data.open, color: "#d97706" }, // amber-600
+    { name: "Unmarked", value: data.open, color: "#d97706" }, // amber-600
   ].filter(d => d.value > 0);
+
+  const percentage = data.open > 0 ? Math.round((data.truePositives / data.open) * 100) : 0;
 
   return (
     <Card className="border-border/40 shadow-sm bg-card/60 backdrop-blur-xl h-full flex flex-col">
@@ -46,8 +48,8 @@ export function AiAccuracyMetrics({ data }: AiAccuracyMetricsProps) {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <RechartsTooltip 
-                    contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}
-                    itemStyle={{ color: "hsl(var(--foreground))", fontWeight: 500 }}
+                    contentStyle={{ borderRadius: "8px", border: "1px solid var(--border)", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" }}
+                    itemStyle={{ color: "var(--foreground)", fontWeight: 500 }}
                   />
                   <Pie
                     data={chartData}
@@ -66,7 +68,7 @@ export function AiAccuracyMetrics({ data }: AiAccuracyMetricsProps) {
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-3xl font-bold tracking-tighter">{Math.round(data.accuracyRate)}%</span>
+                <span className="text-3xl font-bold tracking-tighter">{percentage}%</span>
                 <span className="text-[10px] uppercase text-muted-foreground font-medium tracking-wider">Useful</span>
               </div>
             </div>
@@ -89,7 +91,7 @@ export function AiAccuracyMetrics({ data }: AiAccuracyMetricsProps) {
               <div className="flex items-center justify-between p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-600" />
-                  <span className="text-sm font-medium">Open Findings</span>
+                  <span className="text-sm font-medium">Unmarked</span>
                 </div>
                 <span className="font-bold">{data.open}</span>
               </div>

@@ -2,20 +2,21 @@
 
 import { useState } from "react";
 import { trpc } from "~/trpc/client";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, GitBranch, Github, Sparkles, Circle } from "lucide-react";
+import { Loader2, CheckCircle2, Github, Sparkles, Circle } from "lucide-react";
 import { toast } from "sonner";
-import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable, DragOverlay } from "@dnd-kit/core";
-import { ExpandableContent } from "@/components/ui/expandable-content";
+import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { BackgroundJobTracker } from "@/components/ui/background-job-tracker";
 
-function DraggableTaskCard({ task, isSelected, toggleTask, members, assignTask }: any) {
+function DraggableTaskCard({ task, members, assignTask }: any) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
     data: task,
@@ -34,74 +35,70 @@ function DraggableTaskCard({ task, isSelected, toggleTask, members, assignTask }
   if (task.executionStatus === 'claimed') currentStepIndex = 1;
   else if (task.executionStatus === 'in_progress') currentStepIndex = 2;
   else if (isAiDone) currentStepIndex = 4;
-  else if (isAiFailed) currentStepIndex = 2; // Assuming it failed during coding
+  else if (isAiFailed) currentStepIndex = 2;
+
+  // For IN_REVIEW tasks, they might need coloring. We can mock it or check feature review state if we had it.
+  // We'll leave it neutral unless we have that prop.
+  let cardBorderColor = "border-border/50 hover:border-primary/50";
+  let cardBgColor = "bg-card";
+
+  let prState = 'PENDING';
+  if (task.pullRequests && task.pullRequests.length > 0) {
+    const latestPR = task.pullRequests[task.pullRequests.length - 1];
+    if (latestPR.reviews && latestPR.reviews.length > 0) {
+      const latestReview = latestPR.reviews[latestPR.reviews.length - 1];
+      prState = latestReview.state;
+    }
+  }
+
+  if (task.status === 'IN_REVIEW' || task.status === 'DONE') {
+    if (prState === 'APPROVED' || prState === 'COMMENTED') {
+      cardBgColor = "bg-emerald-500/10 dark:bg-emerald-500/5";
+      cardBorderColor = "border-emerald-500/30 hover:border-emerald-500/50";
+    } else {
+      cardBgColor = "bg-rose-500/10 dark:bg-rose-500/5";
+      cardBorderColor = "border-rose-500/30 hover:border-rose-500/50";
+    }
+  }
 
   return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <div
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <div
           ref={setNodeRef}
           style={style}
-          className={`bg-card p-4 rounded-lg shadow-sm border border-border/50 flex items-start gap-3 relative cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors ${isDragging ? 'z-50' : ''}`}
+          onClick={() => setIsDialogOpen(true)}
+          className={`${cardBgColor} p-4 rounded-xl shadow-sm border ${cardBorderColor} flex flex-col gap-3 relative cursor-grab active:cursor-grabbing transition-colors ${isDragging ? 'z-50 ring-2 ring-primary' : ''}`}
         >
           <div 
             {...attributes} 
             {...listeners} 
-            className="absolute inset-0 z-0" 
+            className="absolute inset-0 z-0 rounded-xl touch-none" 
           />
-          <div className="z-10" onPointerDown={(e) => e.stopPropagation()}>
-            <Checkbox 
-              checked={isSelected}
-              onCheckedChange={() => toggleTask(task.id)}
-              className="mt-1"
-            />
-          </div>
           <div className="z-10 w-full pointer-events-none">
-            <div className="flex items-start justify-between gap-2">
+            <div className="flex flex-col gap-2">
               <p className="text-sm font-medium leading-tight">{task.title}</p>
-              {isAiWorking && (
-                <Badge variant="outline" className="bg-indigo-500/10 text-indigo-500 border-indigo-500/20 whitespace-nowrap animate-pulse">
-                  <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                  AI Working
-                </Badge>
-              )}
-              {isAiDone && (
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 whitespace-nowrap">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  AI Done
-                </Badge>
-              )}
+              
+              <div className="flex flex-wrap gap-2">
+                {isAiWorking && (
+                  <Badge variant="outline" className="bg-indigo-500/10 text-indigo-500 border-indigo-500/20 whitespace-nowrap animate-pulse">
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    AI Working
+                  </Badge>
+                )}
+                {isAiDone && (
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 whitespace-nowrap">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    AI Done
+                  </Badge>
+                )}
+              </div>
             </div>
+            
             {task.description && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
+              <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{task.description}</p>
             )}
-            <div className="flex items-center gap-1 mt-2 mb-1 pointer-events-auto" onPointerDown={(e) => e.stopPropagation()}>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground bg-muted/30"
-                onClick={() => {
-                  navigator.clipboard.writeText(`feature/${task.id}`);
-                  toast.success("Branch name copied");
-                }}
-              >
-                <GitBranch className="w-3 h-3 mr-1" />
-                Branch
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground bg-muted/30"
-                onClick={() => {
-                  navigator.clipboard.writeText(`[${task.id}] ${task.title}`);
-                  toast.success("PR title copied");
-                }}
-              >
-                <Github className="w-3 h-3 mr-1" />
-                PR Title
-              </Button>
-            </div>
-            <div className="mt-3 pointer-events-auto" onPointerDown={(e) => e.stopPropagation()}>
+
+            <div className="mt-4 pointer-events-auto" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
               <Select
                 value={task.assigneeId || "unassigned"}
                 onValueChange={(val) => {
@@ -137,17 +134,16 @@ function DraggableTaskCard({ task, isSelected, toggleTask, members, assignTask }
             </div>
           </div>
         </div>
-      </SheetTrigger>
-      <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>{task.title}</SheetTitle>
-          <SheetDescription>Task Details</SheetDescription>
-        </SheetHeader>
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{task.title}</DialogTitle>
+          <DialogDescription>Task Details</DialogDescription>
+        </DialogHeader>
         
-        <div className="mt-6 space-y-6">
+        <div className="mt-4 space-y-6">
           <div>
             <h4 className="text-sm font-semibold mb-2">Technical Implementation Details</h4>
-            <div className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/30 p-3 rounded-lg">
+            <div className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted/30 p-4 rounded-lg border border-border/50">
               {task.technicalImplementationDetails || "No technical details provided."}
             </div>
           </div>
@@ -156,7 +152,7 @@ function DraggableTaskCard({ task, isSelected, toggleTask, members, assignTask }
             <div>
               <h4 className="text-sm font-semibold mb-4 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-indigo-500" />
-                AI Implementation Status
+                AI Implementation Progress
               </h4>
               <div className="bg-card border border-border/50 rounded-xl p-6 shadow-sm">
                 <BackgroundJobTracker
@@ -173,13 +169,22 @@ function DraggableTaskCard({ task, isSelected, toggleTask, members, assignTask }
             </div>
           )}
 
+          {task.status === 'DONE' && (
+            <div className="pt-4 flex justify-end border-t border-border/50">
+              <Button variant="outline" className="text-indigo-600 border-indigo-600/30 hover:bg-indigo-50">
+                <Github className="w-4 h-4 mr-2" />
+                View PR Details
+              </Button>
+            </div>
+          )}
+
           {task.subtasks && task.subtasks.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold mb-2">Acceptance Criteria</h4>
               <ul className="space-y-2">
                 {task.subtasks.map((st: any) => (
-                  <li key={st.id} className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <div className="mt-0.5"><Circle className="w-3 h-3" /></div>
+                  <li key={st.id} className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/20 p-2 rounded-md border border-border/30">
+                    <div className="mt-0.5"><Circle className="w-3 h-3 text-muted-foreground" /></div>
                     <span>{st.description}</span>
                   </li>
                 ))}
@@ -187,8 +192,8 @@ function DraggableTaskCard({ task, isSelected, toggleTask, members, assignTask }
             </div>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -223,8 +228,16 @@ export function KanbanBoard({ featureId, orgId }: { featureId: string, orgId: st
   const utils = trpc.useUtils();
   const { data: board, isLoading } = trpc.task.getKanban.useQuery({ featureId, orgId });
   const { data: members } = trpc.organization.getMembers.useQuery({ orgId });
-  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [activeTask, setActiveTask] = useState<any>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    }),
+    useSensor(KeyboardSensor)
+  );
 
   const assignTask = trpc.task.assignTask.useMutation({
     onSuccess: () => {
@@ -235,7 +248,7 @@ export function KanbanBoard({ featureId, orgId }: { featureId: string, orgId: st
   });
 
   const updateTaskStatus = trpc.task.updateStatus.useMutation({
-    onMutate: async ({ taskId, status }) => {
+    onMutate: async ({ taskId: _taskId, status: _status }) => {
       await utils.task.getKanban.cancel({ featureId, orgId });
       const prev = utils.task.getKanban.getData({ featureId, orgId });
       return { prev };
@@ -251,27 +264,7 @@ export function KanbanBoard({ featureId, orgId }: { featureId: string, orgId: st
     }
   });
 
-  const batchUpdate = trpc.task.batchUpdateStatus.useMutation({
-    onSuccess: () => {
-      toast.success("Tasks updated successfully");
-      setSelectedTasks([]);
-      utils.task.getKanban.invalidate({ featureId, orgId });
-    },
-    onError: (err) => {
-      toast.error(`Failed to update tasks: ${err.message}`);
-    }
-  });
 
-  const toggleTask = (taskId: string) => {
-    setSelectedTasks(prev => 
-      prev.includes(taskId) ? prev.filter(id => id !== taskId) : [...prev, taskId]
-    );
-  };
-
-  const markSelectedAsDone = () => {
-    if (selectedTasks.length === 0) return;
-    batchUpdate.mutate({ taskIds: selectedTasks, status: "DONE", orgId });
-  };
 
   const handleDragStart = (event: any) => {
     setActiveTask(event.active.data.current);
@@ -320,15 +313,9 @@ export function KanbanBoard({ featureId, orgId }: { featureId: string, orgId: st
     <div className="space-y-4">
       <div className="flex items-center justify-between mt-8 mb-4">
         <h3 className="text-lg font-semibold">Tasks</h3>
-        {selectedTasks.length > 0 && (
-          <Button onClick={markSelectedAsDone} disabled={batchUpdate.isPending} size="sm" className="bg-emerald-600 hover:bg-emerald-700">
-            <CheckCircle2 className="w-4 h-4 mr-2" />
-            Mark {selectedTasks.length} as DONE
-          </Button>
-        )}
       </div>
 
-      <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {['TODO', 'IN_PROGRESS', 'DONE'].map(status => {
             const tasks = board[status as keyof typeof board] || [];
@@ -343,8 +330,6 @@ export function KanbanBoard({ featureId, orgId }: { featureId: string, orgId: st
                   <DraggableTaskCard 
                     key={task.id}
                     task={task}
-                    isSelected={selectedTasks.includes(task.id)}
-                    toggleTask={toggleTask}
                     members={members}
                     assignTask={(taskId: string, assigneeId: string | null) => assignTask.mutate({ taskId, assigneeId, orgId })}
                   />
@@ -357,7 +342,6 @@ export function KanbanBoard({ featureId, orgId }: { featureId: string, orgId: st
         <DragOverlay>
           {activeTask ? (
             <div className="bg-card p-4 rounded-lg shadow-xl border border-primary flex items-start gap-3 opacity-90 cursor-grabbing transform scale-105">
-              <Checkbox checked={selectedTasks.includes(activeTask.id)} className="mt-1" />
               <div>
                 <p className="text-sm font-medium leading-tight">{activeTask.title}</p>
                 {activeTask.description && (

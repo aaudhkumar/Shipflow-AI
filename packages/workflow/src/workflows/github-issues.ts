@@ -1,7 +1,7 @@
 import { inngest } from "../../../services/src/workflow/client";
 import { db } from "@shipflow/db";
-import { githubIssues, githubIssueComments, featureRequests } from "@shipflow/db/schema";
-import { eq, and, sql, notInArray } from "drizzle-orm";
+import { githubIssues, githubIssueComments, featureRequests, projectRepositories } from "@shipflow/db/schema";
+import { eq, and, sql, notInArray, inArray } from "drizzle-orm";
 import { getDefaultModel, generateObject } from "@shipflow/ai";
 import { z } from "zod";
 
@@ -16,8 +16,12 @@ export const githubIssueOpenedWorkflow = inngest.createFunction(
         SELECT id, title, similarity(title, ${event.data.title}) AS sim
         FROM feature_requests
         WHERE org_id = ${event.data.orgId}
-          AND status NOT IN ('SHIPPED', 'REJECTED')
+          AND status NOT IN ('REJECTED')
           AND similarity(title, ${event.data.title}) > 0.35
+          AND project_id IN (
+            SELECT project_id FROM project_repositories
+            WHERE repository_id = ${event.data.repositoryId}
+          )
         ORDER BY sim DESC
         LIMIT 1;
       `);
@@ -29,10 +33,18 @@ export const githubIssueOpenedWorkflow = inngest.createFunction(
     // Stage 2: LLM fallback
     if (!featureRequestId) {
       featureRequestId = await step.run("find-semantic-feature-match", async () => {
+        const validProjectIds = await db
+          .select({ id: projectRepositories.projectId })
+          .from(projectRepositories)
+          .where(eq(projectRepositories.repositoryId, event.data.repositoryId));
+
+        if (validProjectIds.length === 0) return null;
+
         const activeFeatures = await db.query.featureRequests.findMany({
           where: and(
             eq(featureRequests.orgId, event.data.orgId),
-            notInArray(featureRequests.status, ["SHIPPED", "REJECTED"])
+            notInArray(featureRequests.status, ["REJECTED"]),
+            inArray(featureRequests.projectId, validProjectIds.map(p => p.id))
           ),
           columns: { id: true, title: true, rawDescription: true },
           limit: 50,
@@ -89,6 +101,8 @@ Only auto-link if confidence >= 0.7.
         })
         .onConflictDoNothing(); // Prevent duplicates on retries
     });
+
+    return { success: true, featureRequestId };
   }
 );
 

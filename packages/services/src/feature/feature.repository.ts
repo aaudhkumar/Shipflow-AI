@@ -34,7 +34,8 @@ export class FeatureRepository {
             }
           },
           limit: 1,
-        }
+        },
+        githubIssues: true,
       }
     });
   }
@@ -47,6 +48,9 @@ export class FeatureRepository {
         projectId ? eq(featureRequests.projectId, projectId) : undefined
       ),
       orderBy: (featureRequests, { desc }) => [desc(featureRequests.createdAt)],
+      with: {
+        githubIssues: true,
+      }
     });
   }
 

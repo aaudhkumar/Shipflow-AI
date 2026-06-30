@@ -87,7 +87,14 @@ export const featureRouter = router({
   submitForReview: orgMemberProcedure
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      return await featureService.markInReview(input.featureId, input.orgId);
+      await featureService.markInReview(input.featureId, input.orgId);
+      return await featureService.markReviewPassed(input.featureId, input.orgId);
+    }),
+
+  redoExecutionPlan: orgMemberProcedure
+    .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      return await featureService.redoExecutionPlan(input.featureId, input.orgId, ctx.session.user.id);
     }),
 
   failReview: orgMemberProcedure
@@ -135,6 +142,41 @@ export const featureRouter = router({
         orderBy: desc(releaseReadiness.createdAt)
       });
       return readiness || null;
+    }),
+
+  getReviewFindings: orgMemberProcedure
+    .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .query(async ({ input }) => {
+      const { db } = await import("@shipflow/db");
+      const { pullRequests, pullRequestReviews, reviewFindings } = await import("@shipflow/db/schema");
+      const { eq, inArray, desc } = await import("drizzle-orm");
+
+      // 1. Get PRs for this feature
+      const prs = await db.select({ id: pullRequests.id })
+        .from(pullRequests)
+        .where(eq(pullRequests.featureRequestId, input.featureId));
+        
+      if (prs.length === 0) return [];
+
+      const prIds = prs.map(pr => pr.id);
+
+      // 2. Get latest reviews for these PRs
+      const reviews = await db.select({ id: pullRequestReviews.id })
+        .from(pullRequestReviews)
+        .where(inArray(pullRequestReviews.pullRequestId, prIds))
+        .orderBy(desc(pullRequestReviews.createdAt))
+        .limit(10); // get a bunch, but normally there's 1-2 per PR
+
+      if (reviews.length === 0) return [];
+
+      const reviewIds = reviews.map(r => r.id);
+
+      // 3. Get findings from these reviews
+      const findings = await db.query.reviewFindings.findMany({
+        where: inArray(reviewFindings.reviewId, reviewIds)
+      });
+
+      return findings;
     }),
 
   updatePrd: orgMemberProcedure

@@ -6,10 +6,11 @@ import { FeatureTimeline } from "@/components/analytics/feature-timeline"
 import { ProductivityHeatmap } from "@/components/analytics/productivity-heatmap"
 import { SecurityTrendsChart } from "@/components/analytics/security-trends-chart"
 import { AiAccuracyMetrics } from "@/components/analytics/ai-accuracy-metrics"
+import { ReviewFeedbackMetrics } from "@/components/analytics/review-feedback-metrics"
 import { SourceChannelChart } from "@/components/analytics/source-channel-chart"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { CalendarRange, Sparkles } from "lucide-react"
+
 
 export default async function AnalyticsPage({ 
   params,
@@ -73,6 +74,10 @@ export default async function AnalyticsPage({
         </div>
         
         <div className="lg:col-span-1">
+          <ReviewFeedbackMetrics data={analytics.userReviewFeedback} />
+        </div>
+        
+        <div className="lg:col-span-1">
           <SecurityTrendsChart data={analytics.securityTrends} />
         </div>
         
@@ -84,12 +89,12 @@ export default async function AnalyticsPage({
           <FeatureTimeline data={analytics.featureTimeline} />
         </div>
         
-        <div className="lg:col-span-2">
-          <ProductivityHeatmap data={analytics.productivityHeatmap} />
-        </div>
-        
         <div className="lg:col-span-1">
           <SourceChannelChart data={(analytics as any).sourceChannelBreakdown} />
+        </div>
+        
+        <div className="lg:col-span-2">
+          <ProductivityHeatmap data={analytics.productivityHeatmap} />
         </div>
       </div>
     </div>

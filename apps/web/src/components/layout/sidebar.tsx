@@ -24,7 +24,7 @@ interface SidebarProps {
   usage?: { used: number, total: number }
 }
 
-export function Sidebar({ orgSlug, usage = { used: 0, total: 500 } }: SidebarProps) {
+export function Sidebar({ orgSlug, usage: _usage = { used: 0, total: 500 } }: SidebarProps) {
   const pathname = usePathname()
 
   const routes = [

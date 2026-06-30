@@ -5,7 +5,6 @@ import { githubInstallations } from "@shipflow/db/schema";
 import { eq } from "drizzle-orm";
 import { getGithubApp } from "@shipflow/github";
 import { auth } from "@shipflow/auth";
-import { headers } from "next/headers";
 
 const GITHUB_STATE_SECRET = requireEnv("GITHUB_STATE_SECRET");
 /**

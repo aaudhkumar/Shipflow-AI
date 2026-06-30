@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { trpc } from "~/trpc/client";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
-import { FolderGit2, Users, GitBranch } from "lucide-react";
+import { FolderGit2, Users } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

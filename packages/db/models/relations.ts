@@ -5,7 +5,7 @@ import { projects, repositories, projectMembers } from "./projects";
 import { featureRequests, clarificationThreads, clarificationMessages } from "./features";
 import { auditLogs } from "./operations";
 import { tasks, epics, subtasks, taskDependencies } from "./tasks";
-import { pullRequests, pullRequestReviews, reviewFindings } from "./github";
+import { pullRequests, pullRequestReviews, reviewFindings, githubIssues } from "./github";
 import { subscriptions, invoices, usageRecords } from "./billing";
 import { deployments } from "./deployments";
 import { orgInvitations } from "./invitations";
@@ -59,6 +59,7 @@ export const featureRequestRelations = relations(featureRequests, ({ many }) => 
   pullRequests: many(pullRequests),
   prds: many(prds),
   clarificationThreads: many(clarificationThreads),
+  githubIssues: many(githubIssues),
 }));
 
 export const clarificationThreadRelations = relations(clarificationThreads, ({ one, many }) => ({
@@ -156,5 +157,20 @@ export const subtasksRelations = relations(subtasks, ({ one }) => ({
   task: one(tasks, {
     fields: [subtasks.taskId],
     references: [tasks.id],
+  }),
+}));
+
+export const githubIssueRelations = relations(githubIssues, ({ one }) => ({
+  featureRequest: one(featureRequests, {
+    fields: [githubIssues.featureRequestId],
+    references: [featureRequests.id],
+  }),
+  repository: one(repositories, {
+    fields: [githubIssues.repositoryId],
+    references: [repositories.id],
+  }),
+  organization: one(organizations, {
+    fields: [githubIssues.orgId],
+    references: [organizations.id],
   }),
 }));

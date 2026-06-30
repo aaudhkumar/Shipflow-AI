@@ -1,9 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test.describe('PR Review Webhook', () => {
   test('Webhook insertion works', async ({ request, page }) => {
     // 1. Post to webhook
-    const response = await request.post('/api/webhooks/github', {
+    await request.post('/api/webhooks/github', {
       headers: {
         'x-github-event': 'pull_request',
         // Mock signature or bypass it if possible in test

@@ -7,7 +7,7 @@ export const ClarifierOutputSchema = z.object({
   questions: z.array(z.object({
     id: z.string().describe("Unique identifier for this question (e.g. q1, q2)"),
     question: z.string().describe("The specific clarifying question."),
-    recommendation: z.string().describe("A recommended answer or proposed approach.")
+    recommendation: z.string().describe("A specific recommended answer to the question (e.g. 'Use a dropdown menu') rather than a restatement of the question.")
   })).optional().describe("A list of structured questions with recommendations to ask the user, if action is ask_question.")
 });
 

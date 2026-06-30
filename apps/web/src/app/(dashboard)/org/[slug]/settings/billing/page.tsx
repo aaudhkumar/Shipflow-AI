@@ -1,8 +1,5 @@
 import { api } from "~/trpc/server";
-import { Button } from "@/components/ui/button";
-import { CheckoutButton } from "@/components/billing/checkout-button";
 import { PricingCards } from "@/components/billing/pricing-cards";
-import { CreditCard, Zap, CheckCircle2, AlertCircle } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { BillingSuccessModal } from "@/components/billing/BillingSuccessModal";

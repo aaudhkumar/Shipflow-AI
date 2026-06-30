@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
-export function CreateProjectDialog({ orgId, orgSlug, onSuccess }: { orgId: string; orgSlug: string; onSuccess: () => void }) {
+export function CreateProjectDialog({ orgId, orgSlug: _orgSlug, onSuccess }: { orgId: string; orgSlug: string; onSuccess: () => void }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");

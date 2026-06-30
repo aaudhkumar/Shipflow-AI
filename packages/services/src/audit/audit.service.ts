@@ -21,6 +21,7 @@ export const AuditAction = {
   REPO_DISCONNECTED: 'REPO_DISCONNECTED',
   AI_REVIEW_COMPLETED: 'AI_REVIEW_COMPLETED',
   PROJECT_CREATED: 'PROJECT_CREATED',
+  PROJECT_MEMBERS_UPDATED: 'PROJECT_MEMBERS_UPDATED',
 } as const;
 
 export async function createAuditLog(params: {

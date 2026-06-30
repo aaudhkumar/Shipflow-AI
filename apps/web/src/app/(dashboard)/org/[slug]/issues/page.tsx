@@ -1,8 +1,7 @@
 import { db } from "@shipflow/db"
 import { eq, desc } from "drizzle-orm"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { Github, Sparkles, Inbox, ExternalLink, RefreshCw } from "lucide-react"
+import { Sparkles, Inbox, ExternalLink } from "lucide-react"
 import Link from "next/link"
 
 export default async function IssuesPage({ params }: { params: Promise<{ slug: string }> }) {

@@ -14,7 +14,7 @@ interface GitHubConnectCardProps {
   accountLogin?: string
 }
 
-export function GitHubConnectCard({ orgId, orgSlug, isConnected, accountLogin }: GitHubConnectCardProps) {
+export function GitHubConnectCard({ orgId, orgSlug: _orgSlug, isConnected, accountLogin }: GitHubConnectCardProps) {
   const [isLoading, setIsLoading] = useState(false)
   const installMutation = trpc.organization.getGithubInstallUrl.useMutation()
 

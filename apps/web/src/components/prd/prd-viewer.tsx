@@ -3,9 +3,7 @@
 import { PRDSection } from "./prd-section";
 import { UserStoriesSection } from "./user-stories-section";
 import { AcceptanceCriteriaSection } from "./acceptance-criteria-section";
-import { Button } from "@/components/ui/button";
-import { Copy, Printer } from "lucide-react";
-import { toast } from "sonner";
+
 
 interface PRDViewerProps {
   prd: any;

@@ -183,7 +183,7 @@ export class OrganizationRepository {
 
   async getAnalytics(orgId: string, days: number = 7) {
     const { pullRequestReviews, pullRequests, reviewFindings, featureRequests, tasks } = await import("@shipflow/db/schema");
-    const { eq, and, gte, inArray } = await import("drizzle-orm");
+    const { eq, and, gte, inArray, isNotNull } = await import("drizzle-orm");
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
@@ -211,13 +211,45 @@ export class OrganizationRepository {
     });
     const volumeTrend = Object.values(countsByDay);
 
-    // 2. Average Review Time by Severity (Proxying data with realistic distribution for now)
-    // Since we don't have resolvedAt, we infer from severity levels
+    // 2. Average Review Time by Severity (Real data)
+    // Calculating based on the time difference between review creation and PR merge
+    const reviewTimeFindingsQuery = await db
+      .select({
+        severity: reviewFindings.severity,
+        reviewCreatedAt: pullRequestReviews.createdAt,
+        prMergedAt: pullRequests.mergedAt
+      })
+      .from(reviewFindings)
+      .innerJoin(pullRequestReviews, eq(reviewFindings.reviewId, pullRequestReviews.id))
+      .innerJoin(pullRequests, eq(pullRequestReviews.pullRequestId, pullRequests.id))
+      .where(and(
+        eq(pullRequests.orgId, orgId),
+        isNotNull(pullRequests.mergedAt)
+      ));
+
+    const severityStats = {
+      "BLOCKER": { totalHours: 0, count: 0 },
+      "MAJOR": { totalHours: 0, count: 0 },
+      "MINOR": { totalHours: 0, count: 0 },
+      "SUGGESTION": { totalHours: 0, count: 0 },
+    };
+
+    reviewTimeFindingsQuery.forEach(f => {
+      if (f.prMergedAt && f.reviewCreatedAt) {
+        const stats = f.severity ? severityStats[f.severity as keyof typeof severityStats] : undefined;
+        if (stats) {
+          const diffMs = Math.max(0, f.prMergedAt.getTime() - f.reviewCreatedAt.getTime());
+          stats.totalHours += diffMs / (1000 * 60 * 60);
+          stats.count++;
+        }
+      }
+    });
+
     const reviewTimeBySeverity = [
-      { severity: "BLOCKER", avgHours: 24.5 },
-      { severity: "MAJOR", avgHours: 36.2 },
-      { severity: "MINOR", avgHours: 48.0 },
-      { severity: "SUGGESTION", avgHours: 72.5 },
+      { severity: "BLOCKER", avgHours: severityStats["BLOCKER"].count > 0 ? Number((severityStats["BLOCKER"].totalHours / severityStats["BLOCKER"].count).toFixed(1)) : 0 },
+      { severity: "MAJOR", avgHours: severityStats["MAJOR"].count > 0 ? Number((severityStats["MAJOR"].totalHours / severityStats["MAJOR"].count).toFixed(1)) : 0 },
+      { severity: "MINOR", avgHours: severityStats["MINOR"].count > 0 ? Number((severityStats["MINOR"].totalHours / severityStats["MINOR"].count).toFixed(1)) : 0 },
+      { severity: "SUGGESTION", avgHours: severityStats["SUGGESTION"].count > 0 ? Number((severityStats["SUGGESTION"].totalHours / severityStats["SUGGESTION"].count).toFixed(1)) : 0 },
     ];
 
     // 3. Feature-to-Ship Timeline
@@ -306,13 +338,62 @@ export class OrganizationRepository {
       accuracyRate: (addressed + ignored) > 0 ? (addressed / (addressed + ignored)) * 100 : 0
     };
 
+    // 7. Quality of PR Generated
+    // Track how many PRs the AI recommended to merge vs not.
+    const reviewsQuery = await db
+      .select({ reviewMeta: pullRequestReviews.reviewMeta })
+      .from(pullRequestReviews)
+      .innerJoin(pullRequests, eq(pullRequestReviews.pullRequestId, pullRequests.id))
+      .where(and(eq(pullRequests.orgId, orgId), eq(pullRequestReviews.isAiReview, true)));
+
+    let recommended = 0;
+    let notRecommended = 0;
+
+    reviewsQuery.forEach(r => {
+      const meta = (r.reviewMeta as any) || {};
+      if (meta.shouldMerge === true) recommended++;
+      else if (meta.shouldMerge === false) notRecommended++;
+    });
+
+    const prQualityMetrics = {
+      correct: recommended,      // Reusing 'correct' key to avoid changing UI component props
+      incorrect: notRecommended, // Reusing 'incorrect' key
+      unmarked: 0,
+      total: recommended + notRecommended,
+      approvalRate: (recommended + notRecommended) > 0 ? (recommended / (recommended + notRecommended)) * 100 : 0
+    };
+
+    // 8. Source Channel Breakdown (Real data)
+    // Using "gem" colors: Ruby (#e11d48), Sapphire (#2563eb), Emerald (#059669), Amethyst (#9333ea), Topaz (#f59e0b)
+    const channelCounts = await db
+      .select({ channel: featureRequests.sourceChannel })
+      .from(featureRequests)
+      .where(eq(featureRequests.orgId, orgId));
+
+    let inApp = 0, emailCount = 0, ticket = 0, call = 0;
+    channelCounts.forEach(f => {
+      if (f.channel === "IN_APP") inApp++;
+      else if (f.channel === "EMAIL") emailCount++;
+      else if (f.channel === "TICKET") ticket++;
+      else if (f.channel === "CALL") call++;
+    });
+
+    const sourceChannelBreakdown = [
+      { name: "In-App", value: inApp, fill: "#2563eb" }, // Sapphire Blue
+      { name: "Email", value: emailCount, fill: "#f59e0b" }, // Topaz Yellow
+      { name: "Ticket", value: ticket, fill: "#059669" }, // Emerald Green
+      { name: "Call", value: call, fill: "#9333ea" }, // Amethyst Purple
+    ].filter(d => d.value > 0);
+
     return {
       volumeTrend,
       reviewTimeBySeverity,
       featureTimeline,
       productivityHeatmap,
       securityTrends,
-      aiAccuracy
+      aiAccuracy,
+      userReviewFeedback: prQualityMetrics, // Exporting as userReviewFeedback to avoid breaking page.tsx
+      sourceChannelBreakdown
     };
   }
 

@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Github, Lock, Globe, Power, Loader2, RefreshCw, Database, CheckCircle2, AlertCircle, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { trpc } from "~/trpc/client"
-import { useRouter } from "next/navigation"
+
 import { BackgroundJobTracker } from "@/components/ui/background-job-tracker"
 
 interface GitHubRepo {
@@ -33,7 +33,7 @@ export function ReposList({ orgId, connectedReposMap, onConnect, onDisconnect }:
   const [syncingRepo, setSyncingRepo] = useState<string | null>(null)
   const [connectingRepo, setConnectingRepo] = useState<string | null>(null)
   const [disconnectingRepo, setDisconnectingRepo] = useState<string | null>(null)
-  const router = useRouter()
+
 
   const { data: repos, isLoading: loading, error, refetch: fetchRepos } = trpc.repository.list.useQuery({ orgId }, {
     enabled: !!orgId,
@@ -52,7 +52,7 @@ export function ReposList({ orgId, connectedReposMap, onConnect, onDisconnect }:
 
   const utils = trpc.useUtils();
 
-  const isAnySyncing = Object.values(activeConnectedMap).some(repo => repo.syncStatus === "SYNCING" || repo.syncStatus === "PENDING" && syncingRepo)
+
 
   const syncMutation = trpc.repository.sync.useMutation({
     onSuccess: () => {

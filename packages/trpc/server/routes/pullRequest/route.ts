@@ -60,6 +60,24 @@ export const pullRequestRouter = router({
       return updated;
     }),
 
+  rateReview: orgMemberProcedure
+    .input(z.object({ orgId: z.string(), reviewId: z.string(), isCorrect: z.boolean() }))
+    .mutation(async ({ input }) => {
+      const review = await db.query.pullRequestReviews.findFirst({
+        where: eq(pullRequestReviews.id, input.reviewId)
+      });
+      if (!review) throw new TRPCError({ code: "NOT_FOUND", message: "Review not found" });
+
+      const currentMeta = (review.reviewMeta as any) || {};
+      currentMeta.userRating = input.isCorrect ? 'CORRECT' : 'INCORRECT';
+
+      await db.update(pullRequestReviews)
+        .set({ reviewMeta: currentMeta })
+        .where(eq(pullRequestReviews.id, input.reviewId));
+        
+      return { success: true };
+    }),
+
   listReviews: orgMemberProcedure
     .input(z.object({ orgId: z.string(), filter: z.enum(["ALL", "BLOCKING", "CLEAN"]).optional().default("ALL") }))
     .query(async ({ input }) => {
