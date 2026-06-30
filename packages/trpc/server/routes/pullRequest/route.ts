@@ -5,10 +5,24 @@ import { db } from "@shipflow/db";
 import { pullRequests, pullRequestReviews, reviewFindings } from "@shipflow/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { generatePath } from "../../utils/path-generator";
+import {
+  getPullRequestListOutputSchema,
+  getPullRequestWithReviewsOutputSchema,
+  updateFindingStatusOutputSchema,
+  rateReviewOutputSchema,
+  listReviewsOutputSchema,
+  mergePullRequestOutputSchema
+} from "@shipflow/services/pullRequest/model";
+
+const TAGS = ["PullRequest"];
+const getPath = generatePath("/pull-requests");
 
 export const pullRequestRouter = router({
   list: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}"), tags: TAGS } })
     .input(z.object({ orgId: z.string() }))
+    .output(getPullRequestListOutputSchema)
     .query(async ({ input }) => {
       const { repositories } = await import("@shipflow/db/schema");
       return await db
@@ -28,7 +42,9 @@ export const pullRequestRouter = router({
     }),
 
   getWithReviews: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}/{githubPrNumber}"), tags: TAGS } })
     .input(z.object({ orgId: z.string(), githubPrNumber: z.number() }))
+    .output(getPullRequestWithReviewsOutputSchema)
     .query(async ({ input }) => {
       const pr = await db.query.pullRequests.findFirst({
         where: and(
@@ -50,7 +66,9 @@ export const pullRequestRouter = router({
       return pr;
     }),
   updateFindingStatus: orgMemberProcedure
+    .meta({ openapi: { method: "PUT", path: getPath("/{orgId}/findings/{findingId}/status"), tags: TAGS } })
     .input(z.object({ orgId: z.string(), findingId: z.string(), status: z.string() }))
+    .output(updateFindingStatusOutputSchema)
     .mutation(async ({ input }) => {
       const [updated] = await db.update(reviewFindings)
         .set({ status: input.status })
@@ -61,7 +79,9 @@ export const pullRequestRouter = router({
     }),
 
   rateReview: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/reviews/{reviewId}/rate"), tags: TAGS } })
     .input(z.object({ orgId: z.string(), reviewId: z.string(), isCorrect: z.boolean() }))
+    .output(rateReviewOutputSchema)
     .mutation(async ({ input }) => {
       const review = await db.query.pullRequestReviews.findFirst({
         where: eq(pullRequestReviews.id, input.reviewId)
@@ -79,7 +99,9 @@ export const pullRequestRouter = router({
     }),
 
   listReviews: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}/reviews"), tags: TAGS } })
     .input(z.object({ orgId: z.string(), filter: z.enum(["ALL", "BLOCKING", "CLEAN"]).optional().default("ALL") }))
+    .output(listReviewsOutputSchema)
     .query(async ({ input }) => {
       const reviews = await db.query.pullRequestReviews.findMany({
         orderBy: desc(pullRequestReviews.createdAt),
@@ -125,6 +147,7 @@ export const pullRequestRouter = router({
     }),
 
   merge: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{pullRequestId}/merge"), tags: TAGS } })
     .input(z.object({ 
       orgId: z.string(), 
       pullRequestId: z.string(),
@@ -133,6 +156,7 @@ export const pullRequestRouter = router({
       githubPrNumber: z.number(),
       installationId: z.number()
     }))
+    .output(mergePullRequestOutputSchema)
     .mutation(async ({ input, ctx }) => {
       try {
         const octokit = await getInstallationOctokit(input.installationId);

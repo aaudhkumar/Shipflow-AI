@@ -240,7 +240,7 @@ export function ReposList({ orgId, connectedReposMap, onConnect, onDisconnect }:
                         if (isConnected) {
                           handleDisconnect(repo.id)
                         } else {
-                          handleConnect(repo)
+                          handleConnect(repo as any)
                         }
                       }}
                     >

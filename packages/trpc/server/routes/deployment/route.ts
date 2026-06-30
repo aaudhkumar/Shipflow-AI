@@ -3,10 +3,17 @@ import { router, orgMemberProcedure } from "../../trpc";
 import { db } from "@shipflow/db";
 import { deployments, repositories } from "@shipflow/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { getDeploymentListOutputSchema } from "@shipflow/services/deployment/model";
+import { generatePath } from "../../utils/path-generator";
+
+const TAGS = ["Deployment"];
+const getPath = generatePath("/deployments");
 
 export const deploymentRouter = router({
   list: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}"), tags: TAGS } })
     .input(z.object({ orgId: z.string() }))
+    .output(getDeploymentListOutputSchema)
     .query(async ({ input }) => {
       // Find top 10 recent deployments for all repositories in the org
       const records = await db

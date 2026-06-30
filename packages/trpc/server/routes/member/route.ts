@@ -7,16 +7,32 @@ import jwt from "jsonwebtoken";
 import { sendInvitationEmail } from "@shipflow/email";
 import { createAuditLog, AuditAction } from "@shipflow/services/audit";
 import { createNotification } from "@shipflow/services/notification";
+import { generatePath } from "../../utils/path-generator";
+import {
+  getMemberMeOutputSchema,
+  getMemberListOutputSchema,
+  getMemberInvitationsOutputSchema,
+  inviteMemberOutputSchema,
+  acceptInvitationOutputSchema,
+  revokeInvitationOutputSchema
+} from "@shipflow/services/member/model";
+
+const TAGS = ["Member"];
+const getPath = generatePath("/members");
 
 export const memberRouter = router({
   me: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}/me"), tags: TAGS } })
     .input(z.object({ orgId: z.string() }))
+    .output(getMemberMeOutputSchema)
     .query(async ({ ctx }) => {
       return ctx.member;
     }),
     
   list: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}"), tags: TAGS } })
     .input(z.object({ orgId: z.string() }))
+    .output(getMemberListOutputSchema)
     .query(async ({ input }) => {
       const results = await db
         .select({
@@ -36,7 +52,9 @@ export const memberRouter = router({
     }),
     
   listInvitations: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}/invitations"), tags: TAGS } })
     .input(z.object({ orgId: z.string() }))
+    .output(getMemberInvitationsOutputSchema)
     .query(async ({ input }) => {
       const results = await db
         .select()
@@ -51,7 +69,9 @@ export const memberRouter = router({
     }),
 
   invite: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/invitations"), tags: TAGS } })
     .input(z.object({ orgId: z.string(), email: z.string().email(), role: z.enum(["OWNER", "ADMIN", "PM", "DEVELOPER", "REVIEWER"]) }))
+    .output(inviteMemberOutputSchema)
     .mutation(async ({ input, ctx }) => {
       const secret = process.env.INVITATION_SECRET;
       if (!secret) {
@@ -126,7 +146,9 @@ export const memberRouter = router({
     }),
 
   acceptInvitation: protectedProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/invitations/accept"), tags: TAGS } })
     .input(z.object({ token: z.string() }))
+    .output(acceptInvitationOutputSchema)
     .mutation(async ({ input, ctx }) => {
       const secret = process.env.INVITATION_SECRET;
       if (!secret) {
@@ -183,7 +205,9 @@ export const memberRouter = router({
     }),
 
   revokeInvitation: orgMemberProcedure
+    .meta({ openapi: { method: "DELETE", path: getPath("/{orgId}/invitations/{id}"), tags: TAGS } })
     .input(z.object({ id: z.string(), orgId: z.string() }))
+    .output(revokeInvitationOutputSchema)
     .mutation(async ({ input, ctx }) => {
       await db.update(orgInvitations)
         .set({ status: "REVOKED" })

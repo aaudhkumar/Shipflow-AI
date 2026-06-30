@@ -2,9 +2,15 @@ import { z } from "zod";
 import { orgMemberProcedure, router } from "../../trpc";
 import { auditLogs } from "@shipflow/db/schema";
 import { eq, desc, and, gte, lte } from "drizzle-orm";
+import { getAuditListOutputSchema } from "@shipflow/services/audit/model";
+import { generatePath } from "../../utils/path-generator";
+
+const TAGS = ["Audit"];
+const getPath = generatePath("/audit");
 
 export const auditRouter = router({
   list: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/"), tags: TAGS } })
     .input(z.object({
       limit: z.number().min(1).max(100).default(50),
       cursor: z.number().default(0), // offset
@@ -12,6 +18,7 @@ export const auditRouter = router({
       startDate: z.string().optional(),
       endDate: z.string().optional(),
     }))
+    .output(getAuditListOutputSchema)
     .query(async ({ ctx, input }) => {
       const conditions = [eq(auditLogs.orgId, ctx.orgId)];
       

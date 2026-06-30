@@ -147,7 +147,7 @@ export function ReviewSubmissionModal({ featureId, orgId, isOpen, onOpenChange, 
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                  {unimplementedTasks.map(t => (
+                  {unimplementedTasks.map((t: any) => (
                     <div key={t.id} className="p-3 bg-card border border-border/50 rounded-lg text-sm">
                       <p className="font-medium truncate">{t.title}</p>
                       <div className="flex gap-2 mt-2">
@@ -171,7 +171,7 @@ export function ReviewSubmissionModal({ featureId, orgId, isOpen, onOpenChange, 
                 </div>
               ) : (
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                  {approvedTasks.map(t => (
+                  {approvedTasks.map((t: any) => (
                     <div key={t.id} className="p-3 bg-card border border-border/50 rounded-lg text-sm opacity-70">
                       <p className="font-medium truncate">{t.title}</p>
                       <div className="flex gap-2 mt-2">

@@ -648,6 +648,9 @@ importers:
       '@shipflow/ai':
         specifier: workspace:*
         version: link:../ai
+      '@shipflow/billing':
+        specifier: workspace:*
+        version: link:../billing
       '@shipflow/db':
         specifier: workspace:*
         version: link:../db

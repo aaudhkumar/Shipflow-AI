@@ -7,10 +7,23 @@ import { inngest } from "@shipflow/workflow";
 import { getInstallationOctokit } from "@shipflow/github";
 import { TRPCError } from "@trpc/server";
 import { createAuditLog, AuditAction } from "@shipflow/services/audit";
+import { generatePath } from "../../utils/path-generator";
+import {
+  getConnectedListOutputSchema,
+  getRepositoryListOutputSchema,
+  syncRepositoryOutputSchema,
+  connectRepositoryOutputSchema,
+  disconnectRepositoryOutputSchema
+} from "@shipflow/services/repository/model";
+
+const TAGS = ["Repository"];
+const getPath = generatePath("/repositories");
 
 export const repositoryRouter = router({
   connectedList: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}/connected"), tags: TAGS } })
     .input(z.object({ orgId: z.string() }))
+    .output(getConnectedListOutputSchema)
     .query(async ({ input }) => {
       return await db
         .select()
@@ -18,7 +31,9 @@ export const repositoryRouter = router({
         .where(eq(repositories.orgId, input.orgId));
     }),
   list: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}"), tags: TAGS } })
     .input(z.object({ orgId: z.string() }))
+    .output(getRepositoryListOutputSchema)
     .query(async ({ input }) => {
       const [installation] = await db
         .select()
@@ -45,7 +60,9 @@ export const repositoryRouter = router({
       }));
     }),
   sync: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/sync/{githubRepoId}"), tags: TAGS } })
     .input(z.object({ orgId: z.string(), githubRepoId: z.string() }))
+    .output(syncRepositoryOutputSchema)
     .mutation(async ({ input }) => {
       // Find the repository DB row
       const [repo] = await db
@@ -87,6 +104,7 @@ export const repositoryRouter = router({
       return { status: "PROCESSING" };
     }),
   connect: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/connect"), tags: TAGS } })
     .input(z.object({
       orgId: z.string(),
       repo: z.object({
@@ -100,6 +118,7 @@ export const repositoryRouter = router({
         language: z.string().nullable(),
       })
     }))
+    .output(connectRepositoryOutputSchema)
     .mutation(async ({ input, ctx }) => {
       if (ctx.member.role !== "OWNER") {
         throw new TRPCError({ code: "FORBIDDEN", message: "Only organization owners can connect repositories" });
@@ -139,7 +158,9 @@ export const repositoryRouter = router({
       return { success: true };
     }),
   disconnect: orgMemberProcedure
+    .meta({ openapi: { method: "DELETE", path: getPath("/{orgId}/{githubRepoId}"), tags: TAGS } })
     .input(z.object({ orgId: z.string(), githubRepoId: z.string() }))
+    .output(disconnectRepositoryOutputSchema)
     .mutation(async ({ input, ctx }) => {
       if (ctx.member.role !== "OWNER") {
         throw new TRPCError({ code: "FORBIDDEN", message: "Only organization owners can disconnect repositories" });

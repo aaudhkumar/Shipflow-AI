@@ -4,10 +4,17 @@ import { db } from "@shipflow/db";
 import { prds, prdVersions } from "@shipflow/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
+import { generatePath } from "../../utils/path-generator";
+import { getPrdByFeatureOutputSchema } from "@shipflow/services/prd/model";
+
+const TAGS = ["PRD"];
+const getPath = generatePath("/prds");
 
 export const prdRouter = router({
   getByFeature: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/features/{featureId}"), tags: TAGS } })
     .input(z.object({ featureId: z.string() }))
+    .output(getPrdByFeatureOutputSchema)
     .query(async ({ input }) => {
       const prd = await db.query.prds.findFirst({
         where: eq(prds.featureRequestId, input.featureId),

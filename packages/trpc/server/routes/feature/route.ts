@@ -1,7 +1,31 @@
 import { router, orgMemberProcedure } from "../../trpc";
 import { enforceBillingLimit } from "../../middleware/billingGuard";
 import { z } from "zod";
-import { featureService } from "../../../../services/src/feature/feature.service";
+import { featureService } from "@shipflow/services/feature";
+import { generatePath } from "../../utils/path-generator";
+import {
+  getFeatureListOutputSchema,
+  getFeatureOutputSchema,
+  createFeatureOutputSchema,
+  getReleaseReadinessOutputSchema,
+  getReviewFindingsOutputSchema,
+  getLinkedIssuesOutputSchema,
+  actionSuccessOutputSchema,
+  deleteFeatureOutputSchema,
+  generatePRDOutputSchema,
+  startClarificationOutputSchema,
+  generateTasksOutputSchema,
+  approvePlanOutputSchema,
+  submitForReviewOutputSchema,
+  redoExecutionPlanOutputSchema,
+  failReviewOutputSchema,
+  approveHumanReleaseOutputSchema,
+  addClarificationReplyOutputSchema,
+  submitClarificationAnswersOutputSchema
+} from "@shipflow/services/feature/model";
+
+const TAGS = ["Feature"];
+const getPath = generatePath("/features");
 
 const userStorySchema = z.object({
   role: z.string(),
@@ -11,28 +35,35 @@ const userStorySchema = z.object({
 
 export const featureRouter = router({
   list: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}"), tags: TAGS } })
     .input(z.object({ 
       orgId: z.string(), 
       channel: z.enum(["IN_APP", "EMAIL", "TICKET", "CALL"]).optional(),
       projectId: z.string().optional()
     }))
+    .output(getFeatureListOutputSchema)
     .query(async ({ input }) => {
       return await featureService.listFeatures(input.orgId, input.channel, input.projectId);
     }),
 
   getById: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}/{featureId}"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(getFeatureOutputSchema)
     .query(async ({ input }) => {
       return await featureService.getFeatureById(input.featureId, input.orgId);
     }),
 
   delete: orgMemberProcedure
+    .meta({ openapi: { method: "DELETE", path: getPath("/{orgId}/{featureId}"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(deleteFeatureOutputSchema)
     .mutation(async ({ ctx, input }) => {
       return await featureService.deleteFeature(input.featureId, input.orgId, ctx.session.user.id);
     }),
 
   create: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}"), tags: TAGS } })
     .input(z.object({
       orgId: z.string(),
       projectId: z.string(),
@@ -40,6 +71,7 @@ export const featureRouter = router({
       rawDescription: z.string().min(10),
       sourceChannel: z.enum(["IN_APP", "EMAIL", "TICKET", "CALL"]).default("IN_APP"),
     }))
+    .output(createFeatureOutputSchema)
     .mutation(async ({ ctx, input }) => {
       return await featureService.createFeature(
         input.orgId,
@@ -53,7 +85,9 @@ export const featureRouter = router({
 
   generatePRD: orgMemberProcedure
     .use(enforceBillingLimit)
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/generate-prd"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(generatePRDOutputSchema)
     .mutation(async ({ ctx, input }) => {
       const { billingService } = await import("@shipflow/billing");
       await billingService.incrementAiReviewUsage(input.orgId);
@@ -62,7 +96,9 @@ export const featureRouter = router({
 
   startClarification: orgMemberProcedure
     .use(enforceBillingLimit)
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/start-clarification"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(startClarificationOutputSchema)
     .mutation(async ({ ctx, input }) => {
       const { billingService } = await import("@shipflow/billing");
       await billingService.incrementAiReviewUsage(input.orgId);
@@ -71,7 +107,9 @@ export const featureRouter = router({
 
   generateTasks: orgMemberProcedure
     .use(enforceBillingLimit)
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/generate-tasks"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(generateTasksOutputSchema)
     .mutation(async ({ ctx, input }) => {
       const { billingService } = await import("@shipflow/billing");
       await billingService.incrementAiReviewUsage(input.orgId);
@@ -79,43 +117,56 @@ export const featureRouter = router({
     }),
 
   approvePlan: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/approve-plan"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(approvePlanOutputSchema)
     .mutation(async ({ ctx, input }) => {
       return await featureService.approvePlan(input.featureId, input.orgId, ctx.session.user.id);
     }),
 
   submitForReview: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/submit-review"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(submitForReviewOutputSchema)
     .mutation(async ({ ctx, input }) => {
       await featureService.markInReview(input.featureId, input.orgId);
       return await featureService.markReviewPassed(input.featureId, input.orgId);
     }),
 
   redoExecutionPlan: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/redo-execution"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(redoExecutionPlanOutputSchema)
     .mutation(async ({ ctx, input }) => {
       return await featureService.redoExecutionPlan(input.featureId, input.orgId, ctx.session.user.id);
     }),
 
   failReview: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/fail-review"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(failReviewOutputSchema)
     .mutation(async ({ ctx, input }) => {
       return await featureService.failReview(input.featureId, input.orgId, ctx.session.user.id);
     }),
 
   approveHumanRelease: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/approve-human-release"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(approveHumanReleaseOutputSchema)
     .mutation(async ({ ctx, input }) => {
       return await featureService.approveHumanRelease(input.featureId, input.orgId, ctx.session.user.id);
     }),
 
   addClarificationReply: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/clarification-reply"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string(), replyContent: z.string().min(1) }))
+    .output(addClarificationReplyOutputSchema)
     .mutation(async ({ ctx, input }) => {
       return await featureService.processClarificationReply(input.featureId, input.orgId, ctx.session.user.id, input.replyContent);
     }),
 
   submitClarificationAnswers: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/clarification-answers"), tags: TAGS } })
     .input(z.object({
       featureId: z.string(),
       orgId: z.string(),
@@ -126,12 +177,15 @@ export const featureRouter = router({
         feedback: z.string().optional()
       }))
     }))
+    .output(submitClarificationAnswersOutputSchema)
     .mutation(async ({ ctx, input }) => {
       return await featureService.submitClarificationAnswers(input.featureId, input.orgId, ctx.session.user.id, input.answers);
     }),
 
   getReleaseReadiness: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}/{featureId}/release-readiness"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(getReleaseReadinessOutputSchema)
     .query(async ({ input }) => {
       const { db } = await import("@shipflow/db");
       const { releaseReadiness } = await import("@shipflow/db/schema");
@@ -145,7 +199,9 @@ export const featureRouter = router({
     }),
 
   getReviewFindings: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}/{featureId}/review-findings"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(getReviewFindingsOutputSchema)
     .query(async ({ input }) => {
       const { db } = await import("@shipflow/db");
       const { pullRequests, pullRequestReviews, reviewFindings } = await import("@shipflow/db/schema");
@@ -180,12 +236,14 @@ export const featureRouter = router({
     }),
 
   updatePrd: orgMemberProcedure
+    .meta({ openapi: { method: "PUT", path: getPath("/{orgId}/{featureId}/prd"), tags: TAGS } })
     .input(z.object({
       featureId: z.string(),
       orgId: z.string(),
       field: z.enum(['problemStatement', 'goals', 'nonGoals', 'userStories', 'acceptanceCriteria', 'edgeCases', 'successMetrics']),
       value: z.union([z.string(), z.array(z.string()), z.array(userStorySchema)]),
     }))
+    .output(actionSuccessOutputSchema)
     .mutation(async ({ ctx, input }) => {
       const { db } = await import("@shipflow/db");
       const { prds, prdVersions } = await import("@shipflow/db/schema");
@@ -216,11 +274,13 @@ export const featureRouter = router({
     }),
 
   linkIssue: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/issues/{issueId}"), tags: TAGS } })
     .input(z.object({
       orgId: z.string(),
       featureId: z.string(),
       issueId: z.string()
     }))
+    .output(actionSuccessOutputSchema)
     .mutation(async ({ input }) => {
       const { db } = await import("@shipflow/db");
       const { githubIssues } = await import("@shipflow/db/schema");
@@ -240,7 +300,9 @@ export const featureRouter = router({
     }),
 
   getLinkedIssues: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}/{featureId}/issues"), tags: TAGS } })
     .input(z.object({ orgId: z.string(), featureId: z.string() }))
+    .output(getLinkedIssuesOutputSchema)
     .query(async ({ input }) => {
       const { db } = await import("@shipflow/db");
       const { githubIssues, repositories } = await import("@shipflow/db/schema");

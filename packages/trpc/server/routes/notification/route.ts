@@ -2,9 +2,23 @@ import { z } from "zod";
 import { protectedProcedure, orgMemberProcedure, router } from "../../trpc";
 import { notifications } from "@shipflow/db/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { zodUndefinedModel } from "../../schema";
+import { generatePath } from "../../utils/path-generator";
+import {
+  getNotificationListOutputSchema,
+  getUnreadCountOutputSchema,
+  markAsReadOutputSchema,
+  markAllAsReadOutputSchema
+} from "@shipflow/services/notification/model";
+
+const TAGS = ["Notification"];
+const getPath = generatePath("/notifications");
 
 export const notificationRouter = router({
   list: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}"), tags: TAGS } })
+    .input(z.object({ orgId: z.string() }))
+    .output(getNotificationListOutputSchema)
     .query(async ({ ctx, input }) => {
       return ctx.db.query.notifications.findMany({
         where: and(
@@ -17,6 +31,9 @@ export const notificationRouter = router({
     }),
 
   getUnreadCount: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}/unread/count"), tags: TAGS } })
+    .input(z.object({ orgId: z.string() }))
+    .output(getUnreadCountOutputSchema)
     .query(async ({ ctx }) => {
       const { db } = await import("@shipflow/db");
       const { notifications } = await import("@shipflow/db/schema");
@@ -33,7 +50,9 @@ export const notificationRouter = router({
     }),
 
   markAsRead: orgMemberProcedure
-    .input(z.object({ notificationId: z.string() }))
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{notificationId}/read"), tags: TAGS } })
+    .input(z.object({ orgId: z.string(), notificationId: z.string() }))
+    .output(markAsReadOutputSchema)
     .mutation(async ({ ctx, input }) => {
       await ctx.db.update(notifications)
         .set({ isRead: true })
@@ -46,6 +65,9 @@ export const notificationRouter = router({
     }),
 
   markAllAsRead: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/read/all"), tags: TAGS } })
+    .input(z.object({ orgId: z.string() }))
+    .output(markAllAsReadOutputSchema)
     .mutation(async ({ ctx }) => {
       await ctx.db.update(notifications)
         .set({ isRead: true })
