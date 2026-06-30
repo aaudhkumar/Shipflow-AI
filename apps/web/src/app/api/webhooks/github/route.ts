@@ -228,20 +228,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Repository not connected" }, { status: 404 });
     }
 
-    const eventName = data.action === "opened" ? "github.issue.opened" : "github.issue.closed";
-    await inngest.send({
-      name: eventName,
-      data: {
-        orgId: repo.orgId,
-        repositoryId: repo.id,
-        issueNumber: data.issue.number,
-        title: data.issue.title,
-        body: data.issue.body || "",
-        state: data.issue.state,
-        authorLogin: data.issue.user.login,
-        actionAt: data.action === "opened" ? data.issue.created_at : data.issue.closed_at,
-      },
-    });
+    if (data.action === "opened") {
+      await inngest.send({
+        name: "github.issue.opened",
+        data: {
+          orgId: repo.orgId,
+          repositoryId: repo.id,
+          issueNumber: data.issue.number,
+          title: data.issue.title,
+          body: data.issue.body || "",
+          state: data.issue.state,
+          authorLogin: data.issue.user.login,
+          actionAt: data.issue.created_at,
+        },
+      });
+    } else {
+      await inngest.send({
+        name: "github.issue.closed",
+        data: {
+          orgId: repo.orgId,
+          repositoryId: repo.id,
+          issueNumber: data.issue.number,
+          title: data.issue.title,
+          body: data.issue.body || "",
+          state: data.issue.state,
+          authorLogin: data.issue.user.login,
+          actionAt: data.issue.closed_at,
+        },
+      });
+    }
   } else if (eventType === "issue_comment" && data.action === "created") {
     await db
       .insert(webhookEvents)
