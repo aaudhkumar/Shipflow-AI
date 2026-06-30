@@ -1,75 +1,59 @@
-# Evaluator Walkthrough (DEMO)
+# Chaicode Hackathon: Evaluator Walkthrough (DEMO)
 
-Welcome to Shipflow! This guide provides a rapid, highly detailed 5-minute walkthrough explicitly designed for technical reviewers, hackathon judges, or prospective enterprise evaluators who want to deeply understand the core capabilities and architecture of the platform.
+Welcome Judges! This guide is specifically designed to help you quickly evaluate the core technical achievements of **Shipflow AI**. In just 5 minutes, you will see a task go from an idea to a fully autonomously generated Pull Request on GitHub.
 
-## 🔗 Quick Access Links
-| Resource | URL | Notes |
-|----------|-----|-------|
-| **Live Application** | `http://localhost:3000` | The Next.js frontend (Local development environment). |
-| **Interactive API Docs** | `http://localhost:8000/api/docs` | Explore and test the OpenAPI-compliant REST endpoints via Scalar. |
-| **Raw OpenAPI Spec** | `http://localhost:8000/api/openapi.json` | Machine-readable specification for Postman/Insomnia imports. |
-
-## 👁️ Reviewer Visuals: What to Look For
-When navigating the application, pay close attention to these key surfaces:
-
-| Screen / Feature | What to look for | Entry Point |
-|------------------|------------------|-------------|
-| **Organization Dashboard** | Observe the multi-tenant architecture. Notice how data is strictly isolated per organization using robust RBAC. | `/dashboard` |
-| **PRD Editor Experience** | Test the rich-text editing capabilities. Notice how requirements seamlessly link to granular, actionable engineering tasks. | `/projects/[id]/prds` |
-| **Live Task Execution**| The "Wow" factor: Assign a task to an AI worker and watch the streaming thought-logs as the LLM processes context and drafts code in real-time. | `/tasks/[id]` |
-| **GitHub Synchronization**| Observe how Pull Request statuses are dynamically ingested via webhooks and visually mapped to your internal Tasks. | `/repositories` |
+## 🔗 Live Application Links
+- **Web App:** [https://shipflow-ai-web-eight.vercel.app](https://shipflow-ai-web-eight.vercel.app)
+- **API Server:** [https://shipflow-ai-1.onrender.com](https://shipflow-ai-1.onrender.com)
+- **Code Worker (AI Sandbox):** [https://shipflow-ai.onrender.com](https://shipflow-ai.onrender.com)
 
 ---
 
-## ⏱️ The 5-Minute Guided Walkthrough
+## ⏱️ The 5-Minute "Wow Factor" Walkthrough
 
-Follow these precise steps to experience the full lifecycle of Shipflow's capabilities.
+Please follow these exact steps to test the end-to-end capabilities.
 
-### Step 1: Initialize Your Workspace
-- **The Goal:** Set up your multi-tenant workspace and verify authentication.
-- **The Action:** Open `http://localhost:3000`, authenticate using Google OAuth (or email), and create a new Organization and a child Project (e.g., "Alpha Release").
-- **Technical Mechanism:** This UI interaction triggers the `organization.create` and `project.create` tRPC mutations. Under the hood, `better-auth` validates your secure session cookie, and Drizzle ORM safely persists the isolated tenant data to PostgreSQL.
+### Step 1: Onboarding & Auth
+1. Go to [https://shipflow-ai-web-eight.vercel.app](https://shipflow-ai-web-eight.vercel.app).
+2. Sign in using **Google or GitHub OAuth** (no pre-seeded accounts are required).
+3. Create a new Organization and a Project. 
+   - *Technical Note:* This tests the `better-auth` integration and multi-tenant DB isolation via Drizzle ORM.
 
-### Step 2: Bridge Product and Engineering (PRDs to Tasks)
-- **The Goal:** Define requirements and break them down into executable work.
-- **The Action:** Navigate to your newly created project. Create a new Product Requirements Document (PRD) detailing a feature (e.g., "Implement Stripe Checkout"). Next, define 2-3 granular engineering tasks associated with this PRD (e.g., "Setup Express API routes for Stripe").
-- **Technical Mechanism:** This hits the `prd.create` and `task.create` endpoints. Notice how the database schema establishes a strict relational hierarchy: `Organization -> Project -> Feature -> PRD -> Tasks`. This hierarchy is crucial for providing the AI with bounded, accurate context later.
+### Step 2: Connect GitHub
+1. Navigate to the Repositories section.
+2. Click to connect your GitHub account via the Shipflow GitHub App. Give it access to a simple test repository (e.g., a basic Vite or Node app).
+   - *Technical Note:* This tests the asynchronous GitHub App installation flow and the Inngest background sync job (`repo.sync.requested`).
 
-### Step 3: Trigger Autonomous AI Execution (The Core Engine)
-- **The Goal:** Watch the AI Engine autonomously process engineering work.
-- **The Action:** Select one of your granular tasks. In the task details panel, assign the execution to an "AI Worker" (selecting OpenAI or Anthropic). Click **Execute**. Watch the UI as the execution status transitions from `Queued` -> `Running` -> `Review Required`, with live logs streaming in.
-- **Technical Mechanism:** 
-  1. The API receives the request and immediately pushes an event to **Inngest** (`packages/workflow`). 
-  2. The HTTP request closes quickly (preventing Vercel/Express timeouts).
-  3. The background Inngest worker fetches the vast PRD context, compiles a rigid system prompt, and negotiates with the LLM API. 
-  4. Real-time updates are written to the `task_executions` table, which the frontend polls/streams to display the live thought-logs.
+### Step 3: AI-Assisted Planning
+1. Go to your Project and create a new **Feature** (e.g., "Add a health check endpoint").
+2. Click **Generate PRD (AI)**. Shipflow will use OpenAI to draft a complete Product Requirements Document.
+3. Once the PRD is generated, click **Generate Tasks**. The AI will break the PRD down into granular engineering tasks (e.g., "Create `/health` route in Express").
+   - *Technical Note:* This tests the AI integration in the main Express backend. It also tests the **Billing Guard** middleware (`enforceBillingLimit`), which tracks AI usage against your Organization's plan.
 
-### Step 4: Verify External Webhook Integrations
-- **The Goal:** Validate that Shipflow responds accurately to real-world SDLC events.
-- **The Action:** (Assuming a GitHub App is configured) Push a commit or open a Pull Request in your linked GitHub repository, ensuring you mention the Shipflow Task ID in the description (e.g., `Closes TASK-123`).
-- **Technical Mechanism:** The Shipflow Express server receives the payload at its webhook endpoint. It executes a cryptographic verification using `x-hub-signature-256` against your `GITHUB_WEBHOOK_SECRET`. Once verified, it parses the markdown, extracts the Task ID, and updates the task status in PostgreSQL, demonstrating robust, secure external integrations.
+### Step 4: Autonomous Code Execution (The Main Event)
+1. Navigate to the Kanban board and select a Task.
+2. Ensure it is linked to your GitHub repository.
+3. Click **Execute with AI Worker**.
+4. **Watch the magic:** The task state will change to Running. Behind the scenes, the Express API pings the completely isolated **Code-Worker service** running at `https://shipflow-ai.onrender.com`.
 
----
+**What is happening inside the Code-Worker?**
+- It spins up an isolated sandbox.
+- It securely clones your GitHub repository using short-lived installation tokens.
+- It initiates an agentic loop (up to 12 iterations) using OpenAI.
+- The AI uses tools to `read_file`, `write_file`, and optionally run `lint`/`build`.
+- *Security Flex:* Every file the AI writes is passed through an entropy-based Secret Scanner to ensure no API keys are leaked into your codebase!
+- Once finished, the worker commits the changes, pushes to a new branch, and uses the GitHub API to open a Pull Request.
 
-## 🗺️ Forensic Integration Map
-
-For code reviewers and technical judges looking to verify the architecture within the source code:
-
-| Platform Capability | Underlying Technology / API | Exact Location in Codebase |
-|---------------------|-----------------------------|----------------------------|
-| **Session Authentication** | `better-auth` HTTP-only cookies | `packages/auth/src/index.ts` & API Middleware |
-| **Database Interactions** | Drizzle ORM Schemas & Migrations | `packages/db/models/*` |
-| **AI Task Execution Engine**| Inngest Workers + Standardized LLM APIs | `packages/workflow/src/` & `packages/ai/src/` |
-| **API Routing & OpenAPI** | tRPC mapped dynamically to Express | `apps/api/src/server.ts` & `packages/trpc/server/routes/*` |
-| **Webhook Security** | Node crypto signature verification | `packages/trpc/server/routes/repository` (or API routes) |
+### Step 5: Verify the Result
+1. Go to your connected GitHub repository.
+2. You will see a brand new Pull Request titled `[Shipflow] Implement: <Task Name>`.
+3. Review the code the AI wrote for you autonomously.
 
 ---
 
-## 🏆 Key Engineering Highlights
-When evaluating Shipflow's technical merit, consider these critical design decisions:
-
-1. **Resilient Async Execution:** By delegating AI generation (which can take 60+ seconds) to Inngest background workers, Shipflow entirely avoids standard HTTP request timeouts and ensures high reliability even if an LLM provider rate-limits a request.
-2. **End-to-End Type Safety:** Utilizing a monorepo structure with tRPC means that a database schema change in `packages/db` immediately triggers a TypeScript compilation error in `apps/web` if the frontend isn't updated, drastically reducing runtime bugs.
-3. **Enterprise-Grade Security:** The platform does not take shortcuts. It implements full multi-tenancy access controls (RBAC), cryptographically verified incoming webhooks, distributed rate limiting via Redis, and highly secure HTTP-only cookies for authentication.
-
-For a complete technical deep-dive into the schema and data flow, please review the [Architecture Documentation (docs/architecture.md)](docs/architecture.md).
+## 💰 Bonus Points: Test the Billing Integration
+If you have time, you can trigger the Razorpay billing flow:
+1. Attempt to generate too many PRDs/Tasks until you hit the free tier usage limit.
+2. You will be prompted to upgrade.
+3. Click Upgrade to trigger the Razorpay checkout session (in test mode).
+4. Once completed, a secure Razorpay webhook hits the Express server, validates the HMAC signature, and instantly unlocks unlimited AI executions for your organization.

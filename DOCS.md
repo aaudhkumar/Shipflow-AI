@@ -1,115 +1,57 @@
-# Shipflow Technical Documentation
+# Technical Deep-Dive (DOCS)
 
-This document serves as the comprehensive technical reference for engineers integrating with, extending, or operating the Shipflow platform.
+This document is intended for technical evaluators who want to understand the intricate details of Shipflow's backend architecture, security models, and tRPC routing.
 
-## 1. Deep Architecture Overview
-Shipflow is structured as a modern, type-safe monorepo. This design guarantees that data types defined in the database perfectly match the types consumed by the frontend, eliminating an entire class of runtime bugs.
+## 1. Deployed Infrastructure
 
-- **Frontend Application (`apps/web`)**: Built on Next.js (App Router), leveraging React, Tailwind CSS for styling, and `tRPC React Query` hooks for data fetching. This layer focuses purely on presentation and user experience.
-- **API Server (`apps/api`)**: A robust Express.js server that acts as the host for the tRPC backend. It mounts the tRPC middleware, handles CORS, processes authentication cookies, and dynamically translates tRPC definitions into a standard OpenAPI JSON specification using `trpc-to-openapi`.
-- **Database Layer (`packages/db`)**: Utilizes Drizzle ORM to interface with PostgreSQL. The schema is highly modularized; entities like users, organizations, projects, and tasks are separated into distinct domain files within `models/`. Migrations are generated and applied via the Drizzle CLI.
-- **Authentication Layer (`packages/auth`)**: Encapsulates `better-auth` configurations. It defines the OAuth providers (Google, GitHub) and handles the intricacies of secure session management, exporting utility functions used by the API server.
-- **Workflow & Eventing (`packages/workflow`)**: For operations that exceed standard HTTP timeout limits (e.g., calling an LLM for 30+ seconds, or processing complex Git webhooks), Shipflow defers execution to **Inngest**. This provides an event-driven architecture with automatic retries, step-functions, and high reliability.
+Shipflow operates on a highly decoupled architecture to ensure that long-running AI tasks do not block standard web traffic.
 
-## 2. Comprehensive Authentication Flow
-Shipflow secures its API primarily through **Session Cookies** managed by Better-Auth. This approach is highly secure against XSS attacks compared to storing JWTs in `localStorage`.
+| Component | Stack | Live URL | Purpose |
+|-----------|-------|----------|---------|
+| **Frontend** | Next.js 14, Tailwind, tRPC | `https://shipflow-ai-web-eight.vercel.app` | Presentation layer. |
+| **Core API** | Express.js, tRPC | `https://shipflow-ai-1.onrender.com` | Handles all 75+ standard CRUD/Business logic routes. |
+| **Code Worker**| Express, Docker Sandbox | `https://shipflow-ai.onrender.com` | A dedicated microservice that exclusively handles LLM git operations. |
+| **Database** | Postgres (Neon/Supabase) | *Private* | Managed exclusively via Drizzle ORM. |
+| **Workflows**| Inngest | *Managed* | Handles async event queues (e.g., repository syncing). |
 
-- **Mechanism**: When a user successfully authenticates, `better-auth` sets an HTTP-only, `SameSite=Lax` (or `Strict`) cookie containing a cryptographically signed session token.
-- **Supported Providers**: 
-  - Standard Email/Password credentials.
-  - Google OAuth (Requires `GOOGLE_OAUTH_CLIENT_ID` and `SECRET`).
-  - GitHub OAuth (Requires `GITHUB_OAUTH_CLIENT_ID` and `SECRET`).
-- **API Context Construction**: Inside `apps/api/src/server.ts`, the Express middleware intercepts incoming requests, extracts the cookies from `req.headers`, and passes them into the `createContext` function. The tRPC routers then use this context to validate the session state before resolving protected procedures. If the session is invalid, a `TRPCError` with a `UNAUTHORIZED` code is thrown.
+## 2. API Architecture (tRPC to OpenAPI)
 
-## 3. REST API & Resource Mapping
-Although the backend is authored in tRPC, it is exposed as a fully compliant REST API at `{BASE_URL}/api/*`. Below is a detailed summary of the primary resource groups. 
+The core API is built using **tRPC**, ensuring 100% type safety from the Database (`packages/db`) to the Frontend. However, because Shipflow also serves as an integration platform, these tRPC routes are dynamically compiled into a standard OpenAPI REST specification.
 
-> **Note:** For exact request payload shapes, required headers, and response schemas, always consult the [Interactive Scalar UI]({BASE_URL}/api/docs).
+- **Interactive Swagger/Scalar Docs**: `https://shipflow-ai-1.onrender.com/api/docs`
 
-| Resource Group | Path Prefix | Core Responsibilities |
-|----------------|-------------|-----------------------|
-| **Auth** | `/api/auth` | Login, signup, password resets, and session validation endpoints managed by `better-auth`. |
-| **Organization** | `/api/organization` | Creation of workspaces, updating organization settings, and managing high-level tenant metadata. |
-| **Project** | `/api/project` | CRUD operations for Projects (the highest level of grouping for software deliverables). |
-| **Feature** | `/api/feature` | Managing features/epics that belong to a specific Project. |
-| **PRD** | `/api/prd` | Endpoints for storing, retrieving, and versioning rich-text Product Requirements Documents. |
-| **Task** | `/api/task` | Granular task assignment, status updates (todo, in-progress, done), and task tracking. |
-| **Repository** | `/api/repository` | Linking GitHub repositories to an Organization and managing sync configurations. |
-| **Pull Request** | `/api/pullRequest` | Webhook ingestion points and REST endpoints for tracking PR statuses against specific tasks. |
-| **Member** | `/api/member` | Inviting new users via email, assigning Roles (Admin, Developer, Viewer), and removing access. |
-| **Billing** | `/api/billing` | Razorpay integration: generating checkout sessions and verifying subscription statuses. |
-| **Audit** | `/api/audit` | Fetching immutable audit logs for compliance and tracking organization-wide actions. |
-| **Notification** | `/api/notification` | Fetching and dismissing user-specific alerts and system notifications. |
-| **Deployment** | `/api/deployment` | Tracking deployment events triggered by external CI/CD pipelines. |
-| **Task Execution**| `/api/taskExecution` | The core AI engine: triggering AI workers, polling execution status, and retrieving streaming logs. |
+### Major Routers (75 Total Procedures)
+The backend is split into 15 distinct routers, including:
+- **`organizationRouter` (14 routes):** Handles multi-tenancy, member invitations via JWT tokens, and RBAC (Owner, Admin, Engineer, Viewer).
+- **`featureRouter` (19 routes):** The heaviest logic center. Handles PRD generation, AI clarification Q&A, and task extraction. Protected heavily by billing middlewares.
+- **`pullRequestRouter` (6 routes):** Ingests webhooks, links PRs to specific Tasks, and handles AI review feedback.
+- **`billingRouter` (4 routes):** Creates Razorpay orders, handles checkout sessions, and cryptographically verifies `x-razorpay-signature` on webhooks.
+- **`auditRouter`:** Maintains an immutable log of sensitive actions (e.g., Repos connected, Members removed).
 
-## 4. Execution Engine Internals (AI Workflows)
-Shipflow's defining feature is its ability to execute automated software tasks via its **Task Execution Engine**. The lifecycle of an AI execution is complex and highly orchestrated:
+## 3. The Autonomous Code-Worker (Deep Dive)
 
-1. **Trigger Phase**: A user assigns a Task to an AI worker or explicitly clicks "Execute" in the UI. This hits the `trpc/taskExecution.start` endpoint.
-2. **Queueing Phase**: The Express API authenticates the request, verifies the Organization has sufficient billing credits, creates a "Queued" execution record in PostgreSQL, and immediately pushes an event to the Inngest workflow broker (`packages/workflow`). The HTTP request returns immediately with a `202 Accepted` style response.
-3. **Worker Invocation**: An Inngest worker (which can scale independently) receives the event. It uses the `packages/ai` integrations to fetch the necessary context:
-   - The specific Task details.
-   - The parent Feature context.
-   - The comprehensive text of the associated PRD.
-4. **AI Generation**: The worker compiles a strict system prompt and invokes the configured LLM provider (OpenAI, Anthropic, etc.). It manages rate limits and token windows.
-5. **Persistence & Streaming**: As the AI generates output (or completes distinct steps of thought), the worker persists these updates to the `task_executions` table in PostgreSQL. The frontend continuously polls (or uses WebSockets) to display this progress to the user in real-time.
-6. **Completion**: The final output (e.g., code diffs, markdown documentation) is saved, and the task status is updated to `Review Required`.
+The most complex engineering achievement in Shipflow is the `@shipflow/code-worker` service (`https://shipflow-ai.onrender.com`). Standard HTTP servers timeout after 30-60 seconds, which is insufficient for AI code generation. Therefore, this is extracted into a standalone service.
 
-## 5. Webhooks & Real-time Synchronization
-Shipflow is built to be a central hub, requiring robust ingestion of external events via webhooks:
-- **GitHub Webhooks**: When a PR is opened, merged, or a branch is pushed, GitHub sends a payload to Shipflow. Shipflow verifies the `x-hub-signature-256` hash using `GITHUB_WEBHOOK_SECRET`. It then parses the PR description for Task IDs (e.g., `Closes TASK-123`) and updates the Shipflow database accordingly.
-- **Razorpay Webhooks**: Critical for revenue operations. Subscription upgrades, renewals, and payment failures trigger webhooks. Shipflow verifies these with `RAZORPAY_WEBHOOK_SECRET` and automatically adjusts the Organization's tier, locking or unlocking premium features instantly.
-- **Deployment Webhooks**: External CI/CD tools (like Vercel or GitHub Actions) can ping the deployment webhook (secured via `DEPLOYMENT_WEBHOOK_SECRET`) to mark specific features or projects as successfully deployed, closing the loop on the SDLC.
+### Execution Flow
+1. **Trigger:** The Core API sends a `POST /implement` request containing a `taskId`.
+2. **Context Gathering:** The worker queries the database to pull a massive context chain: `Task -> Epic -> PRD -> Feature -> Project -> GitHub Installation`.
+3. **Sandboxing:** The worker provisions a network-isolated environment (`docker run --network none alpine`).
+4. **Git Operations:** It clones the target repository using short-lived GitHub App tokens (`simple-git`).
+5. **Agentic Loop:** The Vercel AI SDK is invoked with OpenAI. The LLM is given tools to explore the codebase.
+   - `read_file`
+   - `list_dir`
+   - `write_file`
+   - `run_command` (Strictly limited to `test`, `lint`, `build`)
 
-## 6. AI & Scoring Layer Configurations
-Shipflow is model-agnostic, supporting several major LLM providers to power the Task Execution engine:
-- **Supported Providers**: OpenAI (GPT-4o), Anthropic (Claude 3.5 Sonnet), Gemini (1.5 Pro), and OpenRouter (for flexible model routing).
-- **Usage & Cost Tracking**: Every invocation of the AI providers logs token usage. This allows Organization admins to monitor compute costs associated with AI task executions.
-- **Methodology**: For a deeper dive into how prompts are constructed and how AI outputs are validated, see the [AI Execution Methodology (docs/methodology.md)](docs/methodology.md).
+### Hard Security Constraints (HC#)
+The worker enforces strict security parameters to prevent RCE (Remote Code Execution) and secrets leakage:
+- **HC#1 (No Arbitrary Shell):** The `run_command` tool uses `execFile` (not `exec`) and validates against a strict TypeScript union (`"test" | "lint" | "build"`).
+- **HC#2 (Path Traversal):** All file reads/writes are run through `path.resolve` and `fs.realpath` to prevent `../../` escapes outside the cloned repo directory.
+- **HC#4 (Secret Scanning):** Every file written by the AI is scanned for patterns (e.g., `ghp_...`, `sk-...`) and high Shannon entropy. If a secret is detected, the execution halts.
+- **HC#5 (Prompt Injection Defense):** The PRD and Task descriptions are framed as untrusted user input within the system prompt to prevent users from hijacking the AI worker.
 
-## 7. Infrastructure Endpoints Reference
+## 4. Webhooks and Eventing
 
-These non-REST endpoints are crucial for DevOps, monitoring, and API discovery.
-
-| Endpoint | Method | Detailed Purpose |
-|----------|--------|------------------|
-| `/` | `GET` | Simple root ping. Useful for basic load balancer health checks. |
-| `/health` | `GET` | Detailed infrastructure health check. Verifies database connectivity and Redis availability. |
-| `/openapi.json` | `GET` | Returns the dynamically generated, machine-readable OpenAPI 3.0 specification. |
-| `/docs` | `GET` | Serves the interactive Scalar API Reference UI, rendering the `/openapi.json` file beautifully. |
-
-## 8. Environment Variables Reference
-See the `.env.example` file for a full list. Proper configuration is critical for application security and functionality.
-
-| Variable | Required | Detailed Purpose |
-|----------|----------|------------------|
-| `DATABASE_URL` | **Yes** | Fully qualified PostgreSQL connection string (e.g., `postgresql://user:pass@host:5432/dbname`). |
-| `BETTER_AUTH_SECRET` | **Yes** | A long, cryptographically secure random string used to sign session cookies. |
-| `CORS_ALLOWED_ORIGINS`| **Yes** | Comma-separated list of exact domains allowed to make API requests (e.g., `http://localhost:3000,https://app.shipflow.io`). |
-| `OPENAI_API_KEY` | *Conditional* | Required if you intend to use OpenAI models for Task Execution. |
-| `INNGEST_EVENT_KEY` | **Yes** | API key to securely push events to the Inngest workflow broker. |
-| `UPSTASH_REDIS_REST_URL`| **Yes** | Required for distributed rate limiting and caching operations. |
-
-## 9. Local Development & Setup Deep Dive
-To successfully run the full Shipflow stack locally:
-1. **Infrastructure**: Ensure PostgreSQL and Redis are running locally (we recommend using Docker via a `docker-compose.yml` if available).
-2. **Environment**: Copy `.env.example` to `.env` and meticulously fill in the required keys.
-3. **Database Hydration**: 
-   - Run `pnpm db:generate` to create migration files based on the Drizzle schema.
-   - Run `pnpm db:migrate` to execute those migrations against your local Postgres instance.
-4. **Bootstrapping**: Run `pnpm dev`. This utilizes TurboRepo to concurrently start:
-   - The Next.js frontend on `http://localhost:3000`.
-   - The Express API server on `http://localhost:8000`.
-   - The local Inngest development server (if configured).
-
-## 10. Documentation Completeness Audit
-To ensure high standards, all documentation is audited against the codebase reality.
-
-| Technical Requirement | Audit Status & Evidence |
-|-----------------------|-------------------------|
-| Interactive API docs available | ✅ Verified. Accessible at `/api/docs` (Powered by Scalar) |
-| Request/Curl Examples provided | ✅ Verified. Available in individual `docs/api/*.md` files. |
-| Environment Variables detailed | ✅ Verified. See Section 8 above and `.env.example`. |
-| Local Development process clear | ✅ Verified. See Section 9 above and `README.md`. |
-| Architecture components explained | ✅ Verified. See Section 1 above and `docs/architecture.md`. |
+Shipflow is highly event-driven.
+- **GitHub Webhooks:** Handled by the `pullRequestRouter`. When a PR is opened, the webhook parses the body for strings like `Closes TASK-123` and updates the DB state. Signatures are verified using `GITHUB_WEBHOOK_SECRET`.
+- **Inngest Background Jobs:** When a user connects a GitHub repository, fetching all historical PRs and issues could take minutes. Shipflow triggers an `inngest.send("repo.sync.requested")` event, returning instantly to the user while the sync happens reliably in the background.
