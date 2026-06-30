@@ -38,9 +38,8 @@ const createRecursiveProxy = (path: string[] = []): any => {
   });
 };
 
-import type { ServerRouter } from "@shipflow/trpc/client";
-import type { CreateTRPCProxyClient } from "@trpc/client";
+import { createTRPCProxyClient } from "@shipflow/trpc/client";
+import type { ServerRouter } from "@shipflow/trpc/server";
 
-export const api = createRecursiveProxy() as CreateTRPCProxyClient<ServerRouter>;
-
+export const api = createRecursiveProxy() as ReturnType<typeof createTRPCProxyClient<ServerRouter>>;
 export const apiStreaming = api;
