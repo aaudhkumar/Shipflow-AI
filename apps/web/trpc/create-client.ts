@@ -9,9 +9,11 @@ interface CreateTRPCHttpBatchClientClientOpts {
 export const createTRPCHttpBatchClientClient = (opts?: CreateTRPCHttpBatchClientClientOpts) => {
   const c = opts?.enableStreaming ? httpBatchStreamLink : httpLink;
   const getUrl = () => {
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      return `${process.env.NEXT_PUBLIC_API_URL}/trpc`;
+    }
     if (typeof window !== "undefined") return "/api/trpc";
     if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}/api/trpc`;
-    // Use localhost for SSR so it doesn't try to hit an external URL or wrong port
     return `http://localhost:${process.env.PORT ?? 3000}/api/trpc`;
   };
 
