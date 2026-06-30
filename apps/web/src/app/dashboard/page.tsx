@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 import { api } from "~/trpc/server";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardRedirect() {
   let orgs;
   try {
