@@ -4,6 +4,10 @@ import { handleImplement } from "./implement";
 export const app: Express = express();
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.status(200).send("OK");
+});
+
 app.post("/implement", (req, res) => {
   const { taskId } = req.body;
   // Trigger asynchronously and immediately return
