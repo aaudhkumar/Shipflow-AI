@@ -33,7 +33,7 @@ export const implementFeatureTasks = inngest.createFunction(
       const resultEvent = await step.waitForEvent(`wait-for-${claimed.id}`, {
         event: "tasks.implementation.completed",
         timeout: "15m",
-        match: "data.taskId"
+        if: `async.data.taskId == '${claimed.id}'`
       });
 
       if (!resultEvent) {

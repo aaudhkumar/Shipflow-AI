@@ -20,3 +20,5 @@ services:
         sync: false # Requires manual entry in Render Dashboard
       - key: GITHUB_WEBHOOK_SECRET
         sync: false # Requires manual entry in Render Dashboard
+      - key: INNGEST_EVENT_KEY
+        sync: false # Requires manual entry in Render Dashboard
