@@ -112,14 +112,19 @@ export const organizationRouter = router({
     .input(z.object({
       orgId: z.string(),
       name: z.string().min(1).optional(),
-      retentionDays: z.number().min(1).max(3650).optional()
+      retentionDays: z.number().min(1).max(3650).optional(),
+      isAutopilotEnabled: z.boolean().optional()
     }))
     .output(getOrganizationOutputSchema)
     .mutation(async ({ ctx, input }) => {
       if (ctx.member.role !== "OWNER" && ctx.member.role !== "ADMIN") {
         throw new TRPCError({ code: "FORBIDDEN", message: "Only organization owners or admins can update settings" });
       }
-      return await organizationService.updateSettings(input.orgId, { name: input.name, retentionDays: input.retentionDays });
+      return await organizationService.updateSettings(input.orgId, { 
+        name: input.name, 
+        retentionDays: input.retentionDays,
+        isAutopilotEnabled: input.isAutopilotEnabled
+      });
     }),
   getMembers: orgMemberProcedure
     .meta({ openapi: { method: "GET", path: getPath("/{orgId}/members"), tags: TAGS } })

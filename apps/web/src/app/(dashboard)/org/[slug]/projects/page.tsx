@@ -64,16 +64,19 @@ export default function ProjectsPage() {
             <Link key={project.id} href={`/org/${slug}/projects/${project.id}`}>
               <Card className="group overflow-hidden border-border/50 bg-card/40 backdrop-blur-sm shadow-sm hover:border-primary/30 hover:shadow-md transition-all cursor-pointer h-full">
                 <CardHeader className="pb-3">
-                <div className="flex justify-between items-start mb-1">
-                  <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                    <FolderGit2 className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                    {project.name}
+                <div className="flex justify-between items-start mb-1 gap-2">
+                  <CardTitle className="text-xl font-semibold flex items-center gap-2 min-w-0 max-w-[80%]">
+                    <FolderGit2 className="w-5 h-5 flex-shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
+                    <span className="truncate" title={project.name}>{project.name}</span>
                   </CardTitle>
-                  <Badge variant={project.status === "ACTIVE" ? "default" : "secondary"}>
+                  <Badge variant={project.status === "ACTIVE" ? "default" : "secondary"} className="flex-shrink-0">
                     {project.status}
                   </Badge>
                 </div>
-                <CardDescription className="line-clamp-2 min-h-[2.5rem]">
+                <CardDescription 
+                  className="max-h-[4.5rem] overflow-y-auto min-h-[2.5rem] pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"
+                  title={project.description || ""}
+                >
                   {project.description || "No description provided."}
                 </CardDescription>
               </CardHeader>

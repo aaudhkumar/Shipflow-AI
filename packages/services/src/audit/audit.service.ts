@@ -22,6 +22,7 @@ export const AuditAction = {
   AI_REVIEW_COMPLETED: 'AI_REVIEW_COMPLETED',
   PROJECT_CREATED: 'PROJECT_CREATED',
   PROJECT_MEMBERS_UPDATED: 'PROJECT_MEMBERS_UPDATED',
+  ORG_MEMBER_UPDATED: 'ORG_MEMBER_UPDATED',
 } as const;
 
 export async function createAuditLog(params: {

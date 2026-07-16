@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { users } from "./users";
 import { billingPlanEnum, memberRoleEnum } from "./enums";
 
@@ -7,6 +7,7 @@ export const organizations = pgTable("organizations", {
   name: text("name").notNull(),
   slug: text("slug").unique().notNull(),
   billingPlan: billingPlanEnum("billing_plan").default("FREE").notNull(),
+  isAutopilotEnabled: boolean("is_autopilot_enabled").default(false).notNull(),
   stripeCustomerId: text("stripe_customer_id"),
   retentionDays: integer("retention_days").notNull().default(90),
   createdAt: timestamp("created_at").notNull().defaultNow(),

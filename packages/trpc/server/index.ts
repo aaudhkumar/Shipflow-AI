@@ -16,6 +16,7 @@ import { auditRouter } from "./routes/audit/route";
 import { notificationRouter } from "./routes/notification/route";
 import { deploymentRouter } from "./routes/deployment/route";
 import { taskExecutionRouter } from "./routes/task-execution/route";
+import { searchRouter } from "./routes/search/route";
 
 export const serverRouter = router({
   health: healthRouter,
@@ -33,6 +34,7 @@ export const serverRouter = router({
   notification: notificationRouter,
   deployment: deploymentRouter,
   taskExecution: taskExecutionRouter,
+  search: searchRouter,
 });
 
 export { createContext } from "./context";

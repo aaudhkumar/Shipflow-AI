@@ -14,30 +14,6 @@ export class OrganizationRepository {
         userId: userId,
         role: "OWNER"
       });
-      const aiUserId = `ai-agent-${organization.id}`;
-      // Use onConflictDoNothing in case this user is somehow global or already exists,
-      // but here we create an AI user per org or a global one.
-      // A global one is better.
-      const globalAiUserId = "shipflow-ai-agent-user";
-      
-      const { users } = await import("@shipflow/db/schema");
-      await db.insert(users).values({
-        id: globalAiUserId,
-        email: "ai@shipflow.com",
-        name: "ShipFlow AI Agent",
-        image: "https://api.dicebear.com/7.x/bottts/svg?seed=shipflow",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        emailVerified: true
-      }).onConflictDoNothing();
-
-      await tx.insert(members).values({
-        id: crypto.randomUUID(),
-        orgId: organization.id,
-        userId: globalAiUserId,
-        role: "ENGINEER"
-      }).onConflictDoNothing();
-
       return organization;
     });
   }
@@ -183,7 +159,7 @@ export class OrganizationRepository {
 
   async getAnalytics(orgId: string, days: number = 7) {
     const { pullRequestReviews, pullRequests, reviewFindings, featureRequests, tasks } = await import("@shipflow/db/schema");
-    const { eq, and, gte, inArray, isNotNull } = await import("drizzle-orm");
+    const { eq, and, gte, inArray, isNotNull, desc } = await import("drizzle-orm");
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
@@ -257,6 +233,7 @@ export class OrganizationRepository {
       .select({ id: featureRequests.id, title: featureRequests.title, createdAt: featureRequests.createdAt, updatedAt: featureRequests.updatedAt, status: featureRequests.status })
       .from(featureRequests)
       .where(and(eq(featureRequests.orgId, orgId), eq(featureRequests.status, "SHIPPED")))
+      .orderBy(desc(featureRequests.updatedAt))
       .limit(10);
     
     const featureTimeline = features.map(f => {
@@ -455,27 +432,8 @@ export class OrganizationRepository {
 
   async getMembers(orgId: string) {
     const { members, users } = await import("@shipflow/db/schema");
-    const { eq } = await import("drizzle-orm");
+    const { eq, and, ne } = await import("drizzle-orm");
     
-    // Ensure AI Agent exists in this org
-    const globalAiUserId = "shipflow-ai-agent-user";
-    await db.insert(users).values({
-      id: globalAiUserId,
-      email: "ai@shipflow.com",
-      name: "ShipFlow AI Agent",
-      image: "https://api.dicebear.com/7.x/bottts/svg?seed=shipflow",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      emailVerified: true
-    }).onConflictDoNothing();
-
-    await db.insert(members).values({
-      id: crypto.randomUUID(),
-      orgId: orgId,
-      userId: globalAiUserId,
-      role: "ENGINEER"
-    }).onConflictDoNothing();
-
     const orgMembers = await db.select({
       id: members.id,
       role: members.role,
@@ -486,7 +444,13 @@ export class OrganizationRepository {
         email: users.email,
         image: users.image,
       }
-    }).from(members).innerJoin(users, eq(members.userId, users.id)).where(eq(members.orgId, orgId));
+    }).from(members).innerJoin(users, eq(members.userId, users.id))
+      .where(
+        and(
+          eq(members.orgId, orgId),
+          ne(members.userId, "shipflow-ai-agent-user")
+        )
+      );
     
     return orgMembers;
   }

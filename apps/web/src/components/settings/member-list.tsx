@@ -9,6 +9,11 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { MoreHorizontal, ShieldAlert, UserX, Loader2, Mail } from "lucide-react"
@@ -24,6 +29,26 @@ export function MemberList({ orgId }: { orgId: string }) {
     onSuccess: () => {
       toast.success("Invitation revoked");
       utils.member.listInvitations.invalidate({ orgId });
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    }
+  });
+
+  const updateRoleMutation = trpc.member.updateRole.useMutation({
+    onSuccess: () => {
+      toast.success("Role updated");
+      utils.member.list.invalidate({ orgId });
+    },
+    onError: (err) => {
+      toast.error(err.message);
+    }
+  });
+
+  const removeMutation = trpc.member.remove.useMutation({
+    onSuccess: () => {
+      toast.success("Member removed");
+      utils.member.list.invalidate({ orgId });
     },
     onError: (err) => {
       toast.error(err.message);
@@ -83,11 +108,33 @@ export function MemberList({ orgId }: { orgId: string }) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-[160px]">
-                    <DropdownMenuItem>
-                      <ShieldAlert className="mr-2 h-4 w-4" /> Change Role
-                    </DropdownMenuItem>
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
+                        <ShieldAlert className="mr-2 h-4 w-4" /> Change Role
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuRadioGroup 
+                          value={member.role} 
+                          onValueChange={(val) => updateRoleMutation.mutate({ id: member.id, orgId, role: val as any })}
+                        >
+                          <DropdownMenuRadioItem value="OWNER">Owner</DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="ADMIN">Admin</DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="PM">PM</DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="ENGINEER">Engineer</DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="REVIEWER">Reviewer</DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem value="VIEWER">Viewer</DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive">
+                    <DropdownMenuItem 
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => {
+                        if (confirm(`Are you sure you want to remove ${member.user.name}?`)) {
+                          removeMutation.mutate({ id: member.id, orgId });
+                        }
+                      }}
+                    >
                       <UserX className="mr-2 h-4 w-4" /> Revoke Access
                     </DropdownMenuItem>
                   </DropdownMenuContent>

@@ -80,26 +80,40 @@ export function CreateProjectDialog({ orgId, orgSlug: _orgSlug, onSuccess }: { o
 
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Project Name</Label>
+              <Label htmlFor="name" className="flex justify-between items-end">
+                <span>Project Name</span>
+                <span className="text-muted-foreground text-xs font-normal">
+                  {name.length} / 100
+                </span>
+              </Label>
               <Input 
                 id="name" 
                 value={name} 
-                onChange={(e) => setName(e.target.value)} 
+                onChange={(e) => setName(e.target.value.slice(0, 100))} 
                 placeholder="e.g. Mobile App Redesign" 
                 disabled={createMutation.isPending}
                 required
+                minLength={3}
+                maxLength={100}
               />
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="description">Description (Optional)</Label>
-              <Textarea 
+              <Label htmlFor="description" className="flex justify-between items-end">
+                <span>Description (Optional)</span>
+                <span className="text-muted-foreground text-xs font-normal">
+                  {description.length} / 500
+                </span>
+              </Label>
+              <textarea 
                 id="description" 
                 value={description} 
-                onChange={(e) => setDescription(e.target.value)} 
+                onChange={(e) => setDescription(e.target.value.slice(0, 500))} 
                 placeholder="What is this project about?" 
                 disabled={createMutation.isPending}
                 rows={3}
+                maxLength={500}
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-y"
               />
             </div>
 

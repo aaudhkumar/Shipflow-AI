@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Shipflow",
+    "slug": "shipflow",
+    "scheme": "shipflow",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "splash": {
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.shipflow.app"
+    },
+    "android": {
+      "package": "com.shipflow.app"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-font"
+    ]
+  }
+}

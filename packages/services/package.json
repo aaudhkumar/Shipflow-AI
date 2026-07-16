@@ -31,6 +31,7 @@
     "./task/model": "./src/task/model.ts",
     "./db": "./src/db/index.ts",
     "./schema": "./src/db/schema.ts",
+    "./workflow/client": "./src/workflow/client.ts",
     "./*": "./*"
   },
   "devDependencies": {

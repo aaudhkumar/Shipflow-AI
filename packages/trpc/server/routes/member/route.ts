@@ -2,7 +2,7 @@ import { router, orgMemberProcedure, protectedProcedure } from "../../trpc";
 import { z } from "zod";
 import { db } from "@shipflow/db";
 import { members, users, organizations, orgInvitations } from "@shipflow/db/schema";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, ne } from "drizzle-orm";
 import jwt from "jsonwebtoken";
 import { sendInvitationEmail } from "@shipflow/email";
 import { createAuditLog, AuditAction } from "@shipflow/services/audit";
@@ -14,7 +14,9 @@ import {
   getMemberInvitationsOutputSchema,
   inviteMemberOutputSchema,
   acceptInvitationOutputSchema,
-  revokeInvitationOutputSchema
+  revokeInvitationOutputSchema,
+  updateRoleOutputSchema,
+  removeMemberOutputSchema
 } from "@shipflow/services/member/model";
 
 const TAGS = ["Member"];
@@ -47,7 +49,12 @@ export const memberRouter = router({
         })
         .from(members)
         .innerJoin(users, eq(members.userId, users.id))
-        .where(eq(members.orgId, input.orgId));
+        .where(
+          and(
+            eq(members.orgId, input.orgId),
+            ne(members.userId, "shipflow-ai-agent-user")
+          )
+        );
       return results;
     }),
     
@@ -218,6 +225,58 @@ export const memberRouter = router({
           )
         );
         
+      await createAuditLog({
+        orgId: input.orgId,
+        actorId: ctx.session.user.id,
+        action: AuditAction.ORG_MEMBER_REMOVED,
+        resourceType: 'MEMBER',
+        resourceId: input.id
+      });
+      return { success: true };
+    }),
+
+  updateRole: orgMemberProcedure
+    .meta({ openapi: { method: "PATCH", path: getPath("/{orgId}/{id}/role"), tags: TAGS } })
+    .input(z.object({ id: z.string(), orgId: z.string(), role: z.enum(["OWNER", "ADMIN", "PM", "ENGINEER", "REVIEWER", "VIEWER"]) }))
+    .output(updateRoleOutputSchema)
+    .mutation(async ({ input, ctx }) => {
+      const targetMember = await db.query.members.findFirst({
+        where: and(eq(members.id, input.id), eq(members.orgId, input.orgId))
+      });
+      if (!targetMember) throw new Error("Member not found");
+
+      // Basic protection: prevent changing role of the last owner, etc. could be added here
+      await db.update(members)
+        .set({ role: input.role as any })
+        .where(and(eq(members.id, input.id), eq(members.orgId, input.orgId)));
+
+      await createAuditLog({
+        orgId: input.orgId,
+        actorId: ctx.session.user.id,
+        action: AuditAction.ORG_MEMBER_UPDATED,
+        resourceType: 'MEMBER',
+        resourceId: input.id
+      });
+      return { success: true };
+    }),
+
+  remove: orgMemberProcedure
+    .meta({ openapi: { method: "DELETE", path: getPath("/{orgId}/{id}"), tags: TAGS } })
+    .input(z.object({ id: z.string(), orgId: z.string() }))
+    .output(removeMemberOutputSchema)
+    .mutation(async ({ input, ctx }) => {
+      const targetMember = await db.query.members.findFirst({
+        where: and(eq(members.id, input.id), eq(members.orgId, input.orgId))
+      });
+      if (!targetMember) throw new Error("Member not found");
+
+      if (targetMember.userId === ctx.session.user.id) {
+        throw new Error("You cannot remove yourself");
+      }
+
+      await db.delete(members)
+        .where(and(eq(members.id, input.id), eq(members.orgId, input.orgId)));
+
       await createAuditLog({
         orgId: input.orgId,
         actorId: ctx.session.user.id,

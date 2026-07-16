@@ -11,6 +11,7 @@ import { Plus, Inbox, ArrowLeft, FolderGit2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 import { ManageProjectMembersDialog } from "@/components/projects/manage-members-dialog";
+import { ProjectDocumentDialog } from "@/components/projects/project-document-dialog";
 
 export default function ProjectDetailsPage() {
   const params = useParams();
@@ -21,8 +22,11 @@ export default function ProjectDetailsPage() {
   const { data: org } = trpc.organization.getBySlug.useQuery({ slug });
   
   const { data: project, isLoading: isProjectLoading } = trpc.project.getById.useQuery(
-    { projectId },
-    { enabled: !!projectId }
+    { orgId: org?.id!, projectId }, 
+    { 
+      enabled: !!org?.id && !!projectId,
+      refetchInterval: (query) => (query.state.data?.contextDocument ? false : 3000),
+    }
   );
 
   const { data: features, isLoading: isFeaturesLoading } = trpc.feature.list.useQuery(
@@ -53,26 +57,34 @@ export default function ProjectDetailsPage() {
           <div className="h-4 bg-muted rounded w-1/2"></div>
         </div>
       ) : project ? (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <FolderGit2 className="w-8 h-8 text-primary" />
-              <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
-              <Badge variant={project.status === "ACTIVE" ? "default" : "secondary"} className="ml-2">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start sm:items-center gap-3 min-w-0">
+              <FolderGit2 className="w-8 h-8 text-primary flex-shrink-0" />
+              <h1 className="text-3xl font-bold tracking-tight line-clamp-2" title={project.name}>{project.name}</h1>
+              <Badge variant={project.status === "ACTIVE" ? "default" : "secondary"} className="ml-2 flex-shrink-0">
                 {project.status}
               </Badge>
             </div>
-            <p className="text-muted-foreground mt-2 max-w-3xl">
+            <p className="text-muted-foreground mt-2 max-w-3xl whitespace-pre-wrap max-h-[10rem] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
               {project.description || "No description provided."}
             </p>
           </div>
           {org && (
-            <ManageProjectMembersDialog 
-              orgId={org.id} 
-              projectId={project.id} 
-              projectName={project.name}
-              currentMemberIds={project.members?.map((m: any) => m.memberId) || []}
-            />
+            <div className="flex items-center gap-3">
+              <ProjectDocumentDialog 
+                projectName={project.name} 
+                contextDocument={project.contextDocument}
+                projectId={project.id}
+                orgId={org.id}
+              />
+              <ManageProjectMembersDialog 
+                orgId={org.id} 
+                projectId={project.id} 
+                projectName={project.name}
+                currentMemberIds={project.members?.map((m: any) => m.memberId) || []}
+              />
+            </div>
           )}
         </div>
       ) : (

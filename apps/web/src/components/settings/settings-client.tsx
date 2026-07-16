@@ -10,15 +10,22 @@ import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Key, LogOut, User, Shield, Mail } from "lucide-react"
+import { Key, LogOut, User, Shield, Mail, Bot } from "lucide-react"
 
-export function SettingsClient({ orgId }: { orgId: string }) {
+export function SettingsClient({ orgId, orgSlug }: { orgId: string, orgSlug: string }) {
   const { data: session } = useSession()
   const user = session?.user
   
-  
+  const utils = trpc.useUtils()
   const { isLoading: isLoadingSettings } = trpc.organization.getSettings.useQuery({ orgId })
   const { data: members } = trpc.organization.getMembers.useQuery({ orgId })
+  const { data: org } = trpc.organization.getBySlug.useQuery({ slug: orgSlug })
+
+  const updateSettings = trpc.organization.updateSettings.useMutation({
+    onSuccess: () => {
+      utils.organization.getBySlug.invalidate({ slug: orgSlug })
+    }
+  })
 
   const [currentPassword, setCurrentPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
@@ -95,6 +102,29 @@ export function SettingsClient({ orgId }: { orgId: string }) {
               </CardDescription>
             </CardHeader>
             <CardContent className="px-6 pb-6 space-y-5">
+              
+              {org && (
+                <>
+                  <div className="flex items-center justify-between py-1">
+                    <div className="space-y-0.5">
+                      <Label className="text-[14px] font-bold">Autopilot Mode</Label>
+                      <p className="text-[12px] text-muted-foreground font-medium max-w-[280px] leading-tight">When enabled, AI automatically progresses features through creation, PRD, Tasks, and Implementation. <strong className="font-bold">(Currently in development)</strong></p>
+                    </div>
+                    <Button 
+                      variant={org.isAutopilotEnabled ? "default" : "outline"}
+                      size="sm"
+                      className={`h-9 px-3 rounded-lg font-semibold shadow-sm text-[13px] ${org.isAutopilotEnabled ? "bg-primary text-primary-foreground" : "border-border"}`}
+                      onClick={() => updateSettings.mutate({ orgId: org.id, isAutopilotEnabled: !org.isAutopilotEnabled })}
+                      disabled={updateSettings.isPending}
+                    >
+                      <Bot className="mr-1.5 h-3.5 w-3.5" />
+                      {org.isAutopilotEnabled ? "Autopilot On" : "Autopilot Off"}
+                    </Button>
+                  </div>
+
+                  <div className="w-full h-px bg-border/40" />
+                </>
+              )}
               
               <div className="flex items-center justify-between py-1">
                 <div className="space-y-0.5">

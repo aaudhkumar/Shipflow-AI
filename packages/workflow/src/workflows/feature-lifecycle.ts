@@ -1,6 +1,6 @@
 import { inngest } from "../../../services/src/workflow/client";
 import { db } from "@shipflow/db";
-import { featureRequests, clarificationThreads, clarificationMessages } from "@shipflow/db/schema";
+import { featureRequests, clarificationThreads, clarificationMessages, projects } from "@shipflow/db/schema";
 import { eq } from "drizzle-orm";
 
 export const featureCreated = inngest.createFunction(
@@ -29,10 +29,21 @@ export const featureCreated = inngest.createFunction(
         .map(f => `ID: ${f.id}\nTitle: ${f.title}\nDescription: ${f.rawDescription}`)
         .join("\n\n");
 
-      // 2. Run clarifier agent
+      // 2. Fetch project context
+      const project = await db.query.projects.findFirst({
+        where: eq(projects.id, featureData.projectId),
+      });
+
+      // 3. Run clarifier agent
       const { runClarifierAgent } = await import("@shipflow/ai");
       // Run with empty transcript since it's the first time
-      const { result } = await runClarifierAgent(featureData.title, featureData.rawDescription, existingFeaturesContext, "");
+      const { result } = await runClarifierAgent(
+        featureData.title, 
+        featureData.rawDescription, 
+        existingFeaturesContext, 
+        "",
+        project?.contextDocument
+      );
       return result;
     });
 
@@ -50,7 +61,7 @@ export const featureCreated = inngest.createFunction(
 
       await db.insert(clarificationMessages).values({
         threadId: thread.id,
-        sender: "AI_QUESTIONS", // A special sender to indicate structured questions
+        sender: clarifierResult.action === "ask_question" ? "AI_QUESTIONS" : "AI",
         content,
       });
 
@@ -65,6 +76,18 @@ export const featureCreated = inngest.createFunction(
           .where(eq(featureRequests.id, featureId));
       }
     });
+
+    const org = await step.run("fetch-org-autopilot", async () => {
+      const { organizations } = await import("@shipflow/db/schema");
+      return db.query.organizations.findFirst({ where: eq(organizations.id, orgId) });
+    });
+
+    if (org?.isAutopilotEnabled && clarifierResult.action === "mark_ready") {
+      await step.sendEvent("auto-trigger-prd", {
+        name: "feature.prd.generated",
+        data: { featureId, orgId, previousState: "CLARIFIED", newState: "PRD_GENERATED", actorId: "SYSTEM" }
+      });
+    }
 
     return { success: true, featureId, action: clarifierResult.action };
   }
@@ -97,8 +120,12 @@ export const featurePrdGenerated = inngest.createFunction(
 
     // 2. Run PRD generator AI
     const prdContent = await step.run("generate-prd", async () => {
+      const project = await db.query.projects.findFirst({
+        where: eq(projects.id, feature.projectId),
+      });
+
       const { runPRDGenerator } = await import("@shipflow/ai");
-      const { result } = await runPRDGenerator(feature.title, feature.rawDescription, transcript);
+      const { result } = await runPRDGenerator(feature.title, feature.rawDescription, transcript, project?.contextDocument);
       return result;
     });
 
@@ -152,6 +179,18 @@ export const featurePrdGenerated = inngest.createFunction(
         .where(eq(featureRequests.id, featureId));
     });
 
+    const org = await step.run("fetch-org-autopilot", async () => {
+      const { organizations } = await import("@shipflow/db/schema");
+      return db.query.organizations.findFirst({ where: eq(organizations.id, orgId) });
+    });
+
+    if (org?.isAutopilotEnabled) {
+      await step.sendEvent("auto-trigger-tasks", {
+        name: "feature.tasks.generated",
+        data: { featureId, orgId, previousState: "PRD_GENERATED", newState: "TASKS_GENERATED", actorId: "SYSTEM" }
+      });
+    }
+
     return { success: true, featureId, status: "PRD_GENERATED", prdId: prd.id };
   }
 );
@@ -179,8 +218,12 @@ export const featureTasksGenerated = inngest.createFunction(
     const prdContentString = JSON.stringify(prd.prdContent, null, 2);
 
     const plannerResult = await step.run("run-planner", async () => {
+      const project = await db.query.projects.findFirst({
+        where: eq(projects.id, prd.feature.projectId),
+      });
+
       const { runPlanningAgent } = await import("@shipflow/ai");
-      const { result } = await runPlanningAgent(prdContentString);
+      const { result } = await runPlanningAgent(prdContentString, project?.contextDocument);
       return result;
     });
 
@@ -225,6 +268,18 @@ export const featureTasksGenerated = inngest.createFunction(
         .where(eq(featureRequests.id, featureId));
     });
 
+    const org = await step.run("fetch-org-autopilot", async () => {
+      const { organizations } = await import("@shipflow/db/schema");
+      return db.query.organizations.findFirst({ where: eq(organizations.id, orgId) });
+    });
+
+    if (org?.isAutopilotEnabled) {
+      await step.sendEvent("auto-trigger-plan-approved", {
+        name: "feature.plan.approved",
+        data: { featureId, orgId, previousState: "TASKS_GENERATED", newState: "PLAN_APPROVED", actorId: "SYSTEM" }
+      });
+    }
+
     return { success: true, featureId, status: "TASKS_GENERATED" };
   }
 );
@@ -240,6 +295,29 @@ export const featurePlanApproved = inngest.createFunction(
         .set({ status: "PLAN_APPROVED", updatedAt: new Date() })
         .where(eq(featureRequests.id, featureId));
     });
+
+    const orgId = (event.data as any).orgId;
+    
+    if (orgId) {
+      const org = await step.run("fetch-org-autopilot", async () => {
+        const { organizations } = await import("@shipflow/db/schema");
+        return db.query.organizations.findFirst({ where: eq(organizations.id, orgId) });
+      });
+
+      if (org?.isAutopilotEnabled) {
+        const prd = await step.run("fetch-prd-for-dev", async () => {
+          const { prds } = await import("@shipflow/db/schema");
+          return db.query.prds.findFirst({ where: eq(prds.featureRequestId, featureId) });
+        });
+        if (prd) {
+          await step.run("request-implementation", async () => {
+            const { default: TaskExecutionService } = await import("@shipflow/services/task-execution");
+            const taskExecutionService = new TaskExecutionService();
+            await taskExecutionService.requestImplementation({ prdId: prd.id, orgId });
+          });
+        }
+      }
+    }
 
     return { success: true, featureId, status: "PLAN_APPROVED" };
   }

@@ -7,6 +7,7 @@ import { getInstallationOctokit } from "@shipflow/github";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { inngest } from "@shipflow/services/workflow/client";
 
 export async function handleImplement({ taskId, simulateThrow }: { taskId: string; simulateThrow?: boolean }) {
   let sandbox = null;
@@ -92,9 +93,19 @@ export async function handleImplement({ taskId, simulateThrow }: { taskId: strin
       prdId: prdData.id
     });
 
-    return { success: true, branch: branchName, commitSha };
+    const successResult = { success: true, branch: branchName, commitSha };
+    await inngest.send({
+      name: "tasks.implementation.completed",
+      data: { taskId, ...successResult }
+    });
+    return successResult;
   } catch (err) {
-    return { success: false, error: String(err), branch: "error" };
+    const errorResult = { success: false, error: String(err), branch: "error" };
+    await inngest.send({
+      name: "tasks.implementation.completed",
+      data: { taskId, ...errorResult }
+    });
+    return errorResult;
   } finally {
     if (sandbox) {
       await teardownSandbox(sandbox);

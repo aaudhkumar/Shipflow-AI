@@ -1,285 +1,950 @@
 "use client";
 
+import * as React from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Workflow, ArrowRight, Github, Zap, CheckCircle2, Search, Code2, GitMerge, LayoutDashboard } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { motion, Variants } from "framer-motion";
+import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import {
+  AnimatePresence,
+  motion,
+  useInView,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "framer-motion";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  CircleDot,
+  GitBranch,
+  GitPullRequest,
+  Github,
+  Lock,
+  Menu,
+  MessageSquare,
+  RotateCcw,
+  ShieldCheck,
+  Sparkles,
+  Users,
+  Webhook,
+  X,
+} from "lucide-react";
 
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
+/**
+ * Shipflow — marketing landing page.
+ *
+ * Fixed light/dark sections regardless of the app's theme toggle — this page
+ * is intentionally monochrome, with one deliberate exception: the two status
+ * states in the delivery pipeline (changes requested / approved) use a
+ * restrained, desaturated red and green so the outcome of a review reads at
+ * a glance without breaking the rest of the black-and-white palette.
+ */
 
-const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
+const display = Inter_Tight({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-display" });
+const body = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-body" });
+const mono = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
+const wink = localFont({ src: "../fonts/WinkySans-SemiBold.ttf", variable: "--font-wink", weight: "600" });
+
+const EASE_OUT: [number, number, number, number] = [0.23, 1, 0.32, 1];
+const EASE_IN_OUT: [number, number, number, number] = [0.77, 0, 0.175, 1];
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 18 },
+  show: (i: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 100 },
-  },
+    transition: { duration: 0.7, delay: i * 0.07, ease: EASE_OUT },
+  }),
 };
 
-export default function Home() {
+/* ---------------------------------------------------------------------- */
+/*  Small reveal wrapper                                                   */
+/* ---------------------------------------------------------------------- */
+
+function Reveal({
+  children,
+  i = 0,
+  className,
+}: {
+  children: React.ReactNode;
+  i?: number;
+  className?: string;
+}) {
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 selection:bg-emerald-500/30 selection:text-emerald-900 dark:selection:text-emerald-50 overflow-hidden">
-      {/* Navigation */}
-      <header className="sticky top-0 z-50 w-full border-b border-zinc-200/50 dark:border-zinc-800/50 bg-zinc-50/80 dark:bg-zinc-950/80 backdrop-blur-md">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2 font-bold text-lg tracking-tight">
-            <div className="bg-zinc-900 dark:bg-zinc-100 p-1.5 rounded-md">
-              <Workflow className="h-5 w-5 text-zinc-50 dark:text-zinc-900" />
-            </div>
-            <span>ShipFlow</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <Link href="#features" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors">
-              Features
-            </Link>
-            <Link href="#pipeline" className="text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors">
-              How it works
-            </Link>
-          </nav>
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50 transition-colors hidden sm:inline-block">
-              Sign In
-            </Link>
-            <Link href="/register">
-              <Button size="sm" className="bg-zinc-900 text-zinc-50 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-sm rounded-full px-5">
-                Start Shipping
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+    <motion.div
+      className={className}
+      variants={fadeUp}
+      custom={i}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, margin: "-80px" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
 
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative pt-24 pb-32 md:pt-32 md:pb-40 overflow-hidden">
-          {/* Subtle background glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-[500px] bg-emerald-500/5 dark:bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
-          
-          <div className="container mx-auto px-4 relative z-10">
-            <motion.div 
-              className="flex flex-col items-center text-center space-y-8"
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
+/* ---------------------------------------------------------------------- */
+/*  Nav                                                                     */
+/* ---------------------------------------------------------------------- */
+
+function Nav() {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const links = [
+    { href: "#features", label: "Features" },
+    { href: "#pricing", label: "Pricing" },
+    { href: "#testimonials", label: "Testimonials" },
+  ];
+
+  return (
+    <header
+      className={`fixed top-0 z-50 w-full transition-colors duration-300 ${
+        scrolled ? "bg-white/85 backdrop-blur-md border-b border-neutral-200" : "bg-transparent border-b border-transparent"
+      }`}
+    >
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
+        <Link href="#top" className={`${wink.className} text-[22px] leading-none text-neutral-950 tracking-tight`}>
+          shipflow<span className="text-neutral-300">.</span>
+        </Link>
+
+        <nav className="hidden items-center gap-9 md:flex">
+          {links.map((l) => (
+            <a
+              key={l.href}
+              href={l.href}
+              className="text-[13px] font-medium text-neutral-500 transition-colors duration-150 hover:text-neutral-950"
             >
-              <motion.div variants={itemVariants} className="inline-flex items-center rounded-full border border-zinc-200 bg-white/50 px-3 py-1 text-xs font-medium text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900/50 dark:text-zinc-300 backdrop-blur-md shadow-sm">
-                <span className="flex h-2 w-2 rounded-full bg-emerald-500 mr-2 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse"></span>
-                ShipFlow AI v2.0 is now live
-              </motion.div>
-              
-              <motion.h1 variants={itemVariants} className="max-w-4xl text-5xl font-extrabold tracking-tighter sm:text-6xl md:text-7xl lg:text-8xl">
-                Software delivery,{" "}
-                <span className="text-zinc-400 dark:text-zinc-600">
-                  automated.
-                </span>
-              </motion.h1>
-              
-              <motion.p variants={itemVariants} className="max-w-2xl text-lg text-zinc-600 sm:text-xl md:text-2xl dark:text-zinc-400 leading-relaxed font-medium">
-                From raw feature requests to fully verified pull requests. ShipFlow seamlessly unifies PRD generation, task planning, and rigorous AI code reviews into a single workflow.
-              </motion.p>
-              
-              <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-4 pt-4">
-                <Link href="/register">
-                  <Button size="lg" className="h-12 px-8 text-base bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow-lg shadow-emerald-500/20 transition-all hover:scale-105">
-                    Start for free
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
+              {l.label}
+            </a>
+          ))}
+        </nav>
+
+        <div className="hidden items-center gap-5 md:flex">
+          <Link
+            href="/login"
+            className="text-[13px] font-medium text-neutral-600 transition-colors duration-150 hover:text-neutral-950"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/register"
+            className="group inline-flex h-9 items-center gap-1.5 rounded-full bg-neutral-950 pl-4 pr-3.5 text-[13px] font-medium text-white transition-transform duration-150 ease-out active:scale-[0.97] hover:bg-neutral-800"
+          >
+            Get started
+            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
+          </Link>
+        </div>
+
+        <button
+          aria-label="Toggle menu"
+          onClick={() => setOpen((v) => !v)}
+          className="grid h-9 w-9 place-items-center rounded-full text-neutral-900 md:hidden"
+        >
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </div>
+
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: EASE_OUT }}
+            className="overflow-hidden border-b border-neutral-200 bg-white md:hidden"
+          >
+            <div className="flex flex-col gap-1 px-5 py-4">
+              {links.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  className="rounded-lg px-2 py-2.5 text-[15px] font-medium text-neutral-700 hover:bg-neutral-100"
+                >
+                  {l.label}
+                </a>
+              ))}
+              <div className="mt-2 flex items-center gap-3 border-t border-neutral-200 px-2 pt-4">
+                <Link href="/login" className="text-[14px] font-medium text-neutral-600">
+                  Sign in
                 </Link>
-                <Link href="https://github.com/shipflow/shipflow" target="_blank" rel="noreferrer">
-                  <Button variant="outline" size="lg" className="h-12 px-8 text-base rounded-full border-zinc-300 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all">
-                    <Github className="mr-2 h-4 w-4" />
-                    View Documentation
-                  </Button>
+                <Link
+                  href="/register"
+                  className="ml-auto inline-flex h-9 items-center gap-1.5 rounded-full bg-neutral-950 px-4 text-[13px] font-medium text-white"
+                >
+                  Get started
                 </Link>
-              </motion.div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </header>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/*  The pipeline — shared between the hero animation and "How it works"    */
+/*  Request → Product Thinking → PRD → Tasks → Implementation → Review →   */
+/*  Fixes → Approval → Release                                             */
+/* ---------------------------------------------------------------------- */
+
+type Tone = "neutral" | "red" | "green";
+
+const PIPELINE = [
+  {
+    key: "request",
+    label: "Request",
+    title: "A feature request comes in",
+    body: "Someone describes what they want, in plain language — the way they'd say it out loud.",
+    tone: "neutral" as Tone,
+  },
+  {
+    key: "thinking",
+    label: "Product thinking",
+    title: "It gets reasoned about first",
+    body: "Scope, edge cases and impact are worked through before a single line of code exists.",
+    tone: "neutral" as Tone,
+  },
+  {
+    key: "prd",
+    label: "PRD",
+    title: "A PRD drafts itself",
+    body: "The request becomes a real product requirements doc — assumptions and all.",
+    tone: "neutral" as Tone,
+  },
+  {
+    key: "tasks",
+    label: "Tasks",
+    title: "The PRD becomes tasks",
+    body: "Broken down into granular, assignable engineering work on your board.",
+    tone: "neutral" as Tone,
+  },
+  {
+    key: "implementation",
+    label: "Implementation",
+    title: "The worker writes the change",
+    body: "An isolated sandbox clones the repo and opens a real diff, file by file.",
+    tone: "neutral" as Tone,
+  },
+  {
+    key: "review",
+    label: "Review",
+    title: "It goes up for review",
+    body: "Automated checks run first, then a human takes a pass over the diff.",
+    tone: "neutral" as Tone,
+  },
+  {
+    key: "fixes",
+    label: "Fixes",
+    title: "Changes requested",
+    body: "Feedback loops straight back to the worker — no new ticket, no context lost.",
+    tone: "red" as Tone,
+  },
+  {
+    key: "approval",
+    label: "Approval",
+    title: "Approved",
+    body: "Once everything's addressed, the reviewer signs off.",
+    tone: "green" as Tone,
+  },
+  {
+    key: "release",
+    label: "Release",
+    title: "Merged and released",
+    body: "Shipped to main, deployed, and the board updates itself — automatically.",
+    tone: "neutral" as Tone,
+  },
+] as const;
+
+type PipelineKey = (typeof PIPELINE)[number]["key"];
+
+function toneRing(tone: Tone, variant: "light" | "dark", active: boolean) {
+  if (tone === "green") {
+    return active
+      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+      : variant === "dark"
+        ? "border-emerald-500/25 text-emerald-400/70"
+        : "border-emerald-200 text-emerald-600/70";
+  }
+  if (tone === "red") {
+    return active
+      ? "border-red-300 bg-red-50 text-red-700"
+      : variant === "dark"
+        ? "border-red-500/25 text-red-400/70"
+        : "border-red-200 text-red-600/70";
+  }
+  if (variant === "dark") {
+    return active ? "border-white bg-white text-neutral-950" : "border-white/15 text-white/45";
+  }
+  return active ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 text-neutral-400";
+}
+
+function toneCard(tone: Tone, variant: "light" | "dark") {
+  if (tone === "green") {
+    return variant === "dark"
+      ? "border-emerald-500/25 bg-emerald-500/[0.06]"
+      : "border-emerald-200 bg-emerald-50/60";
+  }
+  if (tone === "red") {
+    return variant === "dark" ? "border-red-500/25 bg-red-500/[0.06]" : "border-red-200 bg-red-50/60";
+  }
+  return variant === "dark" ? "border-white/10 bg-white/[0.03]" : "border-neutral-200 bg-neutral-50";
+}
+
+function toneText(tone: Tone, variant: "light" | "dark") {
+  if (tone === "green") return variant === "dark" ? "text-emerald-300" : "text-emerald-700";
+  if (tone === "red") return variant === "dark" ? "text-red-300" : "text-red-700";
+  return variant === "dark" ? "text-white/70" : "text-neutral-600";
+}
+
+/** The small illustrative snippet for a given pipeline stage. Reused (at two sizes) in the hero and in "How it works". */
+function PipelineVisual({ stageKey, variant }: { stageKey: PipelineKey; variant: "light" | "dark" }) {
+  const dark = variant === "dark";
+  const mutedText = dark ? "text-white/40" : "text-neutral-400";
+  const bodyText = dark ? "text-white/75" : "text-neutral-700";
+
+  if (stageKey === "request") {
+    return (
+      <div className={`rounded-lg border p-4 ${toneCard("neutral", variant)}`}>
+        <p className={`${mono.className} text-[11px] ${mutedText}`}>feature request · #218</p>
+        <p className={`mt-2 text-[13.5px] ${bodyText}`}>Add saved filters to the tasks view.</p>
+      </div>
+    );
+  }
+  if (stageKey === "thinking") {
+    return (
+      <div className={`space-y-2 rounded-lg border p-4 ${toneCard("neutral", variant)}`}>
+        {["Scope: list view only", "Edge case: filters + search combined", "No schema migration needed"].map((l) => (
+          <div key={l} className="flex items-start gap-2">
+            <span className={`mt-1.5 h-1 w-1 shrink-0 rounded-full ${dark ? "bg-white/40" : "bg-neutral-400"}`} />
+            <span className={`text-[12.5px] ${bodyText}`}>{l}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (stageKey === "prd") {
+    return (
+      <div className={`space-y-2 rounded-lg border p-4 ${toneCard("neutral", variant)}`}>
+        {["Persist filter state per user", "Support up to 5 saved filters", "Expose via REST + UI"].map((l) => (
+          <div key={l} className="flex items-start gap-2">
+            <span className={`mt-1.5 h-1 w-1 shrink-0 rounded-full ${dark ? "bg-white/40" : "bg-neutral-400"}`} />
+            <span className={`text-[12.5px] ${bodyText}`}>{l}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (stageKey === "tasks") {
+    return (
+      <div className={`space-y-2.5 rounded-lg border p-4 ${toneCard("neutral", variant)}`}>
+        {["Add filters table migration", "Build save / apply UI", "Write the API endpoint"].map((l) => (
+          <div key={l} className="flex items-center gap-2.5">
+            <span className={`h-3.5 w-3.5 shrink-0 rounded-[3px] border ${dark ? "border-white/30" : "border-neutral-300"}`} />
+            <span className={`${mono.className} text-[12px] ${bodyText}`}>{l}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (stageKey === "implementation") {
+    const diff = [
+      { t: "type TaskFilter = {", k: "ctx" as const },
+      { t: "  id: string; label: string; query: Query;", k: "add" as const },
+      { t: "};", k: "ctx" as const },
+      { t: "const filters = useFilters(userId);", k: "add" as const },
+    ];
+    return (
+      <div className={`${mono.className} space-y-1 rounded-lg border p-4 text-[11.5px] leading-relaxed ${toneCard("neutral", variant)}`}>
+        {diff.map((l) => (
+          <div
+            key={l.t}
+            className={`flex gap-2 rounded px-1.5 ${l.k === "add" ? (dark ? "bg-white/[0.06]" : "bg-neutral-100") : ""}`}
+          >
+            <span className={mutedText}>{l.k === "add" ? "+" : " "}</span>
+            <span className={bodyText}>{l.t}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (stageKey === "review") {
+    return (
+      <div className={`space-y-2.5 rounded-lg border p-4 ${toneCard("neutral", variant)}`}>
+        <div className="flex items-start gap-2.5">
+          <MessageSquare className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${mutedText}`} strokeWidth={1.6} />
+          <span className={`text-[12.5px] ${bodyText}`}>Left a comment on line 42</span>
+        </div>
+        <div className="flex items-start gap-2.5">
+          <MessageSquare className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${mutedText}`} strokeWidth={1.6} />
+          <span className={`text-[12.5px] ${bodyText}`}>Rename <code className={mono.className}>filterId</code> → <code className={mono.className}>savedFilterId</code></span>
+        </div>
+      </div>
+    );
+  }
+  if (stageKey === "fixes") {
+    return (
+      <div className={`rounded-lg border p-4 ${toneCard("red", variant)}`}>
+        <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide ${toneText("red", variant)}`}>
+          <RotateCcw className="h-3 w-3" />
+          Changes requested
+        </span>
+        <p className={`mt-2.5 text-[12.5px] ${bodyText}`}>
+          Renamed <code className={mono.className}>filterId</code> → <code className={mono.className}>savedFilterId</code> and pushed a new commit.
+        </p>
+      </div>
+    );
+  }
+  if (stageKey === "approval") {
+    return (
+      <div className={`rounded-lg border p-4 ${toneCard("green", variant)}`}>
+        <span className={`inline-flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide ${toneText("green", variant)}`}>
+          <Check className="h-3 w-3" />
+          Approved
+        </span>
+        <p className={`mt-2.5 text-[12.5px] ${bodyText}`}>&ldquo;LGTM — nice and small.&rdquo;</p>
+      </div>
+    );
+  }
+  return (
+    <div className={`rounded-lg border p-4 ${toneCard("neutral", variant)}`}>
+      <div className="flex items-center gap-2.5">
+        <GitPullRequest className={`h-4 w-4 shrink-0 ${bodyText}`} strokeWidth={1.6} />
+        <span className={`text-[13px] ${bodyText}`}>Merged to main</span>
+      </div>
+      <p className={`${mono.className} mt-2 text-[11px] ${mutedText}`}>task-218 · deployed to production</p>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/*  Hero — condensed pipeline, beneath the header                          */
+/* ---------------------------------------------------------------------- */
+
+function HeroWindow() {
+  const reduce = useReducedMotion();
+  const [stage, setStage] = useState(0);
+
+  useEffect(() => {
+    if (reduce) return;
+    const t = setInterval(() => setStage((s) => (s + 1) % PIPELINE.length), 2500);
+    return () => clearInterval(t);
+  }, [reduce]);
+
+  const current = PIPELINE[stage] ?? PIPELINE[0];
+
+  return (
+    <div className="mx-auto w-full">
+      <div className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_1px_0_rgba(0,0,0,0.02),0_24px_60px_-24px_rgba(0,0,0,0.18)]">
+        {/* window chrome */}
+        <div className="flex items-center gap-2 border-b border-neutral-200 bg-neutral-50 px-4 py-3">
+          <span className="h-2.5 w-2.5 rounded-full border border-neutral-300" />
+          <span className="h-2.5 w-2.5 rounded-full border border-neutral-300" />
+          <span className="h-2.5 w-2.5 rounded-full border border-neutral-300" />
+          <span className={`${mono.className} ml-3 text-[11px] tracking-wide text-neutral-400`}>
+            shipflow / feature-218
+          </span>
+        </div>
+
+        {/* pipeline rail */}
+        <div className="flex items-center gap-1.5 overflow-x-auto border-b border-neutral-100 px-4 py-3.5 sm:justify-center sm:gap-2 sm:px-6 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {PIPELINE.map((p, i) => (
+            <button
+              key={p.key}
+              aria-label={p.label}
+              onClick={() => setStage(i)}
+              className={`${mono.className} shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide transition-colors duration-200 ${toneRing(
+                p.tone,
+                "light",
+                i === stage
+              )}`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative h-[220px] px-6 py-6 sm:h-[230px] sm:px-8">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={current.key}
+              initial={{ opacity: 0, filter: "blur(6px)", scale: 0.98 }}
+              animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+              exit={{ opacity: 0, filter: "blur(6px)", scale: 0.98 }}
+              transition={{ duration: 0.45, ease: EASE_OUT }}
+              className="flex h-full flex-col justify-center"
+            >
+              <span className={`${mono.className} mb-3 text-[11px] uppercase tracking-widest text-neutral-400`}>
+                {current.title}
+              </span>
+              <div className="max-w-md">
+                <PipelineVisual stageKey={current.key} variant="light" />
+              </div>
             </motion.div>
-          </div>
-        </section>
+          </AnimatePresence>
+        </div>
+      </div>
 
+      <div className="mt-6 flex items-center justify-center gap-2">
+        {PIPELINE.map((p, i) => (
+          <button
+            key={p.key}
+            aria-label={`Show ${p.label} stage`}
+            onClick={() => setStage(i)}
+            className="relative h-1.5 rounded-full bg-neutral-200"
+            style={{ width: i === stage ? 20 : 10 }}
+          >
+            {i === stage && (
+              <motion.span
+                layoutId="hero-dot"
+                className={`absolute inset-0 rounded-full ${
+                  p.tone === "green" ? "bg-emerald-500" : p.tone === "red" ? "bg-red-500" : "bg-neutral-900"
+                }`}
+                transition={{ type: "spring", duration: 0.5, bounce: 0.15 }}
+              />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
+function Hero() {
+  return (
+    <section id="top" className="relative overflow-hidden bg-white pb-28 pt-32 sm:pb-36 sm:pt-40">
+      <div className="mx-auto max-w-[1536px] px-5 sm:px-8">
+        <div className="grid grid-cols-1 gap-16 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-16 xl:grid-cols-[1.2fr_1fr]">
+          <div className="text-left shrink-0">
+            <Reveal>
+              <span className={`${mono.className} inline-flex items-center gap-2 rounded-full border border-neutral-200 px-3 py-1 text-[11px] uppercase tracking-widest text-neutral-500`}>
+                <CircleDot className="h-3 w-3" />
+                From request to release
+              </span>
+            </Reveal>
 
-        {/* The Pipeline Section (Timeline + Sticky Scroll + Interactive Hover Cards) */}
-        <section id="pipeline" className="py-32 bg-white dark:bg-[#09090b] border-y border-zinc-100 dark:border-zinc-800/50 relative">
-          <div className="container mx-auto px-4 max-w-6xl">
-            <div className="text-center max-w-3xl mx-auto mb-24">
-              <h2 className="text-4xl font-bold tracking-tight sm:text-5xl">The Closed-Loop Workflow</h2>
-              <p className="mt-6 text-zinc-600 dark:text-zinc-400 text-lg">
-                Stop pasting prompts. Start shipping features. ShipFlow connects the entire product lifecycle into one auditable, autonomous pipeline.
+            <Reveal i={1}>
+              <h1 className={`${display.className} mt-8 text-[42px] font-semibold leading-[1.06] tracking-tight text-neutral-950 sm:text-6xl md:text-[68px] whitespace-nowrap`}>
+                Describe the feature.
+                <br />
+                <span className="text-neutral-400">Watch it ship itself.</span>
+              </h1>
+            </Reveal>
+
+            <Reveal i={2}>
+              <p className="mt-7 max-w-xl text-[16px] leading-relaxed text-neutral-500 sm:text-[18px]">
+                Every request moves through the same path — thinking, a PRD, tasks, code, review,
+                and release — until it&rsquo;s a merged pull request your team never had to write by hand.
               </p>
-            </div>
-            
-            <div className="flex flex-col md:flex-row gap-12 relative">
-              {/* Left side: Timeline Steps */}
-              <div className="md:w-1/2 relative">
-                {/* Vertical connecting line */}
-                <div className="absolute left-8 top-8 bottom-8 w-px bg-zinc-200 dark:bg-zinc-800"></div>
-                
-                <div className="flex flex-col gap-24 relative z-10">
-                  {[
-                    { title: "1. Clarify Request", icon: Search, desc: "Our AI PM checks for duplicates in your codebase and asks clarifying questions before writing a single line of code." },
-                    { title: "2. Generate PRD", icon: LayoutDashboard, desc: "Automatic structured PRD generation with strictly defined user stories, acceptance criteria, and edge cases." },
-                    { title: "3. Plan & Build", icon: Code2, desc: "Seamless task breakdown pushed directly to your Kanban board, ready for human or AI implementation." },
-                    { title: "4. Semantic QA", icon: GitMerge, desc: "Deep, semantic code review checking pull requests against original PRD acceptance criteria—not just syntax." },
-                  ].map((step, i) => (
-                    <motion.div 
-                      key={i} 
-                      className="relative pl-24 group cursor-default"
-                      initial={{ opacity: 0, x: -20 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true, margin: "-10%" }}
-                      transition={{ duration: 0.5, delay: i * 0.1 }}
-                    >
-                       <div className="absolute left-0 top-0 h-16 w-16 rounded-2xl bg-zinc-50 dark:bg-[#0c0c0e] border border-zinc-200 dark:border-zinc-800 flex items-center justify-center shadow-sm z-10 group-hover:border-emerald-500/50 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.2)] transition-all duration-300">
-                          <step.icon className="h-7 w-7 text-emerald-600 dark:text-emerald-500 transform group-hover:scale-110 transition-transform duration-300" />
-                       </div>
-                       <h3 className="font-bold text-2xl mb-3 text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-500 transition-colors">{step.title}</h3>
-                       <p className="text-zinc-600 dark:text-zinc-400 text-lg leading-relaxed">{step.desc}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
+            </Reveal>
 
-              {/* Right side: Sticky Interactive Bento Card */}
-              <div className="md:w-1/2 relative hidden md:block">
-                <div className="sticky top-32 h-[500px] w-full">
-                  <motion.div 
-                    className="absolute inset-0 bg-white dark:bg-[#0c0c0e] rounded-[2rem] border border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden group flex items-center justify-center"
-                    whileHover={{ y: -8, boxShadow: "0 25px 50px -12px rgba(16,185,129,0.15)" }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    
-                    <div className="relative z-10 w-[80%]">
-                       <div className="rounded-2xl border border-zinc-200/50 dark:border-zinc-800/80 bg-zinc-50/90 dark:bg-zinc-900/90 p-8 backdrop-blur-sm transform transition-transform group-hover:scale-[1.03] duration-500 shadow-xl">
-                          <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 pb-5 mb-5">
-                             <div className="flex items-center gap-4">
-                                <div className="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center ring-1 ring-emerald-500/30">
-                                   <Zap className="h-5 w-5 text-emerald-600 dark:text-emerald-500" />
-                                </div>
-                                <div>
-                                   <div className="text-base font-bold dark:text-zinc-100">ShipFlow AI Engine</div>
-                                   <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 tracking-wide uppercase mt-0.5">Active Workspace</div>
-                                </div>
-                             </div>
-                             <span className="text-xs font-mono bg-zinc-200/50 dark:bg-zinc-800/50 border border-zinc-300 dark:border-zinc-700 px-2 py-1 rounded-md text-zinc-600 dark:text-zinc-400">v2.0.4</span>
-                          </div>
-                          
-                          <div className="space-y-5">
-                             <div className="flex items-center gap-4">
-                                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                                <div className="text-base text-zinc-600 dark:text-zinc-300 font-medium">Context verified</div>
-                             </div>
-                             <div className="flex items-center gap-4">
-                                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-                                <div className="text-base text-zinc-600 dark:text-zinc-300 font-medium">Dependencies resolved</div>
-                             </div>
-                             <div className="flex items-center gap-4 bg-zinc-100/50 dark:bg-zinc-800/30 -mx-3 px-3 py-2 rounded-lg border border-transparent group-hover:border-emerald-500/20 transition-colors">
-                                <span className="relative flex h-3.5 w-3.5 ml-0.5">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                  <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
-                                </span>
-                                <div className="text-base text-zinc-900 dark:text-zinc-100 font-bold ml-1">Synthesizing code...</div>
-                             </div>
-                          </div>
-                       </div>
-                    </div>
-                  </motion.div>
-                </div>
+            <Reveal i={3}>
+              <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                <Link
+                  href="/register"
+                  className="group inline-flex h-12 items-center gap-2 rounded-full bg-neutral-950 px-7 text-[15px] font-medium text-white transition-transform duration-150 ease-out active:scale-[0.97] hover:bg-neutral-800"
+                >
+                  Get started free
+                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                </Link>
+                <a
+                  href="#process"
+                  className="inline-flex h-12 items-center gap-1.5 px-3 text-[15px] font-medium text-neutral-700 transition-colors hover:text-neutral-950"
+                >
+                  See how it works
+                  <ArrowUpRight className="h-4 w-4" />
+                </a>
               </div>
-            </div>
+            </Reveal>
           </div>
-        </section>
 
-        {/* Bento Grid Features */}
-        <section id="features" className="py-32">
-          <div className="container mx-auto px-4">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Enterprise-grade delivery, out of the box</h2>
-              <p className="mt-4 text-zinc-600 dark:text-zinc-400 text-lg">
-                Designed for engineering rigor. No generic wrappers, just hard-hitting workflows.
-              </p>
-            </div>
+          <motion.div
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.35, ease: EASE_OUT }}
+            className="w-full"
+          >
+            <HeroWindow />
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              
-              <div className="col-span-1 md:col-span-2 bg-white dark:bg-[#0c0c0e] rounded-3xl p-8 border border-zinc-200 dark:border-zinc-800/80 shadow-sm overflow-hidden relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <h3 className="text-2xl font-bold mb-3 relative z-10">Semantic PR Reviews</h3>
-                <p className="text-zinc-600 dark:text-zinc-400 mb-8 max-w-md relative z-10">
-                  Not just a syntax checker. Our AI acts as a rigorous QA reviewer, checking pull requests against specific PRD acceptance criteria.
-                </p>
-                {/* Mock UI snippet */}
-                <div className="rounded-xl border border-zinc-200/50 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 p-4 font-mono text-xs sm:text-sm text-zinc-600 dark:text-zinc-300 relative z-10 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                  <div className="flex items-center gap-2 mb-2 text-emerald-600 dark:text-emerald-500 font-sans font-bold">
-                    <CheckCircle2 className="h-4 w-4" /> 
-                    <span>Release Readiness Score: 98/100</span>
-                  </div>
-                  <span className="text-zinc-400 dark:text-zinc-500">{"// PRD Compliance Output"}</span><br/>
-                  <span className="text-emerald-500">✓</span> [Req 1] Auth state persists on refresh<br/>
-                  <span className="text-emerald-500">✓</span> [Req 2] Handles network timeout gracefully<br/>
-                  <span className="text-amber-500">⚠</span> [Req 3] Missing analytics event on success (Non-blocking)
-                </div>
-              </div>
+/* ---------------------------------------------------------------------- */
+/*  Features                                                                */
+/* ---------------------------------------------------------------------- */
 
-              <div className="col-span-1 bg-white dark:bg-[#0c0c0e] rounded-3xl p-8 border border-zinc-200 dark:border-zinc-800/80 shadow-sm relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-8 opacity-10 dark:opacity-5">
-                  <Zap className="h-32 w-32" />
-                </div>
-                <h3 className="text-2xl font-bold mb-3 relative z-10">Lightning Fast</h3>
-                <p className="text-zinc-600 dark:text-zinc-400 relative z-10">
-                  Built on modern infrastructure with robust background orchestration via Inngest. No dropped webhooks, no blocking requests.
-                </p>
-              </div>
+const features = [
+  {
+    icon: Sparkles,
+    title: "Autonomous code worker",
+    body: "Assign a task and an isolated sandbox clones your repo, writes the code across an agentic loop, and pushes a branch — no human types the diff.",
+  },
+  {
+    icon: GitBranch,
+    title: "AI-assisted planning",
+    body: "A one-line idea becomes a full PRD, then granular engineering tasks, with a clarification pass to close gaps before any code is written.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Secret scanning, by default",
+    body: "Every file the worker writes passes an entropy-based scanner before it's saved, so credentials never slip into a commit.",
+  },
+  {
+    icon: Webhook,
+    title: "Bi-directional GitHub sync",
+    body: "Install the app once. Webhooks keep pull request state, checks, and reviews mirrored back onto your board in real time.",
+  },
+  {
+    icon: Users,
+    title: "Multi-tenant by design",
+    body: "Organizations, projects, and PRDs are strictly isolated. Google or GitHub sign-in, with role-based access for who can invite whom.",
+  },
+  {
+    icon: Lock,
+    title: "Whitelisted execution",
+    body: "The worker can lint, build, and test — nothing else. Arbitrary shell commands are refused at the sandbox boundary.",
+  },
+];
 
-              <div className="col-span-1 bg-white dark:bg-[#0c0c0e] rounded-3xl p-8 border border-zinc-200 dark:border-zinc-800/80 shadow-sm">
-                <h3 className="text-2xl font-bold mb-3">Duplicate Detection</h3>
-                <p className="text-zinc-600 dark:text-zinc-400">
-                  Our Requirement Agent instantly flags requests for features that already exist in your workspace, saving hours of wasted effort.
-                </p>
-              </div>
+function Features() {
+  return (
+    <section id="features" className="bg-white py-28 sm:py-36">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+        <Reveal className="max-w-xl">
+          <span className={`${mono.className} text-[11px] uppercase tracking-widest text-neutral-400`}>Platform</span>
+          <h2 className={`${display.className} mt-4 text-[32px] font-semibold tracking-tight text-neutral-950 sm:text-[42px]`}>
+            Everything between the idea and the merge.
+          </h2>
+        </Reveal>
 
-              <div className="col-span-1 md:col-span-2 bg-zinc-900 text-white rounded-3xl p-8 border border-zinc-800 shadow-xl overflow-hidden relative">
-                <div className="absolute -bottom-24 -right-24 h-64 w-64 bg-emerald-500/20 rounded-full blur-[80px]" />
-                <h3 className="text-2xl font-bold mb-3 relative z-10">Automated GitHub Integration</h3>
-                <p className="text-zinc-400 mb-8 max-w-md relative z-10">
-                  Deeply integrated into your repositories. Installs as a GitHub App, reacting to webhooks instantly to run code analysis without manual intervention.
-                </p>
-                <div className="flex gap-4 relative z-10">
-                  <div className="px-4 py-2 bg-black/40 border border-zinc-700 rounded-lg text-sm font-mono flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500"></span> webhook: push
-                  </div>
-                  <div className="px-4 py-2 bg-black/40 border border-zinc-700 rounded-lg text-sm font-mono flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500"></span> webhook: pull_request
-                  </div>
-                </div>
-              </div>
+        <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-200 sm:grid-cols-2 lg:grid-cols-3">
+          {features.map((f, i) => (
+            <Reveal key={f.title} i={i} className="group bg-white p-8 transition-colors duration-200 hover:bg-neutral-50">
+              <f.icon className="h-5 w-5 text-neutral-900 transition-transform duration-200 group-hover:-translate-y-0.5" strokeWidth={1.6} />
+              <h3 className="mt-5 text-[16px] font-medium text-neutral-950">{f.title}</h3>
+              <p className="mt-2.5 text-[14px] leading-relaxed text-neutral-500">{f.body}</p>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
-            </div>
-          </div>
-        </section>
-      </main>
+/* ---------------------------------------------------------------------- */
+/*  Process — "How it works". Dark, spacious, the full nine-step pipeline  */
+/* ---------------------------------------------------------------------- */
 
-      {/* Footer */}
-      <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#09090b] py-12 text-center text-sm text-zinc-500">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-zinc-900 dark:text-zinc-100 mb-4 md:mb-0">
-            <Workflow className="h-5 w-5" />
-            <span>ShipFlow</span>
-          </div>
-          <p>© {new Date().getFullYear()} ShipFlow Inc. All rights reserved.</p>
-          <div className="flex gap-6 mt-4 md:mt-0">
-            <Link href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Terms</Link>
-            <Link href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">GitHub</Link>
+function ProcessStep({ stage, i }: { stage: (typeof PIPELINE)[number]; i: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, margin: "-100px" });
+
+  return (
+    <div ref={ref} className="relative grid grid-cols-[auto_1fr] gap-6 sm:grid-cols-[64px_1fr] sm:gap-10">
+      <div className="flex flex-col items-center">
+        <motion.span
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={inView ? { opacity: 1, scale: 1 } : {}}
+          transition={{ duration: 0.5, ease: EASE_OUT }}
+          className={`${mono.className} grid h-11 w-11 shrink-0 place-items-center rounded-full border bg-black text-[12px] ${toneRing(
+            stage.tone,
+            "dark",
+            false
+          )}`}
+        >
+          {String(i + 1).padStart(2, "0")}
+        </motion.span>
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={inView ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.6, delay: 0.08, ease: EASE_OUT }}
+        className="pb-20 sm:pb-28"
+      >
+        <div className="flex items-center gap-2.5">
+          <h3 className="text-[20px] font-medium text-white sm:text-[22px]">{stage.title}</h3>
+          {stage.tone !== "neutral" && (
+            <span
+              className={`${mono.className} rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide ${toneRing(
+                stage.tone,
+                "dark",
+                true
+              )}`}
+            >
+              {stage.label}
+            </span>
+          )}
+        </div>
+        <p className="mt-2.5 max-w-md text-[14.5px] leading-relaxed text-white/50">{stage.body}</p>
+        <div className="mt-5 max-w-sm">
+          <PipelineVisual stageKey={stage.key} variant="dark" />
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function Process() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start 0.75", "end 0.6"],
+  });
+  const pathLength = useTransform(scrollYProgress, [0, 1], [0, 1]);
+
+  return (
+    <section id="process" ref={sectionRef} className="relative bg-black py-28 sm:py-40">
+      <div className="mx-auto max-w-4xl px-5 sm:px-8">
+        <Reveal className="max-w-lg">
+          <span className={`${mono.className} text-[11px] uppercase tracking-widest text-white/40`}>How it works</span>
+          <h2 className={`${display.className} mt-4 text-[32px] font-semibold tracking-tight text-white sm:text-[42px]`}>
+            From feature request to release.
+          </h2>
+          <p className="mt-4 text-[15px] leading-relaxed text-white/45">
+            Nine steps, always in the same order. Review can send work back for fixes before it&rsquo;s
+            approved — nothing reaches production without both.
+          </p>
+        </Reveal>
+
+        <div className="relative mt-20">
+          <svg className="pointer-events-none absolute left-[19px] top-2 hidden h-full w-px sm:block" width="2" preserveAspectRatio="none">
+            <line x1="1" y1="0" x2="1" y2="100%" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+            <motion.line x1="1" y1="0" x2="1" y2="100%" stroke="rgba(255,255,255,0.55)" strokeWidth="1" style={{ pathLength }} />
+          </svg>
+
+          <div className="space-y-0">
+            {PIPELINE.map((stage, i) => (
+              <ProcessStep key={stage.key} stage={stage} i={i} />
+            ))}
           </div>
         </div>
-      </footer>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/*  Pricing (compact)                                                       */
+/* ---------------------------------------------------------------------- */
+
+const plans = [
+  { name: "Basic", price: "₹0", note: "Ideal for Individuals or small teams", features: ["Up to 3 connected repositories.", "10 AI PR reviews per month.", "Basic PRD generation.", "Standard community support."], cta: "Get started", highlighted: false },
+  { name: "Premium", price: "₹499", note: "/ per month", features: ["Unlimited repositories.", "30 AI PR reviews per month.", "Advanced PRD generation & Planner agent.", "Automated AI Code Reviewer.", "Priority email support."], cta: "Get started", highlighted: true },
+  { name: "Custom", price: "₹19", note: "/ per month", features: ["Unlimited repositories.", "70 AI PR reviews per month.", "Custom AI integrations.", "Dedicated Slack channel.", "24/7 Enterprise support."], cta: "Get started", highlighted: false },
+];
+
+function Pricing() {
+  return (
+    <section id="pricing" className="bg-white py-28 sm:py-36">
+      <div className="mx-auto max-w-5xl px-5 sm:px-8">
+        <Reveal className="text-center">
+          <span className={`${mono.className} text-[11px] uppercase tracking-widest text-neutral-400`}>Pricing</span>
+          <h2 className={`${display.className} mx-auto mt-4 max-w-md text-[32px] font-semibold tracking-tight text-neutral-950 sm:text-[42px]`}>
+            Simple, usage-based plans.
+          </h2>
+        </Reveal>
+
+        <div className="mt-16 grid grid-cols-1 gap-5 sm:grid-cols-3">
+          {plans.map((p, i) => (
+            <Reveal key={p.name} i={i}>
+              <div
+                className={`flex h-full flex-col rounded-2xl border p-7 ${
+                  p.highlighted ? "border-neutral-950 bg-neutral-950 text-white" : "border-neutral-200 bg-white text-neutral-950"
+                }`}
+              >
+                <p className="text-[14px] font-medium">{p.name}</p>
+                <p className="mt-4 flex items-baseline gap-1">
+                  <span className="text-[34px] font-semibold tracking-tight">{p.price}</span>
+                  <span className={`text-[13px] ${p.highlighted ? "text-white/50" : "text-neutral-400"}`}>{p.note}</span>
+                </p>
+                <ul className="mt-6 flex-1 space-y-2.5">
+                  {p.features.map((f) => (
+                    <li key={f} className="flex items-center gap-2.5 text-[13.5px]">
+                      <Check className={`h-3.5 w-3.5 shrink-0 ${p.highlighted ? "text-white/70" : "text-neutral-400"}`} />
+                      <span className={p.highlighted ? "text-white/80" : "text-neutral-600"}>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href="/register"
+                  className={`mt-7 inline-flex h-10 items-center justify-center rounded-full text-[13.5px] font-medium transition-transform duration-150 ease-out active:scale-[0.97] ${
+                    p.highlighted ? "bg-white text-neutral-950 hover:bg-neutral-100" : "bg-neutral-100 text-neutral-900 hover:bg-neutral-200"
+                  }`}
+                >
+                  {p.cta}
+                </Link>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/*  Testimonials (compact)                                                  */
+/* ---------------------------------------------------------------------- */
+
+const quotes = [
+  { name: "Priya Nair", role: "Eng lead, Aster Labs", text: "We link a repo, write the task like a Jira ticket, and the PR shows up before standup." },
+  { name: "Marcus Webb", role: "CTO, Fielder", text: "The secret scanner catching a stray key in a generated file was the moment we trusted it in prod repos." },
+  { name: "Ines Dahl", role: "Staff engineer, Loft", text: "PRD generation alone saved our planning meetings — tasks arrive already broken down." },
+];
+
+function Testimonials() {
+  return (
+    <section id="testimonials" className="bg-neutral-50 py-28 sm:py-36">
+      <div className="mx-auto max-w-6xl px-5 sm:px-8">
+        <Reveal className="max-w-lg">
+          <span className={`${mono.className} text-[11px] uppercase tracking-widest text-neutral-400`}>Teams shipping with it</span>
+          <h2 className={`${display.className} mt-4 text-[32px] font-semibold tracking-tight text-neutral-950 sm:text-[42px]`}>
+            Ask the people already merging.
+          </h2>
+        </Reveal>
+
+        <div className="mt-16 grid grid-cols-1 gap-5 sm:grid-cols-3">
+          {quotes.map((q, i) => (
+            <Reveal key={q.name} i={i}>
+              <div className="flex h-full flex-col rounded-2xl border border-neutral-200 bg-white p-7">
+                <p className="text-[15px] leading-relaxed text-neutral-800">&ldquo;{q.text}&rdquo;</p>
+                <div className="mt-6 flex items-center gap-3 border-t border-neutral-100 pt-5">
+                  <div className={`${wink.className} grid h-9 w-9 shrink-0 place-items-center rounded-full bg-neutral-950 text-[13px] text-white`}>
+                    {q.name.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-[13.5px] font-medium text-neutral-950">{q.name}</p>
+                    <p className="text-[12.5px] text-neutral-400">{q.role}</p>
+                  </div>
+                </div>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/*  Final — GitHub automation                                               */
+/* ---------------------------------------------------------------------- */
+
+const chips = ["Pull request opened", "Checks synced", "Board updated", "Reviewer requested"];
+
+function FinalCTA() {
+  return (
+    <section className="relative overflow-hidden bg-black py-28 text-center sm:py-40">
+      <div className="mx-auto max-w-2xl px-5 sm:px-8">
+        <Reveal className="flex justify-center">
+          <span className="grid h-14 w-14 place-items-center rounded-full border border-white/15 bg-white/[0.04]">
+            <Github className="h-6 w-6 text-white" strokeWidth={1.5} />
+          </span>
+        </Reveal>
+
+        <Reveal i={1}>
+          <h2 className={`${display.className} mt-8 text-[32px] font-semibold leading-tight tracking-tight text-white sm:text-[46px]`}>
+            It already knows GitHub.
+          </h2>
+        </Reveal>
+
+        <Reveal i={2}>
+          <p className="mx-auto mt-5 max-w-md text-[15.5px] leading-relaxed text-white/50">
+            Every merge, check, and review syncs back to your board automatically — no polling, no manual
+            status updates, no second source of truth.
+          </p>
+        </Reveal>
+
+        <Reveal i={3}>
+          <div className="mx-auto mt-9 flex max-w-md flex-wrap items-center justify-center gap-2">
+            {chips.map((c, i) => (
+              <span
+                key={c}
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[12px] text-white/60"
+              >
+                <motion.span
+                  className="h-1.5 w-1.5 rounded-full bg-white/60"
+                  animate={{ opacity: [0.35, 1, 0.35] }}
+                  transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.35, ease: "easeInOut" }}
+                />
+                {c}
+              </span>
+            ))}
+          </div>
+        </Reveal>
+
+        <Reveal i={4}>
+          <div className="mt-10">
+            <Link
+              href="/register"
+              className="group inline-flex h-12 items-center gap-2 rounded-full bg-white px-7 text-[15px] font-medium text-neutral-950 transition-transform duration-150 ease-out active:scale-[0.97] hover:bg-neutral-100"
+            >
+              Connect your repo
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+            </Link>
+            <p className="mt-4 text-[12.5px] text-white/35">No credit card required.</p>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/*  Footer                                                                  */
+/* ---------------------------------------------------------------------- */
+
+function Footer() {
+  return (
+    <footer className="border-t border-neutral-200 bg-white py-10">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 px-5 sm:flex-row sm:px-8">
+        <Link href="#top" className={`${wink.className} text-[18px] text-neutral-950`}>
+          shipflow<span className="text-neutral-300">.</span>
+        </Link>
+        <p className="text-[12.5px] text-neutral-400">© {new Date().getFullYear()} Shipflow. Built for teams that ship.</p>
+        <div className="flex items-center gap-5 text-[13px] text-neutral-500">
+          <a href="#features" className="hover:text-neutral-950">Features</a>
+          <a href="#pricing" className="hover:text-neutral-950">Pricing</a>
+          <a href="#testimonials" className="hover:text-neutral-950">Testimonials</a>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ---------------------------------------------------------------------- */
+/*  Page                                                                    */
+/* ---------------------------------------------------------------------- */
+
+export default function LandingPage() {
+  return (
+    <div className={`${display.variable} ${body.variable} ${mono.variable} ${wink.variable} min-h-screen bg-white font-[family-name:var(--font-body)] text-neutral-950 antialiased selection:bg-neutral-950 selection:text-white`}>
+      <Nav />
+      <main>
+        <Hero />
+        <Features />
+        <Process />
+        <Pricing />
+        <Testimonials />
+        <FinalCTA />
+      </main>
+      <Footer />
     </div>
   );
 }

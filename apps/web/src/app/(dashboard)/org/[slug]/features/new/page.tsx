@@ -121,18 +121,22 @@ export default function NewFeaturePage() {
       <div className="rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm shadow-sm p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label htmlFor="title" className="text-sm font-medium">
-              Feature Title
+            <label htmlFor="title" className="text-sm font-medium flex justify-between items-end">
+              <span>Feature Title</span>
+              <span className="text-muted-foreground text-xs font-normal">
+                {title.length} / 100
+              </span>
             </label>
             <input
               type="text"
               id="title"
               required
               minLength={3}
+              maxLength={100}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="e.g. Add dark mode support"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => setTitle(e.target.value.slice(0, 100))}
             />
           </div>
 
@@ -174,10 +178,10 @@ export default function NewFeaturePage() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="description" className="text-sm font-medium flex justify-between">
+            <label htmlFor="description" className="text-sm font-medium flex justify-between items-end">
               <span>Detailed Description</span>
               <span className="text-muted-foreground text-xs font-normal">
-                {description.length} characters
+                {description.length} / 2000
               </span>
             </label>
             <textarea
@@ -185,10 +189,11 @@ export default function NewFeaturePage() {
               rows={6}
               required
               minLength={10}
+              maxLength={2000}
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="Describe the problem, use cases, and how it should work..."
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => setDescription(e.target.value.slice(0, 2000))}
             />
             <p className="text-xs text-muted-foreground">
               Write a detailed description. If it's too vague, our AI Clarifier will ask you follow-up questions.

@@ -130,7 +130,7 @@ export function PricingCards({ orgId, currentPlan }: PricingCardsProps) {
       id: "ENTERPRISE",
       name: "Custom",
       tagline: "Designed for unique needs",
-      price: 999,
+      price: 19,
       gradient: "from-[#e5f8ff]/80 via-white to-white dark:from-cyan-900/20 dark:via-background dark:to-background",
       iconColor: "text-cyan-400 dark:text-cyan-500",
       iconBg: "bg-cyan-50 dark:bg-cyan-900/30",
@@ -194,7 +194,7 @@ export function PricingCards({ orgId, currentPlan }: PricingCardsProps) {
             <p className="text-sm text-muted-foreground mb-6 h-10">{plan.tagline}</p>
             
             <div className="mb-6 flex items-baseline gap-1">
-              <span className="text-2xl font-medium text-muted-foreground/80">$</span>
+              <span className="text-2xl font-medium text-muted-foreground/80">₹</span>
               <span className="text-5xl font-bold tracking-tight">{plan.price}</span>
               <span className="text-muted-foreground ml-1 font-medium">/ per month</span>
             </div>

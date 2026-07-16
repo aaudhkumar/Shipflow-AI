@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { router, orgMemberProcedure } from "../../trpc";
 import { enforceBillingLimit } from "../../middleware/billingGuard";
 import { z } from "zod";
@@ -67,8 +68,8 @@ export const featureRouter = router({
     .input(z.object({
       orgId: z.string(),
       projectId: z.string(),
-      title: z.string().min(3),
-      rawDescription: z.string().min(10),
+      title: z.string().min(3).max(100),
+      rawDescription: z.string().min(10).max(2000),
       sourceChannel: z.enum(["IN_APP", "EMAIL", "TICKET", "CALL"]).default("IN_APP"),
     }))
     .output(createFeatureOutputSchema)
@@ -89,9 +90,13 @@ export const featureRouter = router({
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
     .output(generatePRDOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const { billingService } = await import("@shipflow/billing");
-      await billingService.incrementAiReviewUsage(input.orgId);
-      return await featureService.generatePRD(input.featureId, input.orgId, ctx.session!.user.id);
+      try {
+        const { billingService } = await import("@shipflow/billing");
+        await billingService.incrementAiReviewUsage(input.orgId);
+        return await featureService.generatePRD(input.featureId, input.orgId, ctx.session!.user.id);
+      } catch (err: any) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message || "Unknown error" });
+      }
     }),
 
   startClarification: orgMemberProcedure
@@ -100,9 +105,13 @@ export const featureRouter = router({
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
     .output(startClarificationOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const { billingService } = await import("@shipflow/billing");
-      await billingService.incrementAiReviewUsage(input.orgId);
-      return await featureService.startClarification(input.featureId, input.orgId, ctx.session!.user.id);
+      try {
+        const { billingService } = await import("@shipflow/billing");
+        await billingService.incrementAiReviewUsage(input.orgId);
+        return await featureService.startClarification(input.featureId, input.orgId, ctx.session!.user.id);
+      } catch (err: any) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message || "Unknown error" });
+      }
     }),
 
   generateTasks: orgMemberProcedure
@@ -111,9 +120,13 @@ export const featureRouter = router({
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
     .output(generateTasksOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      const { billingService } = await import("@shipflow/billing");
-      await billingService.incrementAiReviewUsage(input.orgId);
-      return await featureService.generateTasks(input.featureId, input.orgId, ctx.session!.user.id);
+      try {
+        const { billingService } = await import("@shipflow/billing");
+        await billingService.incrementAiReviewUsage(input.orgId);
+        return await featureService.generateTasks(input.featureId, input.orgId, ctx.session!.user.id);
+      } catch (err: any) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message || "Unknown error" });
+      }
     }),
 
   approvePlan: orgMemberProcedure

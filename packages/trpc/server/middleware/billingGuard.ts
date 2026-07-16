@@ -20,7 +20,9 @@ export const enforceBillingLimit = tRPCContext.middleware(async ({ ctx, next, in
       }
     }
   } catch (error: any) {
-    throw new TRPCError({ code: "PAYMENT_REQUIRED", message: error.message || "Billing limit exceeded" });
+    if (error instanceof TRPCError) throw error;
+    // Don't mask non-billing errors as PAYMENT_REQUIRED
+    throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: `Billing check failed: ${error.message}` });
   }
 
   return next({ ctx });

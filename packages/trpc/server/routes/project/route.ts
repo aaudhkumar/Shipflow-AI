@@ -20,8 +20,8 @@ export const projectRouter = router({
     .meta({ openapi: { method: "GET", path: getPath("/"), tags: TAGS } })
     .input(z.object({ orgId: z.string() }))
     .output(getProjectListOutputSchema)
-    .query(async ({ input }) => {
-      return projectService.listProjects(input.orgId);
+    .query(async ({ input, ctx }) => {
+      return projectService.listProjects(input.orgId, ctx.session.user.id);
     }),
 
   create: protectedProcedure
@@ -29,7 +29,7 @@ export const projectRouter = router({
     .input(
       z.object({
         orgId: z.string(),
-        name: z.string().min(3),
+        name: z.string().min(3).max(100),
         description: z.string().max(500).optional(),
         repositoryIds: z.array(z.string()).optional(),
         memberIds: z.array(z.string()).optional(),
@@ -55,10 +55,10 @@ export const projectRouter = router({
 
   getById: protectedProcedure
     .meta({ openapi: { method: "GET", path: getPath("/{projectId}"), tags: TAGS } })
-    .input(z.object({ projectId: z.string() }))
+    .input(z.object({ orgId: z.string(), projectId: z.string() }))
     .output(getProjectOutputSchema)
-    .query(async ({ input }) => {
-      return projectService.getProjectWithDetails(input.projectId);
+    .query(async ({ input, ctx }) => {
+      return projectService.getProjectWithDetails(input.projectId, input.orgId, ctx.session.user.id);
     }),
 
   updateMembers: protectedProcedure
@@ -86,6 +86,21 @@ export const projectRouter = router({
         }
         if (err.message.startsWith("NOT_FOUND")) {
           throw new TRPCError({ code: "NOT_FOUND", message: err.message });
+        }
+        throw err;
+      }
+    }),
+    
+  regenerateContext: protectedProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{projectId}/regenerate-context"), tags: TAGS } })
+    .input(z.object({ orgId: z.string(), projectId: z.string() }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      try {
+        return await projectService.regenerateContext(input.projectId, input.orgId, ctx.session.user.id);
+      } catch (err: any) {
+        if (err.message.startsWith("UNAUTHORIZED")) {
+          throw new TRPCError({ code: "UNAUTHORIZED", message: err.message });
         }
         throw err;
       }

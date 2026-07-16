@@ -174,3 +174,14 @@ export const githubIssueRelations = relations(githubIssues, ({ one }) => ({
     references: [organizations.id],
   }),
 }));
+
+export const auditLogRelations = relations(auditLogs, ({ one }) => ({
+  actor: one(members, {
+    fields: [auditLogs.actorId],
+    references: [members.id],
+  }),
+  organization: one(organizations, {
+    fields: [auditLogs.orgId],
+    references: [organizations.id],
+  }),
+}));

@@ -8,6 +8,7 @@ export * from "./workflows/review-pull-request";
 export * from "./workflows/release-readiness";
 export * from "./workflows/github-issues";
 export * from "./workflows/implement-tasks";
+export * from "./workflows/project-context";
 
 export { inngest } from "../../services/src/workflow/client";
 export * from "../../services/src/workflow/events";

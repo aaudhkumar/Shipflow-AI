@@ -145,7 +145,11 @@ export default function FeatureDetailPage() {
 
   const startClarification = trpc.feature.startClarification.useMutation({
     onMutate: () => setIsStartingClarification(true),
-    onSuccess: () => refetch()
+    onSuccess: () => refetch(),
+    onError: (error) => {
+      setIsStartingClarification(false);
+      toast.error(`Failed to start AI Clarifier: ${error.message}`);
+    }
   });
 
   const generateTasks = trpc.feature.generateTasks.useMutation({
@@ -231,27 +235,26 @@ export default function FeatureDetailPage() {
         </div>
         
         <div className="flex items-center gap-2">
-          {(feature.status === "SUBMITTED" || feature.status === "CLARIFYING" || feature.status === "CLARIFIED") && (
-            <>
-              {feature.status === "SUBMITTED" && (
-                <Button
-                  onClick={() => startClarification.mutate({ featureId, orgId: org!.id })}
-                  disabled={startClarification.isPending}
-                  className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/20"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  {startClarification.isPending ? "Starting..." : "Run AI Clarifier"}
-                </Button>
-              )}
-              <Button
-                onClick={() => generatePRD.mutate({ featureId, orgId: org!.id })}
-                disabled={generatePRD.isPending}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20"
-              >
-                <Sparkles className="w-4 h-4 mr-2" />
-                {generatePRD.isPending ? "Generating..." : "Generate AI PRD"}
-              </Button>
-            </>
+          {feature.status === "SUBMITTED" && (
+            <Button
+              onClick={() => startClarification.mutate({ featureId, orgId: org!.id })}
+              disabled={startClarification.isPending}
+              className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/20"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              {startClarification.isPending ? "Starting..." : "Run AI Clarifier"}
+            </Button>
+          )}
+
+          {(feature.status === "CLARIFYING" || feature.status === "CLARIFIED") && (
+            <Button
+              onClick={() => generatePRD.mutate({ featureId, orgId: org!.id })}
+              disabled={generatePRD.isPending}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              {generatePRD.isPending ? "Generating..." : "Generate AI PRD"}
+            </Button>
           )}
 
           {feature.status === "PRD_GENERATED" && (
@@ -469,8 +472,10 @@ export default function FeatureDetailPage() {
                   icon={<FileText className="w-4 h-4 text-muted-foreground" />}
                   contentToCopy={feature.rawDescription}
                 >
-                  <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                    {feature.rawDescription}
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {feature.rawDescription}
+                    </ReactMarkdown>
                   </div>
                 </ExpandableContent>
               </div>

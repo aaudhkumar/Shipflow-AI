@@ -14,7 +14,7 @@ export const epics = pgTable("epics", {
     .references(() => projects.id),
   prdId: text("prd_id")
     .notNull()
-    .references(() => prds.id),
+    .references(() => prds.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
   description: text("description").notNull(),
   status: taskStatusEnum("status").default("TODO").notNull(),
@@ -32,6 +32,7 @@ export const tasks = pgTable("tasks", {
   assigneeId: text("assignee_id").references(() => members.id),
   title: text("title").notNull(),
   technicalImplementationDetails: text("technical_implementation_details").notNull(),
+  fixesPrompt: text("fixes_prompt"),
   status: taskStatusEnum("status").default("BACKLOG").notNull(),
   estimationPoints: integer("estimation_points"),
   executionStatus: taskExecutionStatusEnum("execution_status").default("not_started").notNull(),

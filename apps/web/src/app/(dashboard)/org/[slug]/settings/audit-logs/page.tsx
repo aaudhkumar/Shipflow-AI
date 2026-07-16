@@ -139,8 +139,16 @@ export default function AuditLogsPage() {
                 <tr key={log.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20">
                   <td className="px-6 py-4 font-medium">{log.action}</td>
                   <td className="px-6 py-4">{log.targetEntity}</td>
-                  <td className="px-6 py-4 font-mono text-xs">{log.targetEntityId?.slice(0, 8)}...</td>
-                  <td className="px-6 py-4">{log.actorId ? log.actorId.slice(0, 8) + '...' : 'System'}</td>
+                  <td className="px-6 py-4" title={log.targetEntityId}>
+                    {log.entityName && log.entityName !== log.targetEntityId ? (
+                      <span className="font-sans text-sm font-medium">{log.entityName}</span>
+                    ) : (
+                      <span className="font-mono text-xs">{log.targetEntityId?.slice(0, 8)}...</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4">
+                    {log.actor?.user?.name || (log.actorId ? log.actorId.slice(0, 8) + '...' : 'System')}
+                  </td>
                   <td className="px-6 py-4 text-right text-muted-foreground">
                     {format(new Date(log.timestamp), "MMM d, HH:mm")}
                   </td>

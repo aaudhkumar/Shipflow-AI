@@ -1,6 +1,6 @@
 import { db } from "@shipflow/db";
 import { projects, projectRepositories, projectMembers } from "@shipflow/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 
 export class ProjectRepository {
   async createProject(data: {
@@ -46,9 +46,25 @@ export class ProjectRepository {
     });
   }
 
-  async listProjects(orgId: string) {
+  async listProjects(orgId: string, memberId?: string, isPrivileged: boolean = false) {
+    let whereClause = eq(projects.orgId, orgId);
+
+    if (memberId && !isPrivileged) {
+      // Find projects where the user is explicitly a member
+      const userProjects = await db.select({ projectId: projectMembers.projectId })
+        .from(projectMembers)
+        .where(eq(projectMembers.memberId, memberId));
+      
+      const projectIds = userProjects.map(up => up.projectId);
+      if (projectIds.length === 0) {
+        return [];
+      }
+      
+      whereClause = and(eq(projects.orgId, orgId), inArray(projects.id, projectIds)) as any;
+    }
+
     return await db.query.projects.findMany({
-      where: eq(projects.orgId, orgId),
+      where: whereClause,
       orderBy: [desc(projects.createdAt)],
       with: {
         members: {

@@ -11,5 +11,5 @@ export default async function SettingsPage({ params }: { params: Promise<{ slug:
     notFound()
   }
   
-  return <SettingsClient orgId={org.id} />
+  return <SettingsClient orgId={org.id} orgSlug={slug} />
 }

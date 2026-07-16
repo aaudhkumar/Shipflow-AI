@@ -9,7 +9,7 @@ export const prds = pgTable("prds", {
     .references(() => organizations.id, { onDelete: "cascade" }),
   featureRequestId: text("feature_request_id")
     .notNull()
-    .references(() => featureRequests.id),
+    .references(() => featureRequests.id, { onDelete: "cascade" }),
   status: text("status").default("DRAFT").notNull(),
   currentVersionId: text("current_version_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

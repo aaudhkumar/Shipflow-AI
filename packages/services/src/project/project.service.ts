@@ -15,7 +15,7 @@ export class ProjectService {
   }) {
     // 1. Authorize: Check if user is OWNER, ADMIN, or PM
     const [member] = await db
-      .select({ role: members.role })
+      .select({ id: members.id, role: members.role })
       .from(members)
       .where(and(eq(members.userId, data.userId), eq(members.orgId, data.orgId)))
       .limit(1);
@@ -28,13 +28,15 @@ export class ProjectService {
       throw new Error("FORBIDDEN: Only Owners, Admins, or PMs can create projects");
     }
 
-    // 2. Create the project using the repository
+    const memberIds = new Set(data.memberIds || []);
+    memberIds.add(member.id); // Always add creator
+
     const project = await projectRepository.createProject({
       orgId: data.orgId,
       name: data.name,
       description: data.description,
       repositoryIds: data.repositoryIds,
-      memberIds: data.memberIds,
+      memberIds: Array.from(memberIds),
     });
 
     // 3. Write to Audit Log
@@ -54,12 +56,44 @@ export class ProjectService {
     return project;
   }
 
-  async listProjects(orgId: string) {
-    return projectRepository.listProjects(orgId);
+  async listProjects(orgId: string, userId: string) {
+    const [member] = await db
+      .select({ id: members.id, role: members.role })
+      .from(members)
+      .where(and(eq(members.userId, userId), eq(members.orgId, orgId)))
+      .limit(1);
+
+    if (!member) {
+      throw new Error("UNAUTHORIZED: User is not a member of this organization");
+    }
+
+    const isPrivileged = member.role === "OWNER" || member.role === "ADMIN";
+    return projectRepository.listProjects(orgId, member.id, isPrivileged);
   }
 
-  async getProjectWithDetails(projectId: string) {
-    return projectRepository.getProjectWithDetails(projectId);
+  async getProjectWithDetails(projectId: string, orgId?: string, userId?: string) {
+    const project = await projectRepository.getProjectWithDetails(projectId);
+    
+    if (orgId && userId && project) {
+      const [member] = await db
+        .select({ id: members.id, role: members.role })
+        .from(members)
+        .where(and(eq(members.userId, userId), eq(members.orgId, orgId)))
+        .limit(1);
+
+      if (!member) {
+        throw new Error("UNAUTHORIZED: User is not a member of this organization");
+      }
+
+      const isPrivileged = member.role === "OWNER" || member.role === "ADMIN";
+      const isProjectMember = project.members.some(m => m.memberId === member.id);
+      
+      if (!isPrivileged && !isProjectMember) {
+        throw new Error("FORBIDDEN: You do not have access to this project");
+      }
+    }
+    
+    return project;
   }
   async updateMembers(data: {
     orgId: string;
@@ -105,6 +139,32 @@ export class ProjectService {
     });
 
     return true;
+  }
+  async regenerateContext(projectId: string, orgId: string, userId: string) {
+    const [member] = await db
+      .select({ id: members.id, role: members.role })
+      .from(members)
+      .where(and(eq(members.userId, userId), eq(members.orgId, orgId)))
+      .limit(1);
+
+    if (!member) {
+      throw new Error("UNAUTHORIZED: User is not a member of this organization");
+    }
+
+    // Set contextDocument to null so the frontend shows loading state and polls
+    const { projects } = await import("@shipflow/db/schema");
+    await db.update(projects)
+      .set({ contextDocument: null, updatedAt: new Date() })
+      .where(and(eq(projects.id, projectId), eq(projects.orgId, orgId)));
+
+    const { inngest } = await import("../workflow/client");
+    
+    await inngest.send({
+      name: "project.context.generate",
+      data: { projectId, orgId, actorId: userId }
+    });
+
+    return { success: true };
   }
 }
 

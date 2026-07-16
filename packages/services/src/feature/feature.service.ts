@@ -61,11 +61,17 @@ export class FeatureService {
       featureRequestId: feature!.id,
     }).returning();
 
-    // Automatically trigger clarification or PRD generation if description is very long/good.
-    await inngest.send({
-      name: "feature.created",
-      data: { featureId: feature!.id, orgId, actorId: userId }
-    });
+    // Trigger project context generation if this is the very first feature in the project
+    const existingFeatures = await this.listFeatures(orgId, undefined, projectId);
+    if (existingFeatures.length === 1) {
+      await inngest.send({
+        name: "project.context.generate",
+        data: { projectId, orgId }
+      });
+    }
+
+    // NOTE: Clarification is NOT auto-triggered here.
+    // The user manually starts it via the "Run AI Clarifier" button on the feature detail page.
 
     return feature;
   }
@@ -73,19 +79,28 @@ export class FeatureService {
   async startClarification(featureId: string, orgId: string, userId: string) {
     const feature = await this.featureRepo.getFeatureById(featureId, orgId);
     if (!feature) throw new Error("Feature not found");
+
     if (feature.status !== "SUBMITTED" && feature.status !== "CLARIFYING") {
       throw new Error("Invalid state transition to start clarification");
     }
 
-    // Set status to CLARIFYING immediately so the UI can show the background tracker
+    // Set status to CLARIFYING so the UI can show the background tracker
     if (feature.status === "SUBMITTED") {
       await db.update(featureRequests).set({ status: "CLARIFYING" }).where(eq(featureRequests.id, featureId));
     }
 
-    await inngest.send({
-      name: "feature.created",
-      data: { featureId, orgId, actorId: userId }
-    });
+    console.log("[startClarification] Sending inngest event feature.created", { featureId, orgId, actorId: userId });
+    console.log("[startClarification] NODE_ENV:", process.env.NODE_ENV);
+    try {
+      const sendResult = await inngest.send({
+        name: "feature.created",
+        data: { featureId, orgId, actorId: userId }
+      });
+      console.log("[startClarification] inngest.send() result:", JSON.stringify(sendResult));
+    } catch (sendErr: any) {
+      console.error("[startClarification] inngest.send() FAILED:", sendErr.message, sendErr);
+      throw sendErr;
+    }
     
     return { status: "PROCESSING" };
   }
@@ -135,9 +150,21 @@ export class FeatureService {
       .map(f => `ID: ${f.id}\nTitle: ${f.title}\nDescription: ${f.rawDescription}`)
       .join("\n\n");
 
+    // Fetch project context
+    const { projects } = await import("@shipflow/db/schema");
+    const project = await db.query.projects.findFirst({
+      where: eq(projects.id, feature.projectId)
+    });
+
     // Call Clarifier Agent
     const { runClarifierAgent } = await import("@shipflow/ai");
-    const aiResponse = await runClarifierAgent(feature.title, feature.rawDescription, existingFeaturesContext, threadStr);
+    const aiResponse = await runClarifierAgent(
+      feature.title, 
+      feature.rawDescription, 
+      existingFeaturesContext, 
+      threadStr,
+      project?.contextDocument
+    );
 
     // Insert AI reply
     await db.insert(clarificationMessages).values({
@@ -340,6 +367,12 @@ export class FeatureService {
     await inngest.send({
       name: "feature.human.approved",
       data: { featureId, orgId, previousState: feature.status, newState: "SHIPPED", actorId: userId }
+    });
+
+    // Update project context since a new feature has been shipped
+    await inngest.send({
+      name: "project.context.generate",
+      data: { projectId: feature.projectId, orgId }
     });
 
     await createAuditLog({
@@ -579,9 +612,21 @@ export class FeatureService {
       .map(f => `ID: ${f.id}\nTitle: ${f.title}\nDescription: ${f.rawDescription}`)
       .join("\n\n");
 
+    // Fetch project context
+    const { projects } = await import("@shipflow/db/schema");
+    const project = await db.query.projects.findFirst({
+      where: eq(projects.id, feature.projectId)
+    });
+
     // Run clarifier agent
     const { runClarifierAgent } = await import("@shipflow/ai");
-    const { result } = await runClarifierAgent(feature.title, updatedDescription, existingFeaturesContext, transcript);
+    const { result } = await runClarifierAgent(
+      feature.title, 
+      updatedDescription, 
+      existingFeaturesContext, 
+      transcript,
+      project?.contextDocument
+    );
 
     let nextContent = result.message || "";
     if (result.action === "ask_question" && result.questions) {

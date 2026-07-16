@@ -102,6 +102,19 @@ export const GithubIssueCommentCreatedSchema = z.object({
   createdAt: z.string(),
 });
 
+export const ProjectContextGenerateSchema = z.object({
+  projectId: z.string(),
+  orgId: z.string(),
+});
+
+export const TaskImplementationCompletedSchema = z.object({
+  taskId: z.string(),
+  success: z.boolean(),
+  branch: z.string().optional(),
+  commitSha: z.string().optional(),
+  error: z.string().optional(),
+});
+
 export const ShipflowEvents = {
   "github.pr.opened": {
     data: GithubPrOpenedEventSchema,
@@ -153,5 +166,11 @@ export const ShipflowEvents = {
   },
   "tasks.approved_for_dev": {
     data: TasksApprovedForDevSchema,
+  },
+  "project.context.generate": {
+    data: ProjectContextGenerateSchema,
+  },
+  "tasks.implementation.completed": {
+    data: TaskImplementationCompletedSchema,
   },
 };

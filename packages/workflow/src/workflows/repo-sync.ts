@@ -33,10 +33,10 @@ export const syncRepositoryWorkflow = inngest.createFunction(
 
     // Step 1: Mark as SYNCING
     await step.run("mark-syncing", async () => {
-      await db
+      await (db as any)
         .update(repositories)
         .set({ syncStatus: "SYNCING" })
-        .where(eq(repositories.id, repositoryId));
+        .where(eq((repositories as any).id, repositoryId));
     });
 
     // Step 2: Fetch all indexable files from the repository
@@ -76,14 +76,14 @@ export const syncRepositoryWorkflow = inngest.createFunction(
 
     // Step 5: Mark as SYNCED and update stats
     await step.run("mark-synced", async () => {
-      await db
+      await (db as any)
         .update(repositories)
         .set({
           syncStatus: "SYNCED",
           syncChunkCount: chunks.length,
           lastSyncedAt: new Date(),
         })
-        .where(eq(repositories.id, repositoryId));
+        .where(eq((repositories as any).id, repositoryId));
     });
 
     return {

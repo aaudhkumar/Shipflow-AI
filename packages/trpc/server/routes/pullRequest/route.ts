@@ -65,6 +65,27 @@ export const pullRequestRouter = router({
       if (!pr) throw new TRPCError({ code: "NOT_FOUND", message: "Pull Request not found" });
       return pr;
     }),
+  getByFeatureId: orgMemberProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/{orgId}/feature/{featureId}"), tags: TAGS } })
+    .input(z.object({ orgId: z.string(), featureId: z.string() }))
+    .output(z.array(getPullRequestWithReviewsOutputSchema))
+    .query(async ({ input }) => {
+      return await db.query.pullRequests.findMany({
+        where: and(
+          eq(pullRequests.orgId, input.orgId),
+          eq(pullRequests.featureRequestId, input.featureId)
+        ),
+        with: {
+          reviews: {
+            with: {
+              findings: true
+            },
+            orderBy: desc(pullRequestReviews.createdAt)
+          },
+          featureRequest: true,
+        }
+      });
+    }),
   updateFindingStatus: orgMemberProcedure
     .meta({ openapi: { method: "PUT", path: getPath("/{orgId}/findings/{findingId}/status"), tags: TAGS } })
     .input(z.object({ orgId: z.string(), findingId: z.string(), status: z.string() }))

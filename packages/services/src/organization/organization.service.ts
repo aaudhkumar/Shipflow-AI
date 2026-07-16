@@ -34,7 +34,7 @@ export class OrganizationService {
   async getAnalytics(orgId: string, days: number = 7) {
     return await this.organizationRepo.getAnalytics(orgId, days);
   }
-  async updateSettings(orgId: string, data: { name?: string; retentionDays?: number }) {
+  async updateSettings(orgId: string, data: { name?: string; retentionDays?: number; isAutopilotEnabled?: boolean }) {
     return await this.organizationRepo.updateSettings(orgId, data);
   }
 

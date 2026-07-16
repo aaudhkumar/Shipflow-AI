@@ -15,23 +15,35 @@ export const implementFeatureTasks = inngest.createFunction(
       await step.run(`mark-in-progress-${claimed.id}`, () =>
         taskExecutionService.markTaskStatus(claimed.id, "in_progress"));
 
-      // For now, stub the call to codeWorkerClient
-      const result = await step.run(`implement-${claimed.id}`, async () => {
-        // Will implement in Step 7
-        try {
-          const workerUrl = process.env.CODE_WORKER_URL || "http://localhost:3004";
-          const res = await fetch(`${workerUrl}/implement`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ taskId: claimed.id }),
-          });
-          if (!res.ok) throw new Error("Worker failed");
-          return await res.json();
-        } catch (e) {
-          console.error(e);
-          return { success: false, error: String(e) };
-        }
+      await step.run(`trigger-${claimed.id}`, async () => {
+        const isDev = process.env.NODE_ENV === "development";
+        const workerUrl = isDev 
+          ? "http://localhost:3004" 
+          : (process.env.CODE_WORKER_URL || "https://shipflow-ai.onrender.com");
+          
+        const res = await fetch(`${workerUrl}/implement`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ taskId: claimed.id }),
+        });
+        if (!res.ok) throw new Error("Worker failed to accept request");
       });
+
+      // Wait for the worker to finish and send the completion event (up to 15 mins)
+      const resultEvent = await step.waitForEvent(`wait-for-${claimed.id}`, {
+        event: "tasks.implementation.completed",
+        timeout: "15m",
+        match: "data.taskId"
+      });
+
+      if (!resultEvent) {
+         // Timed out
+         await step.run(`mark-timeout-${claimed.id}`, () =>
+           taskExecutionService.markTaskStatus(claimed.id, "failed", { error: "Worker timed out after 15 minutes." }));
+         continue; // Move to the next task
+      }
+
+      const result = resultEvent.data;
 
       await step.run(`mark-result-${claimed.id}`, () =>
         taskExecutionService.markTaskStatus(claimed.id, result.success ? "done" : "failed", {
