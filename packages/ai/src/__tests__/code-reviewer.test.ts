@@ -107,7 +107,7 @@ describe('Code Reviewer Agent', () => {
           {
             filePath: 'src/index.ts',
             lineNumber: null,
-            findingType: 'PRD_DEVIATION',
+            findingType: 'TASK_DEVIATION',
             isBlocking: true,
             severity: 'MAJOR',
             comment: 'Missed AC1',

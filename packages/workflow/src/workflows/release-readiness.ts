@@ -1,7 +1,7 @@
 import { inngest } from "../../../services/src/workflow/client";
 import { db } from "@shipflow/db";
 import { featureRequests, prdVersions, tasks, pullRequests, pullRequestReviews, reviewFindings, epics, prds } from "@shipflow/db/schema";
-import { eq, desc, inArray } from "@shipflow/db";
+import { eq, desc, inArray, and, notInArray } from "@shipflow/db";
 
 import { runReleaseReadinessAgent } from "@shipflow/ai";
 
@@ -46,7 +46,6 @@ export const releaseReadinessWorkflow = inngest.createFunction(
       const tasksContext = `Total Tasks: ${featureTasks.length}, Completed: ${completedTasks}. Pending: ${featureTasks.filter(t => t.status !== "DONE").map(t => t.title).join(", ") || "None"}`;
 
       // Fetch Code Review Context
-      const { and, notInArray } = await import("drizzle-orm");
       const prs = await db.select({ id: pullRequests.id, taskId: pullRequests.taskId, title: pullRequests.title, state: pullRequests.state, createdAt: pullRequests.createdAt })
         .from(pullRequests)
         .where(

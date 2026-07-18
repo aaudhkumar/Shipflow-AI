@@ -10,7 +10,7 @@ type ReviewComment = {
     | "SECURITY"
     | "PERFORMANCE"
     | "ARCHITECTURE"
-    | "PRD_DEVIATION"
+    | "TASK_DEVIATION"
     | "CODE_QUALITY"
     | "EDGE_CASE"
     | "TEST_COVERAGE";

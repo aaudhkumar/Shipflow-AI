@@ -223,11 +223,11 @@ export const featureRouter = router({
     .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/refresh-release-readiness"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
     .output(z.object({ success: z.boolean() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { inngest } = await import("@shipflow/services/workflow/client");
       await inngest.send({
         name: "feature.awaiting.approval",
-        data: { featureId: input.featureId, orgId: input.orgId }
+        data: { featureId: input.featureId, orgId: input.orgId, previousState: "AWAITING_APPROVAL", newState: "AWAITING_APPROVAL", actorId: ctx.session.user.id }
       });
       return { success: true };
     }),
