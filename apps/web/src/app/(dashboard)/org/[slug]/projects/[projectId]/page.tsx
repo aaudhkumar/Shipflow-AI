@@ -7,8 +7,9 @@ import Link from "next/link";
 import { FeatureStatusBadge } from "@/components/features/feature-status-badge";
 import { SourceChannelBadge } from "@/components/features/source-channel-badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Inbox, ArrowLeft, FolderGit2 } from "lucide-react";
+import { Plus, Inbox, ArrowLeft, FolderGit2, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 import { ManageProjectMembersDialog } from "@/components/projects/manage-members-dialog";
 import { ProjectDocumentDialog } from "@/components/projects/project-document-dialog";
@@ -33,6 +34,16 @@ export default function ProjectDetailsPage() {
     { orgId: org?.id!, projectId },
     { enabled: !!org?.id && !!projectId }
   );
+
+  const deleteProject = trpc.project.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Project deleted successfully");
+      router.push(`/org/${slug}/projects`);
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to delete project");
+    }
+  });
 
   const [channelFilter, setChannelFilter] = useState("ALL");
 
@@ -84,6 +95,20 @@ export default function ProjectDetailsPage() {
                 projectName={project.name}
                 currentMemberIds={project.members?.map((m: any) => m.memberId) || []}
               />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                disabled={deleteProject.isPending}
+                className="h-10 w-10 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                title="Delete Project"
+                onClick={() => {
+                  if (confirm("Are you sure you want to delete this project? This will also delete all associated feature requests and tasks.")) {
+                    deleteProject.mutate({ orgId: org!.id, projectId: project.id });
+                  }
+                }}
+              >
+                <Trash2 className="w-5 h-5" />
+              </Button>
             </div>
           )}
         </div>

@@ -2,7 +2,8 @@ import { projectRepository } from "./project.repository";
 import { createAuditLog } from "../audit/audit.service";
 import { db } from "@shipflow/db";
 import { members } from "@shipflow/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and } from "@shipflow/db";
+
 
 export class ProjectService {
   async createProject(data: {
@@ -29,7 +30,9 @@ export class ProjectService {
     }
 
     const memberIds = new Set(data.memberIds || []);
-    memberIds.add(member.id); // Always add creator
+    if (memberIds.size === 0) {
+      memberIds.add(member.id);
+    }
 
     const project = await projectRepository.createProject({
       orgId: data.orgId,
@@ -51,6 +54,13 @@ export class ProjectService {
         repositoryCount: data.repositoryIds?.length || 0,
         memberCount: data.memberIds?.length || 0
       },
+    });
+
+    // 4. Trigger initial context generation
+    const { inngest } = await import("../workflow/client");
+    await inngest.send({
+      name: "project.context.generate",
+      data: { projectId: project.id, orgId: data.orgId, actorId: data.userId }
     });
 
     return project;
@@ -165,6 +175,27 @@ export class ProjectService {
     });
 
     return { success: true };
+  }
+
+  async deleteProject(projectId: string, orgId: string, userId: string) {
+    // 1. Authorize: Check if user is OWNER, ADMIN, or PM
+    const [member] = await db
+      .select({ id: members.id, role: members.role })
+      .from(members)
+      .where(and(eq(members.userId, userId), eq(members.orgId, orgId)))
+      .limit(1);
+
+    if (!member) {
+      throw new Error("UNAUTHORIZED: User is not a member of this organization");
+    }
+
+    if (member.role !== "OWNER" && member.role !== "ADMIN" && member.role !== "PM") {
+      throw new Error("FORBIDDEN: Only Owners, Admins, or PMs can delete projects");
+    }
+
+    const deletedProject = await projectRepository.deleteProject(projectId);
+
+    return { success: true, project: deletedProject };
   }
 }
 

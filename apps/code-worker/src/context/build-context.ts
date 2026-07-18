@@ -94,9 +94,12 @@ Epic Description: ${epicData.description}
 Task Title: ${taskData.title}
 Task Implementation Details: ${taskData.technicalImplementationDetails}
 Acceptance Criteria:
-${taskData.subtasks?.map(st => `- ${st.description}`).join("\n")}
+${taskData.subtasks?.map((st: any) => `- ${st.description}`).join("\n")}
+${taskData.fixesPrompt ? `\nCRITICAL FIXES NEEDED FROM PREVIOUS REVIEW:\n${taskData.fixesPrompt}\n\n🚨 YOU MUST STRICTLY FIX THE URGENT BLOCKERS ABOVE FIRST, followed by ALL the minor findings. Your implementation will be rejected if ANY of the findings (blockers or minor) remain. Ensure your code solves the exact issues mentioned.` : ""}
 </CONTEXT>
 `;
+
+  console.log("=== AI SYSTEM PROMPT ===\n", systemPrompt, "\n=======================");
 
   return { systemPrompt, featureData, prdData, epicData, taskData, repoData, installationData };
 }

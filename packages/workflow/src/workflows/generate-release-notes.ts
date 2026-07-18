@@ -2,7 +2,8 @@ import { inngest } from "../../../services/src/workflow/client";
 import { runSummarizerAgent } from "@shipflow/ai";
 import { db } from "@shipflow/db";
 import { releaseNotes, pullRequests } from "@shipflow/db/schema";
-import { eq, desc, and, isNotNull, gt } from "drizzle-orm";
+import { eq, desc, and, isNotNull, gt } from "@shipflow/db";
+
 
 export const generateReleaseNotesWorkflow = inngest.createFunction(
   { id: "generate-release-notes" },

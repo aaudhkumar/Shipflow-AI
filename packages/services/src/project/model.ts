@@ -12,3 +12,4 @@ export const getProjectOutputSchema = z.any() as z.ZodType<NonNullable<Awaited<R
 export const getProjectListOutputSchema = z.any() as z.ZodType<NonNullable<Awaited<ReturnType<typeof projectService.listProjects>>>>;
 export const createProjectOutputSchema = z.any() as z.ZodType<NonNullable<Awaited<ReturnType<typeof projectService.createProject>>>>;
 export const updateProjectMembersOutputSchema = z.any() as z.ZodType<NonNullable<Awaited<ReturnType<typeof projectService.updateMembers>>>>;
+export const deleteProjectOutputSchema = z.any() as z.ZodType<NonNullable<Awaited<ReturnType<typeof projectService.deleteProject>>>>;

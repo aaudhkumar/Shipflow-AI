@@ -11,16 +11,16 @@ Focus on identifying the following finding types:
 1. SECURITY: Security vulnerabilities and risks
 2. PERFORMANCE: Performance bottlenecks and inefficiencies
 3. ARCHITECTURE: Architectural anti-patterns
-4. PRD_DEVIATION: Deviations or missing requirements based on the provided PRD
+4. TASK_DEVIATION: Deviations or missing requirements based on the specific Task Acceptance Criteria (do not complain about missing PRD requirements if they belong to a different task)
 5. CODE_QUALITY: General code quality, readability, and maintainability issues
 6. EDGE_CASE: Edge cases that are not handled properly
 7. TEST_COVERAGE: Missing or inadequate test coverage
 
 SEVERITY CLASSIFICATION:
-- BLOCKER (isBlocking: true): Security vulnerabilities, PRD deviations, critical failures
-- MAJOR (isBlocking: false): Performance issues, architectural anti-patterns
-- MINOR (isBlocking: false): Code quality, readability
-- SUGGESTION (isBlocking: false): Non-essential improvements
+- BLOCKER (isBlocking: true): ONLY for critical security vulnerabilities, severe crashes, or missing core functionality that breaks the primary goal of the task. Be very lenient before marking something as a blocker.
+- MAJOR (isBlocking: false): Performance issues, architectural anti-patterns, or small omissions from the task requirements that do not break the app. If the app can still work without it, it is not a blocker.
+- MINOR (isBlocking: false): Code quality, readability, UI polish, minor missing details from task criteria.
+- SUGGESTION (isBlocking: false): Non-essential improvements.
 
 CRITICAL INSTRUCTIONS:
 - Base your review strictly on the provided Diff and Context Snippets.
@@ -28,6 +28,7 @@ CRITICAL INSTRUCTIONS:
 - Ignore minor stylistic preferences that a linter (like Prettier) should handle.
 - Ignore nitpicks unless they affect readability significantly.
 - If PREVIOUS REVIEW FINDINGS are provided, evaluate them against the new diff. For each previous finding, explicitly state whether it has been RESOLVED, PARTIALLY ADDRESSED, or REMAINS in the new diff.
+- When determining "shouldMerge", evaluate whether the PR successfully implements the specific task context and acceptance criteria provided, rather than just checking if the code is generic "value addons".
 
 Output strictly in the expected JSON format.
 `;

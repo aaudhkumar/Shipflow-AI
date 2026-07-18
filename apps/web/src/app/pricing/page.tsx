@@ -9,7 +9,7 @@ const plans = [
   {
     id: "FREE",
     name: "Free",
-    price: "$0",
+    price: "₹0",
     description: "For small teams and side projects.",
     features: ["Up to 3 Team Members", "Basic Issue Tracking", "Community Support"],
     buttonText: "Get Started",
@@ -18,7 +18,7 @@ const plans = [
   {
     id: "PRO_MONTHLY",
     name: "Pro Plan",
-    price: "$29",
+    price: "₹999",
     period: "/mo",
     description: "For growing teams that need more power.",
     features: ["Unlimited Team Members", "Advanced Workflows", "AI Code Reviews", "Priority Support"],
@@ -28,7 +28,7 @@ const plans = [
   {
     id: "ENTERPRISE",
     name: "Enterprise",
-    price: "Custom",
+    price: "₹2999",
     description: "For large organizations with complex needs.",
     features: ["Custom Workflows", "Dedicated Success Manager", "SLA", "Advanced Security"],
     buttonText: "Contact Sales",

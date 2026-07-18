@@ -9,7 +9,7 @@ export const releases = pgTable("releases", {
     .references(() => organizations.id, { onDelete: "cascade" }),
   projectId: text("project_id")
     .notNull()
-    .references(() => projects.id),
+    .references(() => projects.id, { onDelete: "cascade" }),
   version: text("version").notNull(),
   releaseNotes: text("release_notes"),
   deployedAt: timestamp("deployed_at"),

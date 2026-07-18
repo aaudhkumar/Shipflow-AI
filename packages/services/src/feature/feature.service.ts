@@ -3,7 +3,8 @@ import { FeatureRepository } from "./feature.repository";
 import { inngest } from "../workflow/client";
 import { db } from "@shipflow/db";
 import { pullRequests, pullRequestReviews, reviewFindings, approvals, clarificationThreads, clarificationMessages, featureRequests } from "@shipflow/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and } from "@shipflow/db";
+
 import * as crypto from "crypto";
 import { createAuditLog, AuditAction } from "../audit/audit.service";
 import { createNotification, notifyOrgRoles } from "../notification/notification.service";
@@ -146,7 +147,7 @@ export class FeatureService {
     // We can also provide existing features context for duplicate detection (scoped to project)
     const existingFeatures = await this.listFeatures(orgId, undefined, feature.projectId);
     const existingFeaturesContext = existingFeatures
-      .filter(f => f.id !== featureId)
+      .filter(f => f.id !== featureId && f.status !== "REJECTED")
       .map(f => `ID: ${f.id}\nTitle: ${f.title}\nDescription: ${f.rawDescription}`)
       .join("\n\n");
 
@@ -223,10 +224,53 @@ export class FeatureService {
     return { status: "PROCESSING" };
   }
 
-  async generateTasks(featureId: string, orgId: string, userId: string) {
+  async generateExecutionPlan(featureId: string, orgId: string, userId: string) {
     const feature = await this.featureRepo.getFeatureById(featureId, orgId);
     if (!feature) throw new Error("Feature not found");
     if (feature.status !== "PRD_GENERATED") {
+      throw new Error("Invalid state transition to EXECUTION_PLAN_GENERATED");
+    }
+
+    await inngest.send({
+      name: "feature.execution_plan.generated",
+      data: { featureId, orgId, previousState: feature.status, newState: "EXECUTION_PLAN_GENERATED", actorId: userId }
+    });
+
+    await createAuditLog({
+      orgId, actorId: userId, action: AuditAction.FEATURE_EXECUTION_PLAN_GENERATED,
+      resourceType: 'FEATURE', resourceId: featureId
+    });
+
+    return { status: "PROCESSING" };
+  }
+
+  async updateExecutionPlan(featureId: string, orgId: string, userId: string, executionPlanContent: string) {
+    const feature = await this.featureRepo.getFeatureById(featureId, orgId);
+    if (!feature) throw new Error("Feature not found");
+    if (feature.status !== "EXECUTION_PLAN_GENERATED") {
+      throw new Error("Execution plan can only be updated in EXECUTION_PLAN_GENERATED status");
+    }
+
+    const { featureRequests } = await import("@shipflow/db/schema");
+    const { eq } = await import("@shipflow/db");
+
+    await db.update(featureRequests)
+      .set({ executionPlan: executionPlanContent, updatedAt: new Date() })
+      .where(eq(featureRequests.id, featureId));
+
+    await createAuditLog({
+      orgId, actorId: userId, action: AuditAction.FEATURE_UPDATED,
+      resourceType: 'FEATURE', resourceId: featureId,
+      metadata: { field: 'executionPlan' }
+    });
+
+    return { success: true };
+  }
+
+  async generateTasks(featureId: string, orgId: string, userId: string) {
+    const feature = await this.featureRepo.getFeatureById(featureId, orgId);
+    if (!feature) throw new Error("Feature not found");
+    if (feature.status !== "EXECUTION_PLAN_GENERATED") {
       throw new Error("Invalid state transition to TASKS_GENERATED");
     }
 
@@ -267,6 +311,8 @@ export class FeatureService {
       throw new Error("Invalid state transition to PLAN_APPROVED");
     }
 
+    await this.featureRepo.updateFeatureStatus(featureId, orgId, "PLAN_APPROVED");
+
     await inngest.send({
       name: "feature.plan.approved",
       data: { featureId, orgId, previousState: feature.status, newState: "PLAN_APPROVED", actorId: userId }
@@ -277,7 +323,7 @@ export class FeatureService {
       resourceType: 'FEATURE', resourceId: featureId
     });
 
-    return { status: "PROCESSING" };
+    return { status: "PLAN_APPROVED" };
   }
 
   async failReview(featureId: string, orgId: string, userId: string) {
@@ -422,8 +468,42 @@ export class FeatureService {
   async markReviewPassed(featureId: string, orgId: string) {
     const feature = await this.featureRepo.getFeatureById(featureId, orgId);
     if (!feature) throw new Error("Feature not found");
-    if (feature.status !== "IN_REVIEW") {
+    if (feature.status !== "IN_REVIEW" && feature.status !== "IN_DEVELOPMENT" && feature.status !== "FIX_NEEDED") {
       throw new Error("Invalid state transition to AWAITING_HUMAN_APPROVAL");
+    }
+
+    // 1. Get all PRs for this feature
+    const prs = await db.select({ id: pullRequests.id })
+      .from(pullRequests)
+      .where(eq(pullRequests.featureRequestId, featureId));
+    
+    let hasGlobalBlockers = false;
+
+    if (prs.length > 0) {
+      const prIds = prs.map(pr => pr.id);
+      
+      // 2. For each PR, check its *latest* review to see if it has open blockers
+      for (const prId of prIds) {
+        const latestReview = await db.query.pullRequestReviews.findFirst({
+          where: eq(pullRequestReviews.pullRequestId, prId),
+          orderBy: (reviews, { desc }) => [desc(reviews.createdAt)],
+          with: {
+            findings: {
+              where: (findings, { eq, and }) => and(eq(findings.isBlocking, true), eq(findings.status, "OPEN"))
+            }
+          }
+        });
+        
+        if (latestReview && latestReview.findings.length > 0) {
+          hasGlobalBlockers = true;
+          break;
+        }
+      }
+    }
+
+    if (hasGlobalBlockers) {
+      await this.featureRepo.updateFeatureStatus(featureId, orgId, "FIX_NEEDED");
+      return { status: "FIX_NEEDED", reason: "Other tasks still have blocking findings" };
     }
 
     await this.featureRepo.updateFeatureStatus(featureId, orgId, "AWAITING_HUMAN_APPROVAL");
@@ -480,6 +560,11 @@ export class FeatureService {
   async markInReview(featureId: string, orgId: string) {
     const feature = await this.featureRepo.getFeatureById(featureId, orgId);
     if (!feature) throw new Error("Feature not found");
+    
+    if (feature.status === "IN_REVIEW") {
+      return { status: "IN_REVIEW" };
+    }
+
     if (feature.status !== "IN_DEVELOPMENT" && feature.status !== "FIX_NEEDED") {
       throw new Error("Invalid state transition to IN_REVIEW");
     }
@@ -500,12 +585,18 @@ export class FeatureService {
 
     const feature = await this.featureRepo.getFeatureById(featureId, orgId);
     if (!feature) throw new Error("Feature not found");
-    if (feature.status !== "IN_DEVELOPMENT" && feature.status !== "FIX_NEEDED" && feature.status !== "IN_REVIEW") {
-      throw new Error("Invalid state transition to PLAN_APPROVED for execution redo");
+    const allowedRedoStates = [
+      "TASKS_GENERATED", "PLAN_APPROVED", "IN_DEVELOPMENT", 
+      "FIX_NEEDED", "IN_REVIEW", "AWAITING_HUMAN_APPROVAL", 
+      "SHIPPED", "REJECTED"
+    ];
+    if (!allowedRedoStates.includes(feature.status)) {
+      throw new Error(`Invalid state transition to PLAN_APPROVED for execution redo from ${feature.status}`);
     }
 
     const { tasks, subtasks } = await import("@shipflow/db/schema");
-    const { inArray, notInArray } = await import("drizzle-orm");
+    const { inArray, notInArray } = await import("@shipflow/db");
+
 
     // Fetch tasks belonging to this feature
     const schema = await import("@shipflow/db/schema");
@@ -524,23 +615,50 @@ export class FeatureService {
     if (epicTasks && epicTasks.tasks.length > 0) {
       const taskIds = epicTasks.tasks.map(t => t.id);
       
-      // Update tasks that are NOT done back to TODO
-      await db.update(tasks)
-        .set({ status: "TODO", executionStatus: "ready" })
-        .where(
-          and(
-            inArray(tasks.id, taskIds),
-            notInArray(tasks.status, ["DONE"])
-          )
-        );
+      // Fetch the latest PR and its review findings
+      const pr = await db.query.pullRequests.findFirst({
+        where: eq(schema.pullRequests.featureRequestId, featureId),
+        orderBy: (prs, { desc }) => [desc(prs.createdAt)],
+        with: {
+          reviews: {
+            orderBy: (reviews, { desc }) => [desc(reviews.createdAt)],
+            limit: 1,
+            with: { findings: true }
+          }
+        }
+      });
+      
+      let fixesPrompt = null;
+      if (pr?.reviews?.[0]?.findings?.length) {
+        const findings = pr.reviews[0].findings;
+        const blockers = findings.filter((f: any) => f.isBlocking);
+        const normal = findings.filter((f: any) => !f.isBlocking);
         
-      // Reset subtask completions for non-done tasks
-      const nonDoneTaskIds = epicTasks.tasks.filter(t => t.status !== "DONE").map(t => t.id);
-      if (nonDoneTaskIds.length > 0) {
-        await db.update(subtasks)
-          .set({ isCompleted: false })
-          .where(inArray(subtasks.taskId, nonDoneTaskIds));
+        let promptText = "";
+        if (blockers.length > 0) {
+          promptText += `🚨 URGENT BLOCKERS (MUST FIX THESE FIRST):\n`;
+          promptText += blockers.map((c: any) => `File: ${c.filePath}${c.lineNumber ? `:${c.lineNumber}` : ''}\nIssue: ${c.description}${c.suggestion ? `\nSuggested Fix: ${c.suggestion}` : ''}`).join("\n\n");
+          promptText += `\n\n`;
+        }
+        if (normal.length > 0) {
+          promptText += `⚠️ MINOR FINDINGS (You MUST fix these as well, but prioritize blockers):\n`;
+          promptText += normal.map((c: any) => `File: ${c.filePath}${c.lineNumber ? `:${c.lineNumber}` : ''}\nIssue: ${c.description}${c.suggestion ? `\nSuggested Fix: ${c.suggestion}` : ''}`).join("\n\n");
+        }
+        
+        if (promptText) {
+          fixesPrompt = `[AI REVIEW FINDINGS - PLEASE FIX THESE ISSUES]\n\n${promptText.trim()}`;
+        }
       }
+
+      // Update ALL tasks back to TODO so the AI will re-run them
+      await db.update(tasks)
+        .set({ status: "TODO", executionStatus: "ready", fixesPrompt: fixesPrompt || null })
+        .where(inArray(tasks.id, taskIds));
+        
+      // Reset subtask completions for all tasks
+      await db.update(subtasks)
+        .set({ isCompleted: false })
+        .where(inArray(subtasks.taskId, taskIds));
     }
 
     await this.featureRepo.updateFeatureStatus(featureId, orgId, "PLAN_APPROVED");
@@ -608,7 +726,7 @@ export class FeatureService {
     // Build existing features context for duplicate detection
     const existingFeatures = await this.listFeatures(orgId, undefined, feature.projectId);
     const existingFeaturesContext = existingFeatures
-      .filter(f => f.id !== featureId)
+      .filter(f => f.id !== featureId && f.status !== "REJECTED")
       .map(f => `ID: ${f.id}\nTitle: ${f.title}\nDescription: ${f.rawDescription}`)
       .join("\n\n");
 

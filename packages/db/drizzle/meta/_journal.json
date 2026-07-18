@@ -120,6 +120,34 @@
       "when": 1784147033375,
       "tag": "0016_great_retro_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1784269882125,
+      "tag": "0017_secret_psynapse",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1784301119159,
+      "tag": "0018_closed_black_widow",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1784301467678,
+      "tag": "0019_petite_hellion",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1784365043514,
+      "tag": "0020_special_invaders",
+      "breakpoints": true
     }
   ]
 }

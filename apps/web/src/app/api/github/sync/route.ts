@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { inngest } from "@shipflow/workflow";
 import { db } from "@shipflow/db";
 import { repositories, githubInstallations } from "@shipflow/db/schema";
-import { eq } from "drizzle-orm";
+import { eq } from "@shipflow/db";
+
 
 export async function POST(req: NextRequest) {
   try {

@@ -1,7 +1,8 @@
 import { z } from "zod";
 import type { FeatureService } from "./feature.service";
 import type { reviewFindings } from "@shipflow/db/schema";
-import type { InferSelectModel } from "drizzle-orm";
+import type { InferSelectModel } from "@shipflow/db";
+
 
 declare const featureService: FeatureService;
 
@@ -24,3 +25,5 @@ export const failReviewOutputSchema = z.any() as z.ZodType<NonNullable<Awaited<R
 export const approveHumanReleaseOutputSchema = z.any() as z.ZodType<NonNullable<Awaited<ReturnType<typeof featureService.approveHumanRelease>>>>;
 export const addClarificationReplyOutputSchema = z.any() as z.ZodType<NonNullable<Awaited<ReturnType<typeof featureService.processClarificationReply>>>>;
 export const submitClarificationAnswersOutputSchema = z.any() as z.ZodType<NonNullable<Awaited<ReturnType<typeof featureService.submitClarificationAnswers>>>>;
+export const generateExecutionPlanOutputSchema = z.any() as z.ZodType<NonNullable<Awaited<ReturnType<typeof featureService.generateExecutionPlan>>>>;
+export const updateExecutionPlanOutputSchema = z.any() as z.ZodType<NonNullable<Awaited<ReturnType<typeof featureService.updateExecutionPlan>>>>;

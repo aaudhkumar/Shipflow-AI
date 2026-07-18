@@ -2,7 +2,8 @@ import { inngest } from "../../../services/src/workflow/client";
 import { getInstallationOctokit } from "@shipflow/github";
 import { db } from "@shipflow/db";
 import { repositories } from "@shipflow/db/schema";
-import { eq } from "drizzle-orm";
+import { eq } from "@shipflow/db";
+
 import { fetchRepoFiles } from "@shipflow/services/github/files";
 import { chunkRepoFiles } from "@shipflow/services/utils/chunk";
 import {

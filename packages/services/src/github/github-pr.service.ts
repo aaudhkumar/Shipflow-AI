@@ -23,7 +23,8 @@ class GithubPrService {
     });
     
     // Hard constraint #6: metaBlock is built from trusted function parameters supplied by the orchestrator, never from the LLM's output
-    const metaBlock = `<!-- shipflow:meta\nfeatureRequestId: ${input.featureRequestId}\nprdId: ${input.prdId}\n-->`;
+    const taskIdLine = input.taskId ? `\ntaskId: ${input.taskId}` : '';
+    const metaBlock = `<!-- shipflow:meta\nfeatureRequestId: ${input.featureRequestId}\nprdId: ${input.prdId}${taskIdLine}\n-->`;
     
     // Basic sanitization
     const sanitizedSummary = input.summary.replace(/<!--[\s\S]*?-->/g, "");

@@ -46,8 +46,8 @@ export function ExpandableContent({
   };
 
   return (
-    <div className="rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm shadow-sm overflow-hidden flex flex-col relative print:border-none print:shadow-none">
-      <div className="border-b border-border/50 bg-muted/20 px-4 py-3 flex items-center justify-between print:hidden">
+    <div className="rounded-xl border border-primary/10 bg-primary/[0.02] backdrop-blur-sm shadow-sm overflow-hidden flex flex-col relative print:border-none print:shadow-none">
+      <div className="border-b border-primary/10 bg-primary/[0.02] px-4 py-3 flex items-center justify-between print:hidden">
         <div className="flex items-center gap-2">
           {icon}
           <h3 className="font-medium text-sm">{title}</h3>

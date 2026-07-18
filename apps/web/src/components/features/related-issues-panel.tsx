@@ -9,7 +9,7 @@ export function RelatedIssuesPanel({ featureId, orgId }: { featureId: string, or
   const { data: issues, isLoading } = trpc.feature.getLinkedIssues.useQuery({ featureId, orgId });
 
   return (
-    <Card>
+    <Card className="border-primary/10 bg-primary/[0.02] shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Github className="h-4 w-4" />

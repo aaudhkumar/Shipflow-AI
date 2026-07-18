@@ -162,7 +162,7 @@ export function OrgSwitcher({ currentSlug }: OrgSwitcherProps) {
         <DropdownMenuItem
           onSelect={async () => {
             await signOut()
-            router.push("/login")
+            router.push("/")
           }}
           className="cursor-pointer p-2 mx-1 rounded-lg text-muted-foreground focus:text-foreground"
         >

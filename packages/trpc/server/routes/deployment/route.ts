@@ -2,7 +2,7 @@ import { z } from "zod";
 import { router, orgMemberProcedure } from "../../trpc";
 import { db } from "@shipflow/db";
 import { deployments, repositories } from "@shipflow/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and, gte } from "drizzle-orm";
 import { getDeploymentListOutputSchema } from "@shipflow/services/deployment/model";
 import { generatePath } from "../../utils/path-generator";
 
@@ -28,9 +28,13 @@ export const deploymentRouter = router({
         })
         .from(deployments)
         .innerJoin(repositories, eq(deployments.repositoryId, repositories.id))
-        .where(eq(repositories.orgId, input.orgId))
-        .orderBy(desc(deployments.createdAt))
-        .limit(10);
+        .where(
+          and(
+            eq(repositories.orgId, input.orgId),
+            gte(deployments.createdAt, new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+          )
+        )
+        .orderBy(desc(deployments.createdAt));
         
       return records.map(r => ({
         id: r.id,

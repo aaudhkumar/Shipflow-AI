@@ -35,11 +35,7 @@ export default async function PRInsightsPage({ params }: { params: Promise<{ slu
   const findings = latestReview?.findings || [];
   const blockers = findings.filter((f: any) => f.severity === "BLOCKER" || f.isBlocking);
 
-  // Get readiness if available
-  let readiness = null;
-  if (pr.featureRequest && pr.featureRequest.status === "AWAITING_HUMAN_APPROVAL") {
-    readiness = await api.feature.getReleaseReadiness.query({ orgId: org.id, featureId: pr.featureRequest.id });
-  }
+  // Removed readiness fetch from PR page
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
@@ -110,49 +106,6 @@ export default async function PRInsightsPage({ params }: { params: Promise<{ slu
             </p>
             {latestReview && <ReviewRatingButtons orgId={org.id} reviewId={latestReview.id} />}
           </div>
-        </div>
-      )}
-
-      {readiness && (
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-primary" /> 
-              Release Readiness Verdict
-            </h3>
-            <Badge variant={readiness.isReady ? "default" : "destructive"}>
-              Score: {readiness.overallScore}/100
-            </Badge>
-          </div>
-          <p className="text-sm font-medium">{readiness.recommendation}</p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            {readiness.blockers && readiness.blockers.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-destructive">Blockers</h4>
-                <ul className="text-sm text-muted-foreground list-disc list-inside">
-                  {readiness.blockers.map((b: string, i: number) => <li key={i}>{b}</li>)}
-                </ul>
-              </div>
-            )}
-            {readiness.warnings && readiness.warnings.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-amber-500">Warnings</h4>
-                <ul className="text-sm text-muted-foreground list-disc list-inside">
-                  {readiness.warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          {readiness.releaseNotes && (
-            <div className="mt-4 pt-4 border-t border-primary/10">
-              <h4 className="text-sm font-semibold mb-2">Draft Release Notes</h4>
-              <div className="bg-background/50 rounded-lg p-4 text-sm font-mono whitespace-pre-wrap">
-                {readiness.releaseNotes}
-              </div>
-            </div>
-          )}
         </div>
       )}
 

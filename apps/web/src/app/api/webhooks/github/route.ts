@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyGithubWebhook } from "@shipflow/github";
 import { inngest } from "@shipflow/workflow";
 import { db } from "@shipflow/db";
-import { repositories, pullRequests, webhookEvents } from "@shipflow/db/schema";
-import { eq, and } from "drizzle-orm";
+import { repositories, pullRequests, webhookEvents, featureRequests, tasks, epics, prds } from "@shipflow/db/schema";
+import { eq, and } from "@shipflow/db";
+
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-hub-signature-256");
@@ -78,9 +79,16 @@ export async function POST(req: NextRequest) {
 
     let featureRequestId: string | null = null;
     let taskId: string | null = null;
+    
+    if (data.pull_request.body) {
+      const featureIdMatch = data.pull_request.body.match(/featureRequestId:\s*([0-9a-f-]+)/i);
+      if (featureIdMatch) featureRequestId = featureIdMatch[1];
+      
+      const taskIdMatch = data.pull_request.body.match(/taskId:\s*([0-9a-f-]+)/i);
+      if (taskIdMatch) taskId = taskIdMatch[1];
+    }
 
     if (matches.size > 0) {
-      const { featureRequests, tasks, epics, prds } = await import("@shipflow/db/schema");
       for (const uuid of matches) {
         if (featureRequestId && taskId) break;
         

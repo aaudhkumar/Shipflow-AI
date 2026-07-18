@@ -1,6 +1,7 @@
 import { db } from "@shipflow/db";
 import { pullRequestReviews, reviewFindings } from "@shipflow/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq } from "@shipflow/db";
+
 
 type ReviewComment = {
   filePath: string;
@@ -58,7 +59,7 @@ export async function saveAiReviewToDatabase(
     };
   }
 
-  const hasBlockingFindings = reviewResult.comments.some((c) => c.isBlocking);
+  const hasBlockingFindings = reviewResult.comments.some((c) => c.isBlocking || c.severity === 'BLOCKER');
 
   // 1. Create the parent review record
   const [review] = await db

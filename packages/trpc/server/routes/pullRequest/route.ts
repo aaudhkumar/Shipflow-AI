@@ -116,6 +116,11 @@ export const pullRequestRouter = router({
         .set({ reviewMeta: currentMeta })
         .where(eq(pullRequestReviews.id, input.reviewId));
         
+      const newStatus = input.isCorrect ? "ADDRESSED" : "IGNORED";
+      await db.update(reviewFindings)
+        .set({ status: newStatus })
+        .where(eq(reviewFindings.reviewId, input.reviewId));
+        
       return { success: true };
     }),
 

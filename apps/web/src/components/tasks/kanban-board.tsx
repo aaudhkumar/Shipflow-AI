@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { trpc } from "~/trpc/client";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
-import { Loader2, CheckCircle2, Github, Sparkles, Circle } from "lucide-react";
+import { Loader2, CheckCircle2, Github, Sparkles, Circle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { DndContext, DragEndEvent, closestCenter, useDraggable, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor, KeyboardSensor } from "@dnd-kit/core";
 
@@ -15,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Badge } from "@/components/ui/badge";
 import { BackgroundJobTracker } from "@/components/ui/background-job-tracker";
 
-function DraggableTaskCard({ task, members, assignTask }: any) {
+function DraggableTaskCard({ task, members, assignTask, orgSlug }: any) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -42,22 +44,33 @@ function DraggableTaskCard({ task, members, assignTask }: any) {
   let cardBorderColor = "border-border/50 hover:border-primary/50";
   let cardBgColor = "bg-card";
 
-  let prState = 'PENDING';
-  if (task.pullRequests && task.pullRequests.length > 0) {
-    const latestPR = task.pullRequests[task.pullRequests.length - 1];
-    if (latestPR.reviews && latestPR.reviews.length > 0) {
-      const latestReview = latestPR.reviews[latestPR.reviews.length - 1];
-      prState = latestReview.state;
-    }
-  }
+  const latestPR = task.pullRequests && task.pullRequests.length > 0 
+    ? task.pullRequests[task.pullRequests.length - 1] 
+    : null;
 
-  if (task.status === 'IN_REVIEW' || task.status === 'DONE') {
-    if (prState === 'APPROVED' || prState === 'COMMENTED') {
-      cardBgColor = "bg-emerald-500/10 dark:bg-emerald-500/5";
-      cardBorderColor = "border-emerald-500/30 hover:border-emerald-500/50";
-    } else {
-      cardBgColor = "bg-rose-500/10 dark:bg-rose-500/5";
-      cardBorderColor = "border-rose-500/30 hover:border-rose-500/50";
+  if (isAiDone) {
+    cardBgColor = "bg-emerald-500/10 dark:bg-emerald-500/5";
+    cardBorderColor = "border-emerald-500/30 hover:border-emerald-500/50";
+  } else if (isAiFailed) {
+    cardBgColor = "bg-red-500/10 dark:bg-red-500/5";
+    cardBorderColor = "border-red-500/30 hover:border-red-500/50";
+  } else {
+    let prState = 'PENDING';
+    if (latestPR) {
+      if (latestPR.reviews && latestPR.reviews.length > 0) {
+        const latestReview = latestPR.reviews[latestPR.reviews.length - 1];
+        prState = latestReview.state;
+      }
+    }
+
+    if (task.status === 'IN_REVIEW' || task.status === 'DONE') {
+      if (prState === 'APPROVED' || prState === 'COMMENTED') {
+        cardBgColor = "bg-emerald-500/10 dark:bg-emerald-500/5";
+        cardBorderColor = "border-emerald-500/30 hover:border-emerald-500/50";
+      } else {
+        cardBgColor = "bg-rose-500/10 dark:bg-rose-500/5";
+        cardBorderColor = "border-rose-500/30 hover:border-rose-500/50";
+      }
     }
   }
 
@@ -89,6 +102,12 @@ function DraggableTaskCard({ task, members, assignTask }: any) {
                   <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 whitespace-nowrap">
                     <CheckCircle2 className="w-3 h-3 mr-1" />
                     AI Done
+                  </Badge>
+                )}
+                {isAiFailed && (
+                  <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20 whitespace-nowrap">
+                    <AlertCircle className="w-3 h-3 mr-1" />
+                    AI Failed
                   </Badge>
                 )}
               </div>
@@ -165,16 +184,43 @@ function DraggableTaskCard({ task, members, assignTask }: any) {
                   currentStepIndex={currentStepIndex}
                   status={isAiFailed ? "error" : isAiDone ? "success" : isAiWorking ? "running" : "idle"}
                 />
+
+                {isAiFailed && task.lastError && (
+                  <div className="mt-6 pt-4 border-t border-border/50">
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                      <h5 className="text-sm font-medium text-red-500 mb-2 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        Implementation Error
+                      </h5>
+                      <p className="text-xs text-red-500/90 whitespace-pre-wrap font-mono">
+                        {task.lastError}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
-          {task.status === 'DONE' && (
+          {(task.status === 'DONE' || task.status === 'IN_REVIEW') && (
             <div className="pt-4 flex justify-end border-t border-border/50">
-              <Button variant="outline" className="text-indigo-600 border-indigo-600/30 hover:bg-indigo-50">
-                <Github className="w-4 h-4 mr-2" />
-                View PR Details
-              </Button>
+              {latestPR ? (
+                <Link 
+                  href={`/org/${orgSlug}/pr/${latestPR.githubPrNumber}`}
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline" className="text-indigo-600 border-indigo-600/30 hover:bg-indigo-50">
+                    <Github className="w-4 h-4 mr-2" />
+                    View PR Details
+                  </Button>
+                </Link>
+              ) : (
+                <Button variant="outline" className="text-indigo-600 border-indigo-600/30 hover:bg-indigo-50 opacity-50 cursor-not-allowed" disabled>
+                  <Github className="w-4 h-4 mr-2" />
+                  No PR Linked
+                </Button>
+              )}
             </div>
           )}
 
@@ -184,7 +230,13 @@ function DraggableTaskCard({ task, members, assignTask }: any) {
               <ul className="space-y-2">
                 {task.subtasks.map((st: any) => (
                   <li key={st.id} className="flex items-start gap-2 text-sm text-muted-foreground bg-muted/20 p-2 rounded-md border border-border/30">
-                    <div className="mt-0.5"><Circle className="w-3 h-3 text-muted-foreground" /></div>
+                    <div className="mt-0.5">
+                      {st.isCompleted ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <Circle className="w-3 h-3 text-muted-foreground" />
+                      )}
+                    </div>
                     <span>{st.description}</span>
                   </li>
                 ))}
@@ -225,8 +277,20 @@ function DroppableColumn({ id, title, count, children }: any) {
 }
 
 export function KanbanBoard({ featureId, orgId }: { featureId: string, orgId: string }) {
+  const params = useParams();
+  const orgSlug = params.slug as string;
   const utils = trpc.useUtils();
-  const { data: board, isLoading } = trpc.task.getKanban.useQuery({ featureId, orgId });
+  const { data: board, isLoading } = trpc.task.getKanban.useQuery({ featureId, orgId }, {
+    refetchInterval: (query: any) => {
+      // Handle both v4 (query is data) and v5 (query.state.data) signatures
+      const data = query?.state?.data ?? query;
+      if (!data) return false;
+      
+      const allTasks = [...(data.TODO || []), ...(data.IN_PROGRESS || []), ...(data.DONE || [])];
+      const hasActiveTasks = allTasks.some(t => ['ready', 'claimed', 'in_progress'].includes(t.executionStatus));
+      return hasActiveTasks ? 5000 : false;
+    }
+  });
   const { data: members } = trpc.organization.getMembers.useQuery({ orgId });
   const [activeTask, setActiveTask] = useState<any>(null);
 
@@ -331,6 +395,7 @@ export function KanbanBoard({ featureId, orgId }: { featureId: string, orgId: st
                     key={task.id}
                     task={task}
                     members={members}
+                    orgSlug={orgSlug}
                     assignTask={(taskId: string, assigneeId: string | null) => assignTask.mutate({ taskId, assigneeId, orgId })}
                   />
                 ))}

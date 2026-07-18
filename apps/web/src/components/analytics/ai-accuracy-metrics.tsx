@@ -16,9 +16,9 @@ interface AiAccuracyMetricsProps {
 
 export function AiAccuracyMetrics({ data }: AiAccuracyMetricsProps) {
   const chartData = [
-    { name: "Addressed (True Positive)", value: data.truePositives, color: "#059669" }, // emerald-600
-    { name: "Ignored (False Positive)", value: data.falsePositives, color: "#64748b" }, // slate-500
-    { name: "Unmarked", value: data.open, color: "#d97706" }, // amber-600
+    { name: "Correct findings", value: data.truePositives, color: "#059669" }, // emerald-600
+    { name: "Incorrect findings", value: data.falsePositives, color: "#64748b" }, // slate-500
+    { name: "Unmarked findings", value: data.open, color: "#d97706" }, // amber-600
   ].filter(d => d.value > 0);
 
   const percentage = data.open > 0 ? Math.round((data.truePositives / data.open) * 100) : 0;
@@ -77,21 +77,21 @@ export function AiAccuracyMetrics({ data }: AiAccuracyMetricsProps) {
               <div className="flex items-center justify-between p-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span className="text-sm font-medium">True Positives</span>
+                  <span className="text-sm font-medium">Correct findings</span>
                 </div>
                 <span className="font-bold">{data.truePositives}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border border-slate-500/20 bg-slate-500/5">
                 <div className="flex items-center gap-2">
                   <XCircle className="w-4 h-4 text-slate-500" />
-                  <span className="text-sm font-medium">False Positives</span>
+                  <span className="text-sm font-medium">Incorrect findings</span>
                 </div>
                 <span className="font-bold">{data.falsePositives}</span>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
                 <div className="flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-600" />
-                  <span className="text-sm font-medium">Unmarked</span>
+                  <span className="text-sm font-medium">Unmarked findings</span>
                 </div>
                 <span className="font-bold">{data.open}</span>
               </div>

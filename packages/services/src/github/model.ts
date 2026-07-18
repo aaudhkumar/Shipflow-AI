@@ -19,6 +19,7 @@ export const openOrUpdatePrInputSchema = z.object({
   summary: z.string(),
   featureRequestId: z.string().uuid(),
   prdId: z.string().uuid(),
+  taskId: z.string().uuid().optional(),
   draft: z.boolean().optional().default(false),
 });
 export type OpenOrUpdatePrInput = z.infer<typeof openOrUpdatePrInputSchema>;

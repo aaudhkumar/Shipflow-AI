@@ -1,6 +1,7 @@
 import { db } from "@shipflow/db";
 import { organizations, users } from "@shipflow/db/schema";
-import { eq } from "drizzle-orm";
+import { eq } from "@shipflow/db";
+
 
 export default async function globalTeardown() {
   console.log("Running global teardown...");

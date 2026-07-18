@@ -1,7 +1,8 @@
 import { inngest } from "@shipflow/services/workflow/client";
 import { db } from "@shipflow/db";
 import { projects, featureRequests } from "@shipflow/db/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and } from "@shipflow/db";
+
 import { runProjectContextGenerator } from "@shipflow/ai";
 
 export const generateProjectContextWorkflow = inngest.createFunction(

@@ -7,6 +7,8 @@ export interface ReviewerContext {
   repoNamespace: string;
   headSha: string;
   prd: Record<string, any>;
+  task?: any;
+  subtasks?: { id: string; description: string }[];
   previousFindings: any[];
   searchRecords: (query: string, topK: number, filter?: any) => Promise<{ text: string, metadata: any, score: number }[]>;
 }

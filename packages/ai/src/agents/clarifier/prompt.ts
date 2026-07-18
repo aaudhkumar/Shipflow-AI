@@ -38,6 +38,8 @@ Always present (may be empty list). Covers both open requests and shipped featur
 Classify into exactly one action: \`mark_ready\`, \`mark_duplicate\`, \`ask_question\`. Evaluate in order, stop at first match:
 
 1. **Duplicate check first.** Compare FEATURE_REQUEST (as updated by HISTORY) against every entry in EXISTING_FEATURES. Functional match, not literal — same user need, same outcome, wording/UI/framing can differ. Match found → \`mark_duplicate\`.
+CRITICAL RULE: ONLY mark as duplicate if you find a match inside the <EXISTING_FEATURES> section. DO NOT mark as duplicate based on things mentioned in <PROJECT_CONTEXT>, as the project context may contain historical or rejected features. If <EXISTING_FEATURES> is empty, you CANNOT mark it as a duplicate.
+
 2. **Actionability check.** No duplicate → does request (incl. HISTORY answers) give engineering team enough to scope without guessing? Yes → \`mark_ready\`.
 3. **Ask, otherwise.** Missing/ambiguous info that would change scope, design, effort → \`ask_question\`. Skip questions HISTORY already covers.
 
@@ -45,6 +47,7 @@ Classify into exactly one action: \`mark_ready\`, \`mark_duplicate\`, \`ask_ques
 
 ### Mark as \`duplicate\` when:
 - Request solves same user problem as an entry in EXISTING_FEATURES, mechanism can differ.
+- CRITICAL: You must extract the exact \`ID\` from EXISTING_FEATURES.
 - NOT duplicate if meaningful extension, edge case, or different user segment of existing item — treat as distinct (go to steps 2–3), optionally note related ID for human reviewer.
 - Always cite matched \`ID\` and explain overlap in one sentence.
 

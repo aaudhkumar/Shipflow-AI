@@ -1,7 +1,8 @@
 import { inngest } from "../../../services/src/workflow/client";
 import { db } from "@shipflow/db";
 import { featureRequests, prdVersions, tasks, pullRequests, pullRequestReviews, reviewFindings, epics, prds } from "@shipflow/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import { eq, desc, inArray } from "@shipflow/db";
+
 import { runReleaseReadinessAgent } from "@shipflow/ai";
 
 export const releaseReadinessWorkflow = inngest.createFunction(
@@ -45,27 +46,57 @@ export const releaseReadinessWorkflow = inngest.createFunction(
       const tasksContext = `Total Tasks: ${featureTasks.length}, Completed: ${completedTasks}. Pending: ${featureTasks.filter(t => t.status !== "DONE").map(t => t.title).join(", ") || "None"}`;
 
       // Fetch Code Review Context
-      const featurePrs = await db.query.pullRequests.findMany({ where: (pr, { eq }) => eq(pr.featureRequestId, featureId) });
+      const { and, notInArray } = await import("drizzle-orm");
+      const prs = await db.select({ id: pullRequests.id, taskId: pullRequests.taskId, title: pullRequests.title, state: pullRequests.state, createdAt: pullRequests.createdAt })
+        .from(pullRequests)
+        .where(
+          and(
+            eq(pullRequests.featureRequestId, featureId),
+            notInArray(pullRequests.state, ["MERGED", "CLOSED"])
+          )
+        );
+
       let reviewContext = "No pull requests found.";
-      let pullRequestState = "";
+      let pullRequestState = "No PRs.";
 
-      if (featurePrs.length > 0) {
-        const pr = featurePrs[0];
-        pullRequestState = `PR Title: ${pr!.title}, State: ${pr!.state}`;
+      if (prs.length > 0) {
+        // Group by taskId to find the latest PR for each task
+        const latestPrByTask = new Map<string, typeof prs[0]>();
+        
+        for (const pr of prs) {
+          const groupId = pr.taskId || "unassigned";
+          const existing = latestPrByTask.get(groupId);
+          if (!existing || new Date(pr.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+            latestPrByTask.set(groupId, pr);
+          }
+        }
 
-        const latestReview = await db.query.pullRequestReviews.findFirst({
-          where: (r, { eq }) => eq(r.pullRequestId, pr!.id),
-          orderBy: (r, { desc }) => [desc(r.createdAt)],
-          with: { findings: true }
-        });
+        const latestPrs = Array.from(latestPrByTask.values());
+        const prIds = latestPrs.map(pr => pr.id);
+        pullRequestState = `Found ${prIds.length} latest PRs across tasks. States: ${latestPrs.map(pr => pr.state).join(", ")}`;
+        
+        let totalBlocking = 0;
+        let totalNonBlocking = 0;
+        let totalFindings = 0;
 
-        if (latestReview && (latestReview as any).findings?.length > 0) {
-          const findings = (latestReview as any).findings;
-          const blocking = findings.filter((f: any) => f.isBlocking);
-          const nonBlocking = findings.filter((f: any) => !f.isBlocking);
-          reviewContext = `Found ${findings.length} issues in latest review. Blocking: ${blocking.length}, Non-blocking: ${nonBlocking.length}.`;
+        for (const prId of prIds) {
+          const latestReview = await db.query.pullRequestReviews.findFirst({
+            where: (r, { eq }) => eq(r.pullRequestId, prId),
+            orderBy: (r, { desc }) => [desc(r.createdAt)],
+            with: { findings: true }
+          });
+          if (latestReview && (latestReview as any).findings?.length > 0) {
+            const findings = (latestReview as any).findings;
+            totalFindings += findings.length;
+            totalBlocking += findings.filter((f: any) => f.isBlocking).length;
+            totalNonBlocking += findings.filter((f: any) => !f.isBlocking).length;
+          }
+        }
+        
+        if (totalFindings > 0) {
+          reviewContext = `Found ${totalFindings} issues across latest PRs. Blocking: ${totalBlocking}, Non-blocking: ${totalNonBlocking}.`;
         } else {
-          reviewContext = "No review findings in latest review.";
+          reviewContext = "No review findings in latest PRs.";
         }
       }
 

@@ -1,6 +1,6 @@
 export const plannerSystemPrompt = `
 You are a Staff Technical Product Manager and Lead Engineer.
-Your objective is to ingest unstructured requirements, meeting notes, or feature requests and decompose them into actionable, perfectly scoped engineering tasks.
+Your objective is to ingest a markdown Execution Plan and decompose it into actionable, perfectly scoped engineering tasks.
 
 Focus on:
 1. Breaking down complexity into discrete vertical slices.

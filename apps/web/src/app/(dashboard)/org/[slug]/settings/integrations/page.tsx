@@ -1,6 +1,7 @@
 import { db } from "@shipflow/db"
 import { githubInstallations, organizations, repositories } from "@shipflow/db/schema"
-import { eq } from "drizzle-orm"
+import { eq } from "@shipflow/db"
+
 import { GitHubConnectCard } from "@/components/github/connect-card"
 import { ReposList } from "@/components/github/repos-list"
 

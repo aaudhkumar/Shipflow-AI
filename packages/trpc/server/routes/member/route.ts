@@ -77,7 +77,7 @@ export const memberRouter = router({
 
   invite: orgMemberProcedure
     .meta({ openapi: { method: "POST", path: getPath("/{orgId}/invitations"), tags: TAGS } })
-    .input(z.object({ orgId: z.string(), email: z.string().email(), role: z.enum(["OWNER", "ADMIN", "PM", "DEVELOPER", "REVIEWER"]) }))
+    .input(z.object({ orgId: z.string(), email: z.string().email(), role: z.enum(["OWNER", "ADMIN", "PM", "ENGINEER", "REVIEWER"]) }))
     .output(inviteMemberOutputSchema)
     .mutation(async ({ input, ctx }) => {
       const secret = process.env.INVITATION_SECRET;
@@ -107,8 +107,10 @@ export const memberRouter = router({
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + 72);
 
+      const inviteId = crypto.randomUUID();
+
       await db.insert(orgInvitations).values({
-        id: crypto.randomUUID(),
+        id: inviteId,
         orgId: input.orgId,
         email: input.email,
         role: input.role,
@@ -116,7 +118,7 @@ export const memberRouter = router({
         status: "PENDING",
         invitedByUserId: ctx.session.user.id,
         expiresAt: expiresAt
-      }).returning({ id: orgInvitations.id });
+      });
 
       await createAuditLog({
         orgId: input.orgId,
@@ -137,16 +139,25 @@ export const memberRouter = router({
       });
 
       if (existingUser) {
-        await createNotification({
-          userId: existingUser.id,
-          orgId: input.orgId,
-          type: "MEMBER_INVITED",
-          title: "Organization Invitation",
-          message: `${inviter.name || inviter.email} invited you to join ${org.name}.`,
-          resourceType: "MEMBER",
-          resourceId: orgInvitations.id.toString(), // Actually it's just the random uuid
-          actionUrl: acceptUrl,
+        // Since notifications are scoped by orgId and the user is not yet a member
+        // of input.orgId, we must attach the notification to organizations they are
+        // ALREADY a member of so they can actually see it in their UI.
+        const userMemberships = await db.query.members.findMany({
+          where: eq(members.userId, existingUser.id)
         });
+
+        await Promise.all(userMemberships.map(membership =>
+          createNotification({
+            userId: existingUser.id,
+            orgId: membership.orgId,
+            type: "MEMBER_INVITED",
+            title: "Organization Invitation",
+            message: `${inviter.name || inviter.email} invited you to join ${org.name}.`,
+            resourceType: "MEMBER",
+            resourceId: inviteId,
+            actionUrl: acceptUrl,
+          })
+        ));
       }
 
       return { status: "SENT" };

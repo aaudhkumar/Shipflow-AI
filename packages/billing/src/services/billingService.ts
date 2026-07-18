@@ -72,7 +72,7 @@ export const billingService = {
     });
 
     const fallbackPlan = org?.billingPlan ? org.billingPlan.toUpperCase() : "FREE";
-    const usageLimitFallback = fallbackPlan === "ENTERPRISE" ? 70 : fallbackPlan === "PRO" ? 30 : 10;
+    const usageLimitFallback = fallbackPlan === "ENTERPRISE" ? 100 : fallbackPlan === "PRO" ? 30 : 10;
 
     if (!sub) {
       return {
@@ -90,7 +90,7 @@ export const billingService = {
       plan: planId,
       status: sub.status ? sub.status.toLowerCase() : "active",
       usageCount: sub.usageCount || 0,
-      usageLimit: sub.usageLimit || (planId === "ENTERPRISE" ? 70 : planId === "PRO" ? 30 : 10),
+      usageLimit: sub.usageLimit || (planId === "ENTERPRISE" ? 100 : planId === "PRO" ? 30 : 10),
       currentPeriodEnd: sub.currentPeriodEnd,
     };
   },

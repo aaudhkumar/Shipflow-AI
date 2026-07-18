@@ -40,7 +40,22 @@ export async function runCodeReviewerAgent(context: ReviewerContext, diffContent
     messages: [
       { 
         role: 'user', 
-        content: `Based on your gathered context and the initial diff, generate a structured code review findings report.\n\nCRITICAL INSTRUCTION: You MUST output a valid JSON object exactly matching the requested schema. Do not return an empty object. If there are no findings, return an empty array [] for "comments" and a brief text for "summary".\n\nDiff:\n${diffContent}\n\nGathered Context:\n${gatheringResult.text}` 
+        content: `Based on your gathered context and the initial diff, generate a structured code review findings report.
+
+Task Context (Acceptance Criteria):
+Title: ${context.task?.title || 'Unknown'}
+Details: ${context.task?.technicalImplementationDetails || 'Unknown'}
+
+Subtasks (Acceptance Criteria):
+${JSON.stringify(context.subtasks || [], null, 2)}
+
+CRITICAL INSTRUCTION: You MUST output a valid JSON object exactly matching the requested schema. Do not return an empty object. If there are no findings, return an empty array [] for "comments" and a brief text for "summary". Evaluate which of the following subtasks were fully completed in this PR and include their IDs in "completedSubtaskIds".
+
+Diff:
+${diffContent}
+
+Gathered Context:
+${gatheringResult.text}` 
       }
     ],
   });
@@ -49,14 +64,20 @@ export async function runCodeReviewerAgent(context: ReviewerContext, diffContent
   let reflectionApplied = false;
   let finalFindings = findingsResult.comments;
 
-  if (context.prd && context.prd.acceptanceCriteria) {
+  if (context.task) {
+    const taskCriteria = {
+      taskTitle: context.task.title,
+      details: context.task.technicalImplementationDetails,
+      subtasks: context.subtasks?.map((st: any) => st.title) || [],
+    };
+
     const { object: reflectionResult } = await generateObject<ReflectionResult>({
       model,
-      system: `You are a strict QA auditor. Compare the PRD acceptance criteria to the code review findings. Identify if any criteria are missed and require new findings.`,
+      system: `You are a strict QA auditor. Compare the Task's specific implementation details and subtasks to the code review findings. Identify if any criteria specific to this Task are missed and require new findings. Do NOT complain about missing requirements that are outside the scope of this specific Task.`,
       schema: ReflectionSchema,
       prompt: `
-        Acceptance Criteria:
-        ${JSON.stringify(context.prd.acceptanceCriteria, null, 2)}
+        Task Acceptance Criteria:
+        ${JSON.stringify(taskCriteria, null, 2)}
         
         Current Findings:
         ${JSON.stringify(findingsResult.comments, null, 2)}
@@ -73,6 +94,7 @@ export async function runCodeReviewerAgent(context: ReviewerContext, diffContent
     result: {
       comments: finalFindings,
       summary: findingsResult.summary,
+      completedSubtaskIds: findingsResult.completedSubtaskIds,
       reviewMeta: {
         toolCallCount,
         toolsUsed: [...new Set(toolsUsed)],

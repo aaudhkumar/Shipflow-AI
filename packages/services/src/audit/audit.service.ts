@@ -1,11 +1,14 @@
 import { db } from "@shipflow/db";
 import { auditLogs, members } from "@shipflow/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and } from "@shipflow/db";
+
 import * as crypto from "crypto";
 
 export const AuditAction = {
   FEATURE_CREATED: 'FEATURE_CREATED',
   FEATURE_PRD_GENERATED: 'FEATURE_PRD_GENERATED',
+  FEATURE_EXECUTION_PLAN_GENERATED: 'FEATURE_EXECUTION_PLAN_GENERATED',
+  FEATURE_UPDATED: 'FEATURE_UPDATED',
   FEATURE_TASKS_GENERATED: 'FEATURE_TASKS_GENERATED',
   FEATURE_PLAN_APPROVED: 'FEATURE_PLAN_APPROVED',
   FEATURE_IN_DEVELOPMENT: 'FEATURE_IN_DEVELOPMENT',

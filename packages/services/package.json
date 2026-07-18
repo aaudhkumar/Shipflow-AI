@@ -5,6 +5,7 @@
   "exports": {
     "./github/files": "./src/github/files.ts",
     "./github/comments": "./src/github/comments.ts",
+    "./github/github-pr.service": "./src/github/github-pr.service.ts",
     "./db/reviews": "./src/db/reviews.ts",
     "./pinecone/vector": "./src/pinecone/vector.ts",
     "./pinecone/client": "./src/pinecone/client.ts",

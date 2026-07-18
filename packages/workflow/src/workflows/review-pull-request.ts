@@ -7,7 +7,8 @@ import { postReviewComment } from "@shipflow/services/github/comments";
 import { saveAiReviewToDatabase } from "@shipflow/services/db/reviews";
 import { db } from "@shipflow/db";
 import { pullRequests, pullRequestReviews, prds, epics, tasks, organizations } from "@shipflow/db/schema";
-import { eq } from "drizzle-orm";
+import { eq } from "@shipflow/db";
+
 
 /**
  * Durable workflow to review a GitHub Pull Request.
@@ -93,6 +94,7 @@ export const reviewPullRequestWorkflow = inngest.createFunction(
       const pr = await db.query.pullRequests.findFirst({
         where: (prs, { eq }) => eq(prs.id, pullRequestId),
         with: {
+          task: true,
           featureRequest: {
             with: {
               prds: {
@@ -113,6 +115,13 @@ export const reviewPullRequestWorkflow = inngest.createFunction(
 
     const prdObj = pullRequest?.featureRequest?.prds?.[0]?.currentVersion?.content;
     const prd = typeof prdObj === "object" && prdObj !== null ? prdObj : (typeof prdObj === "string" ? JSON.parse(prdObj) : {});
+    
+    let subtasksData: any[] = [];
+    if (pullRequest.taskId) {
+      subtasksData = await db.query.subtasks.findMany({
+        where: (st, { eq }) => eq(st.taskId, pullRequest.taskId!)
+      });
+    }
 
     const previousFindings = await step.run("fetch-previous-findings", async () => {
       const prevReview = await db.query.pullRequestReviews.findFirst({
@@ -139,6 +148,8 @@ export const reviewPullRequestWorkflow = inngest.createFunction(
         repoNamespace,
         headSha,
         prd,
+        task: pullRequest.task,
+        subtasks: subtasksData,
         previousFindings,
         searchRecords: async (query, topK, filter) => {
           const res = await searchRecords(repoNamespace, query, topK, filter);
@@ -169,13 +180,22 @@ export const reviewPullRequestWorkflow = inngest.createFunction(
 
     // 6. Persist the GitHub review id and keep the PR state fresh.
     await step.run("link-github-review", async () => {
-      const hasBlockingFindings = reviewResult.comments.some((c: any) => c.isBlocking);
+      const hasBlockingFindings = reviewResult.comments.some((c: any) => c.isBlocking || c.severity === 'BLOCKER');
 
       const [updatedPr] = await (db as any)
         .update(pullRequests)
         .set({ state: hasBlockingFindings ? "CHANGES_REQUESTED" : "IN_REVIEW" })
         .where(eq((pullRequests as any).id, pullRequestId))
         .returning();
+
+      if (reviewResult.completedSubtaskIds && reviewResult.completedSubtaskIds.length > 0) {
+        const { subtasks } = await import("@shipflow/db/schema");
+        const { inArray } = await import("@shipflow/db");
+
+        await (db as any).update(subtasks)
+          .set({ isCompleted: true })
+          .where(inArray(subtasks.id, reviewResult.completedSubtaskIds));
+      }
 
       await (db as any)
         .update(pullRequestReviews)
@@ -188,22 +208,16 @@ export const reviewPullRequestWorkflow = inngest.createFunction(
       if (updatedPr && updatedPr.featureRequestId) {
         const { featureService } = await import("../../../services/src/feature/feature.service");
         try {
-          // Ensure we hit IN_REVIEW state first to satisfy transition rules
-          await featureService.markInReview(updatedPr.featureRequestId, updatedPr.orgId);
-          
           if (hasBlockingFindings) {
-            await featureService.failReview(updatedPr.featureRequestId, updatedPr.orgId, "SYSTEM");
-            const featureId = updatedPr.featureRequestId;
-            
             // Check autopilot to re-trigger implementation
             const org = await db.query.organizations.findFirst({ where: (orgs, { eq }) => eq(orgs.id, updatedPr.orgId) });
             
             if (org?.isAutopilotEnabled) {
-              const prd = await db.query.prds.findFirst({ where: (p, { eq }) => eq(p.featureRequestId, featureId) });
+              const prd = await db.query.prds.findFirst({ where: (p, { eq }) => eq(p.featureRequestId, updatedPr.featureRequestId) });
               if (prd) {
                 const epic = await db.query.epics.findFirst({ where: (e, { eq }) => eq(e.prdId, prd.id) });
                 if (epic) {
-                  const commentsStr = reviewResult.comments.map((c: any) => `File: ${c.path}:${c.line}\nIssue: ${c.body}`).join("\n\n");
+                  const commentsStr = reviewResult.comments.map((c: any) => `File: ${c.filePath}${c.lineNumber ? `:${c.lineNumber}` : ''}\nIssue: ${c.comment}${c.suggestedFix ? `\nSuggested Fix: ${c.suggestedFix}` : ''}`).join("\n\n");
                   await (db as any).update(tasks)
                     .set({ fixesPrompt: `[AI REVIEW FINDINGS]\n\n${commentsStr}`, status: "TODO" })
                     .where(eq((tasks as any).epicId, epic.id));
@@ -218,12 +232,9 @@ export const reviewPullRequestWorkflow = inngest.createFunction(
                 }
               }
             }
-          } else {
-            await featureService.markReviewPassed(updatedPr.featureRequestId, updatedPr.orgId);
-            // Autopilot stops here for Human Approval as requested.
           }
         } catch (e) {
-          console.warn("Failed to update feature status based on review findings", e);
+          console.warn("Failed to trigger autopilot on review findings", e);
         }
       }
     });

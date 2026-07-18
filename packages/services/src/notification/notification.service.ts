@@ -1,6 +1,7 @@
 import { db } from "@shipflow/db";
 import { notifications, members } from "@shipflow/db/schema";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray } from "@shipflow/db";
+
 import * as crypto from "crypto";
 
 export const NotificationType = {

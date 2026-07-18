@@ -1,6 +1,7 @@
 import { db } from "@shipflow/db";
 import { featureRequests, members } from "@shipflow/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and } from "@shipflow/db";
+
 
 export class FeatureRepository {
   async createFeature(orgId: string, projectId: string, authorId: string, title: string, rawDescription: string, sourceChannel: "IN_APP" | "EMAIL" | "TICKET" | "CALL") {

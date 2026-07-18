@@ -1,6 +1,6 @@
 import { db } from "@shipflow/db";
 import { organizations, members } from "@shipflow/db/schema";
-import { eq } from "drizzle-orm";
+import { eq } from "@shipflow/db";
 
 export class OrganizationRepository {
   async createOrganization(data: typeof organizations.$inferInsert, userId: string) {
@@ -38,7 +38,7 @@ export class OrganizationRepository {
 
   async getStats(orgId: string) {
     const { pullRequests, reviewFindings, pullRequestReviews, featureRequests } = await import("@shipflow/db/schema");
-    const { sql, eq, and, not } = await import("drizzle-orm");
+    const { sql, eq, and, not } = await import("@shipflow/db");
 
     const [totalPRs] = await db
       .select({ count: sql<number>`count(*)` })
@@ -89,7 +89,7 @@ export class OrganizationRepository {
 
   async getRecentActivity(orgId: string) {
     const { pullRequests, pullRequestReviews, repositories, githubInstallations } = await import("@shipflow/db/schema");
-    const { eq, desc } = await import("drizzle-orm");
+    const { eq, desc } = await import("@shipflow/db");
 
     const activityQuery = await db
       .select({
@@ -128,7 +128,7 @@ export class OrganizationRepository {
 
   async getChartData(orgId: string) {
     const { pullRequestReviews, pullRequests } = await import("@shipflow/db/schema");
-    const { eq, and, gte } = await import("drizzle-orm");
+    const { eq, and, gte } = await import("@shipflow/db");
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -159,7 +159,7 @@ export class OrganizationRepository {
 
   async getAnalytics(orgId: string, days: number = 7) {
     const { pullRequestReviews, pullRequests, reviewFindings, featureRequests, tasks } = await import("@shipflow/db/schema");
-    const { eq, and, gte, inArray, isNotNull, desc } = await import("drizzle-orm");
+    const { eq, and, gte, inArray, isNotNull, desc } = await import("@shipflow/db");
 
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
@@ -282,7 +282,7 @@ export class OrganizationRepository {
     findingsQuery.forEach(f => {
       const dateStr = new Date(f.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
       if (securityTrendsCounts[dateStr]) {
-        if (f.isBlocking) securityTrendsCounts[dateStr].blocking++;
+        if (f.isBlocking || f.severity === 'BLOCKER') securityTrendsCounts[dateStr].blocking++;
         else securityTrendsCounts[dateStr].nonBlocking++;
       }
     });
@@ -376,14 +376,14 @@ export class OrganizationRepository {
 
   async updateSettings(orgId: string, data: { name?: string; retentionDays?: number }) {
     const { organizations } = await import("@shipflow/db/schema");
-    const { eq } = await import("drizzle-orm");
+    const { eq } = await import("@shipflow/db");
     const [updated] = await db.update(organizations).set({ ...data, updatedAt: new Date() }).where(eq(organizations.id, orgId)).returning();
     return updated;
   }
 
   async inviteMember(orgId: string, email: string, role: string) {
     const { users, members } = await import("@shipflow/db/schema");
-    const { eq } = await import("drizzle-orm");
+    const { eq } = await import("@shipflow/db");
     
     // Simplified logic: If user exists, add them directly
     const user = await db.query.users.findFirst({ where: eq(users.email, email) });
@@ -412,7 +412,7 @@ export class OrganizationRepository {
 
   async updateMemberRole(orgId: string, memberId: string, newRole: string) {
     const { members } = await import("@shipflow/db/schema");
-    const { eq, and } = await import("drizzle-orm");
+    const { eq, and } = await import("@shipflow/db");
     
     const [updated] = await db.update(members)
       .set({ role: newRole as any })
@@ -424,7 +424,7 @@ export class OrganizationRepository {
 
   async removeMember(orgId: string, memberId: string) {
     const { members } = await import("@shipflow/db/schema");
-    const { eq, and } = await import("drizzle-orm");
+    const { eq, and } = await import("@shipflow/db");
     
     await db.delete(members).where(and(eq(members.orgId, orgId), eq(members.id, memberId)));
     return { success: true };
@@ -432,7 +432,7 @@ export class OrganizationRepository {
 
   async getMembers(orgId: string) {
     const { members, users } = await import("@shipflow/db/schema");
-    const { eq, and, ne } = await import("drizzle-orm");
+    const { eq, and, ne } = await import("@shipflow/db");
     
     const orgMembers = await db.select({
       id: members.id,

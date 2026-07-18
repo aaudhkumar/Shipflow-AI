@@ -21,6 +21,7 @@ export const featureRequests = pgTable("feature_requests", {
     enum: ["IN_APP", "EMAIL", "TICKET", "CALL"] 
   }).notNull().default("IN_APP"),
   businessValueScore: integer("business_value_score"),
+  executionPlan: text("execution_plan"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => ({

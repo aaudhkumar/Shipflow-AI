@@ -11,7 +11,7 @@ export const epics = pgTable("epics", {
     .references(() => organizations.id, { onDelete: "cascade" }),
   projectId: text("project_id")
     .notNull()
-    .references(() => projects.id),
+    .references(() => projects.id, { onDelete: "cascade" }),
   prdId: text("prd_id")
     .notNull()
     .references(() => prds.id, { onDelete: "cascade" }),

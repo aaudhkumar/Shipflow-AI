@@ -19,78 +19,112 @@ import { ReviewSubmissionModal } from "@/components/features/review-submission-m
 import { BackgroundJobTracker } from "@/components/ui/background-job-tracker";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ExpandableContent } from "@/components/ui/expandable-content";
+import { ExecutionPlanEditor } from "@/components/features/execution-plan-editor";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-function ReleaseNotesViewer({ featureId, orgId }: { featureId: string, orgId: string }) {
-  const { data: releaseReadiness, isLoading } = trpc.feature.getReleaseReadiness.useQuery({ featureId, orgId });
+import { Badge } from "@/components/ui/badge";
+import { ShieldCheck, RefreshCw } from "lucide-react";
+
+function ReleaseReadinessViewer({ featureId, orgId }: { featureId: string, orgId: string }) {
+  const [isPolling, setIsPolling] = useState(false);
+  const [lastReadinessId, setLastReadinessId] = useState<string | null>(null);
+  
+  const utils = trpc.useUtils();
+  const { data: readiness, isLoading, isFetching } = trpc.feature.getReleaseReadiness.useQuery(
+    { featureId, orgId },
+    { refetchInterval: isPolling ? 3000 : false }
+  );
+
+  React.useEffect(() => {
+    if (isPolling && readiness && lastReadinessId && readiness.id !== lastReadinessId) {
+      setIsPolling(false);
+      toast.success("Release readiness check completed!");
+    }
+  }, [isPolling, readiness, lastReadinessId]);
+
+  const refreshMutation = trpc.feature.refreshReleaseReadiness.useMutation({
+    onSuccess: () => {
+      toast.info("Triggered release readiness check. This may take a minute.");
+      if (readiness) setLastReadinessId(readiness.id);
+      setIsPolling(true);
+    },
+    onError: (err) => {
+      toast.error(`Failed to trigger: ${err.message}`);
+      setIsPolling(false);
+    }
+  });
   
   if (isLoading) return <Skeleton className="h-32 w-full" />;
-  if (!releaseReadiness || !releaseReadiness.releaseNotes) return null;
+  if (!readiness) return null;
   
   return (
     <div className="w-full print:hidden mb-4">
-      <ExpandableContent
-        title="Release Notes"
-        icon={<BookOpen className="w-4 h-4 text-purple-500" />}
-        contentToCopy={releaseReadiness.releaseNotes}
-        copyLabel="Copy Notes"
-        copiedLabel="Copied Notes"
-        maxHeight="400px"
-      >
-        <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {releaseReadiness.releaseNotes}
-          </ReactMarkdown>
+      <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 space-y-4 mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-primary" /> 
+              Release Readiness Verdict
+            </h3>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => refreshMutation.mutate({ featureId, orgId })}
+              disabled={refreshMutation.isPending || isPolling}
+              className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${(refreshMutation.isPending || isPolling) ? "animate-spin" : ""}`} />
+              <span className="text-xs">Refresh</span>
+            </Button>
+          </div>
+          <Badge variant={readiness.isReady ? "default" : "destructive"}>
+            Score: {readiness.overallScore}/100
+          </Badge>
         </div>
-      </ExpandableContent>
+        <p className="text-sm font-medium">{readiness.recommendation}</p>
+        
+        <div className="flex flex-col space-y-4 mt-4">
+          {readiness.blockers && readiness.blockers.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-destructive">Blockers</h4>
+              <ul className="text-sm text-muted-foreground list-disc list-inside">
+                {readiness.blockers.map((b: string, i: number) => <li key={i}>{b}</li>)}
+              </ul>
+            </div>
+          )}
+          {readiness.warnings && readiness.warnings.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium text-amber-500">Warnings</h4>
+              <ul className="text-sm text-muted-foreground list-disc list-inside">
+                {readiness.warnings.map((w: string, i: number) => <li key={i}>{w}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {readiness.releaseNotes && (
+        <ExpandableContent
+          title="Release Notes"
+          icon={<BookOpen className="w-4 h-4 text-purple-500" />}
+          contentToCopy={readiness.releaseNotes}
+          copyLabel="Copy Notes"
+          copiedLabel="Copied Notes"
+          maxHeight="400px"
+        >
+          <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {readiness.releaseNotes}
+            </ReactMarkdown>
+          </div>
+        </ExpandableContent>
+      )}
     </div>
   );
 }
 
-function ExecutionPlanViewer({ featureId, orgId }: { featureId: string, orgId: string }) {
-  const { data: board } = trpc.task.getKanban.useQuery({ featureId, orgId });
-  if (!board || !('epic' in board) || !(board as any).epic) return null;
-  
-  let md = `${(board as any).epic.description || (board as any).epic.title}\n\n`;
-  const allTasks = [...(board.TODO || []), ...(board.IN_PROGRESS || []), ...(board.DONE || [])];
-  
-  if (allTasks.length > 0) {
-    md += `### Tasks Breakdown\n\n`;
-    allTasks.forEach((t, i) => {
-      md += `#### ${i + 1}. ${t.title} (${t.estimationPoints || 0} pts)\n`;
-      if (t.technicalImplementationDetails) {
-        md += `${t.technicalImplementationDetails}\n\n`;
-      }
-      if (t.subtasks && t.subtasks.length > 0) {
-        md += `**Acceptance Criteria:**\n`;
-        t.subtasks.forEach((st: any) => {
-          md += `- ${st.description}\n`;
-        });
-        md += `\n`;
-      }
-    });
-  }
-  
-  return (
-    <div key="epic" className="w-full print:hidden">
-      <ExpandableContent
-        title="Execution Plan"
-        icon={<CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-        contentToCopy={md}
-        copyLabel="Copy Plan"
-        copiedLabel="Copied Plan"
-        maxHeight="400px"
-      >
-        <div className="prose prose-sm dark:prose-invert max-w-none mb-4">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {md}
-          </ReactMarkdown>
-        </div>
-      </ExpandableContent>
-    </div>
-  );
-}
+// Old ExecutionPlanViewer removed since we use ExecutionPlanEditor directly now.
 
 export default function FeatureDetailPage() {
   const params = useParams();
@@ -101,6 +135,7 @@ export default function FeatureDetailPage() {
 
   const { data: org } = trpc.organization.getBySlug.useQuery({ slug });
   const [isGeneratingPRD, setIsGeneratingPRD] = useState(false);
+  const [isGeneratingExecutionPlan, setIsGeneratingExecutionPlan] = useState(false);
   const [isGeneratingTasks, setIsGeneratingTasks] = useState(false);
   const [isStartingClarification, setIsStartingClarification] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -110,7 +145,7 @@ export default function FeatureDetailPage() {
     { 
       enabled: !!org?.id && !!featureId,
       // Poll every 3 seconds if we're waiting for a background job to complete
-      refetchInterval: (isGeneratingPRD || isGeneratingTasks || isStartingClarification) ? 3000 : false
+      refetchInterval: (isGeneratingPRD || isGeneratingExecutionPlan || isGeneratingTasks || isStartingClarification) ? 3000 : false
     }
   );
   
@@ -135,8 +170,12 @@ export default function FeatureDetailPage() {
     }
 
     if (feature.status === 'PRD_GENERATED' && isGeneratingPRD) setIsGeneratingPRD(false);
-    if (feature.status === 'TASKS_GENERATED' && isGeneratingTasks) setIsGeneratingTasks(false);
-  }, [feature?.status, feature?.clarificationThreads, isStartingClarification, isGeneratingPRD, isGeneratingTasks]);
+    if (feature.status === 'EXECUTION_PLAN_GENERATED' && isGeneratingExecutionPlan) setIsGeneratingExecutionPlan(false);
+    if (feature.status === 'TASKS_GENERATED' && isGeneratingTasks) {
+      setIsGeneratingTasks(false);
+      utils.task.getKanban.invalidate({ featureId, orgId: org!.id });
+    }
+  }, [feature?.status, feature?.clarificationThreads, isStartingClarification, isGeneratingPRD, isGeneratingExecutionPlan, isGeneratingTasks]);
 
   const generatePRD = trpc.feature.generatePRD.useMutation({
     onMutate: () => setIsGeneratingPRD(true),
@@ -150,6 +189,11 @@ export default function FeatureDetailPage() {
       setIsStartingClarification(false);
       toast.error(`Failed to start AI Clarifier: ${error.message}`);
     }
+  });
+
+  const generateExecutionPlan = trpc.feature.generateExecutionPlan.useMutation({
+    onMutate: () => setIsGeneratingExecutionPlan(true),
+    onSuccess: () => refetch()
   });
 
   const generateTasks = trpc.feature.generateTasks.useMutation({
@@ -167,6 +211,7 @@ export default function FeatureDetailPage() {
     onSuccess: () => {
       toast.success("Tasks approved for AI implementation");
       refetch();
+      utils.task.getKanban.invalidate({ featureId, orgId: org!.id });
     },
     onError: (error) => {
       toast.error(`Failed to approve tasks: ${error.message}`);
@@ -259,6 +304,17 @@ export default function FeatureDetailPage() {
 
           {feature.status === "PRD_GENERATED" && (
             <Button
+              onClick={() => generateExecutionPlan.mutate({ featureId, orgId: org!.id })}
+              disabled={generateExecutionPlan.isPending}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20"
+            >
+              <LayoutList className="w-4 h-4 mr-2" />
+              {generateExecutionPlan.isPending ? "Generating..." : "Generate Execution Plan"}
+            </Button>
+          )}
+
+          {feature.status === "EXECUTION_PLAN_GENERATED" && (
+            <Button
               onClick={() => generateTasks.mutate({ featureId, orgId: org!.id })}
               disabled={generateTasks.isPending}
               className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/20"
@@ -344,11 +400,15 @@ export default function FeatureDetailPage() {
           {(() => {
 
 
-            const renderKanban = () => (
-              <div key="kanban" className="w-full print:hidden">
-                <KanbanBoard featureId={feature.id} orgId={org!.id} />
-              </div>
-            );
+            const renderKanban = () => {
+              const showKanban = ['TASKS_GENERATED', 'PLAN_APPROVED', 'IN_DEVELOPMENT', 'FIX_NEEDED', 'IN_REVIEW', 'AWAITING_HUMAN_APPROVAL', 'DONE'].includes(feature.status);
+              if (!showKanban) return null;
+              return (
+                <div key="kanban" className="w-full print:hidden">
+                  <KanbanBoard featureId={feature.id} orgId={org!.id} />
+                </div>
+              );
+            };
 
             const renderPRD = () => {
               const isGenerating = feature.status === 'CLARIFIED' && generatePRD.isPending; // Simple heuristic for now
@@ -481,7 +541,7 @@ export default function FeatureDetailPage() {
               </div>
             );
             
-            const isGeneratingTasks = feature.status === 'PRD_GENERATED' && generateTasks.isPending;
+            const isGeneratingTasks = feature.status === 'EXECUTION_PLAN_GENERATED' && generateTasks.isPending;
             const renderTasksPlaceholder = () => {
               if (isGeneratingTasks) {
                 return (
@@ -543,12 +603,44 @@ export default function FeatureDetailPage() {
               return null;
             };
 
+            const renderExecutionPlanPlaceholder = () => {
+              if (feature.status === 'PRD_GENERATED' && generateExecutionPlan.isPending) {
+                return (
+                  <div key="exec-plan-generating" className="w-full">
+                    <div className="rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm shadow-sm p-6 space-y-4">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Sparkles className="w-5 h-5 text-indigo-500 animate-pulse" />
+                        <h3 className="font-medium text-lg">AI is generating an Execution Plan...</h3>
+                      </div>
+                      <BackgroundJobTracker
+                        steps={[
+                          "Analyzing PRD...",
+                          "Architecting solution...",
+                          "Drafting engineering execution plan..."
+                        ]}
+                        currentStepIndex={1}
+                        status="running"
+                      />
+                      <div className="space-y-3 mt-6">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-32 w-full mt-4" />
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            };
+
             return [
               renderKanban(), 
               renderClarifierTracker(),
+              renderExecutionPlanPlaceholder(),
               renderTasksPlaceholder(),
-              <ReleaseNotesViewer key="release-notes" featureId={feature.id} orgId={org!.id} />,
-              <ExecutionPlanViewer key="epic" featureId={feature.id} orgId={org!.id} />,
+              <ReleaseReadinessViewer key="release-notes" featureId={feature.id} orgId={org!.id} />,
+              <ExecutionPlanEditor key="execution-plan" featureId={feature.id} orgId={org!.id} initialPlan={feature.executionPlan as string | null} canEdit={feature.status === 'EXECUTION_PLAN_GENERATED'} />,
               renderPRD(), 
               renderDescription()
             ].filter(Boolean);
@@ -556,7 +648,7 @@ export default function FeatureDetailPage() {
         </div>
 
         <div className="space-y-6 print:hidden">
-          <div className="rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm shadow-sm p-6">
+          <div className="rounded-xl border border-primary/10 bg-primary/[0.02] backdrop-blur-sm shadow-sm p-6">
             <h3 className="font-medium text-sm mb-4">Workflow Timeline</h3>
             <WorkflowStatus featureId={feature.id} />
           </div>

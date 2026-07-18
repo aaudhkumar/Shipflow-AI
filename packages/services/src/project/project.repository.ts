@@ -1,6 +1,7 @@
 import { db } from "@shipflow/db";
 import { projects, projectRepositories, projectMembers } from "@shipflow/db/schema";
-import { eq, desc, and, inArray } from "drizzle-orm";
+import { eq, desc, and, inArray } from "@shipflow/db";
+
 
 export class ProjectRepository {
   async createProject(data: {
@@ -113,6 +114,17 @@ export class ProjectRepository {
 
       return true;
     });
+  }
+
+  async deleteProject(projectId: string) {
+    // Because of onDelete: 'cascade' on relations, deleting the project will
+    // automatically clean up project_members, project_repositories, feature_requests, etc.
+    const [deletedProject] = await db
+      .delete(projects)
+      .where(eq(projects.id, projectId))
+      .returning();
+    
+    return deletedProject;
   }
 }
 

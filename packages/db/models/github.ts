@@ -41,11 +41,11 @@ export const pullRequests = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     repositoryId: text("repository_id")
       .notNull()
-      .references(() => repositories.id),
+      .references(() => repositories.id, { onDelete: "cascade" }),
     featureRequestId: text("feature_request_id").references(() => featureRequests.id, {
       onDelete: "cascade",
     }),
-    taskId: text("task_id").references(() => tasks.id),
+    taskId: text("task_id").references(() => tasks.id, { onDelete: "cascade" }),
     githubPrNumber: integer("github_pr_number").notNull(),
     title: text("title").notNull(),
     url: text("url").notNull(),

@@ -1,6 +1,7 @@
 import { db } from "@shipflow/db";
 import { tasks, taskToolCalls, prds, epics } from "@shipflow/db/schema";
-import { eq, and, sql, inArray } from "drizzle-orm";
+import { eq, and, sql, inArray } from "@shipflow/db";
+
 import { inngest } from "../workflow/client";
 import { ApproveForDevelopmentInput, TaskExecutionItem, ToolCallLogItem } from "./model";
 import { redactSecrets } from "./redact";
@@ -73,8 +74,8 @@ class TaskExecutionService {
       WHERE id = (
         SELECT t.id FROM tasks t
         JOIN epics e ON t.epic_id = e.id
-        WHERE e.prd_id = ${prdId} AND t.execution_status IN ('ready', 'failed') AND t.attempt_count < 3
-        ORDER BY t.created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED
+        WHERE e.prd_id = ${prdId} AND t.execution_status IN ('ready', 'failed') AND t.attempt_count < 2
+        ORDER BY CASE WHEN t.execution_status = 'ready' THEN 0 ELSE 1 END, t.created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED
       )
       RETURNING *;
     `);
@@ -110,6 +111,7 @@ class TaskExecutionService {
     }
     
     console.log(`task ${taskId} -> ${executionStatus}`, { taskId, executionStatus });
+    return true;
   }
 
   /** Audit log write — input/output are redacted BEFORE this is called, never after. */

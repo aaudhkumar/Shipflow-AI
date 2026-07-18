@@ -52,9 +52,13 @@ export default function NewFeaturePage() {
   }, [title, description, channel, projectId, slug, isMounted]);
 
   // Update initial project ID once projects load if not set from URL or session storage
+  // Also, verify that a saved projectId actually exists in the current projects list
   useEffect(() => {
-    if (projects && projects.length > 0 && !projectId && !initialProjectId) {
-      setProjectId(projects[0]!.id);
+    if (projects && projects.length > 0) {
+      const projectExists = projects.find((p: any) => p.id === projectId);
+      if (!projectExists && !initialProjectId) {
+        setProjectId(projects[0]!.id);
+      }
     }
   }, [projects, projectId, initialProjectId]);
 

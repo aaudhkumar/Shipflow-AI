@@ -1,7 +1,8 @@
 import { inngest } from "../../../services/src/workflow/client";
 import { db } from "@shipflow/db";
 import { featureRequests, clarificationThreads, clarificationMessages, projects } from "@shipflow/db/schema";
-import { eq } from "drizzle-orm";
+import { eq } from "@shipflow/db";
+
 
 export const featureCreated = inngest.createFunction(
   { id: "feature-created" },
@@ -25,7 +26,7 @@ export const featureCreated = inngest.createFunction(
       const { featureService } = await import("@shipflow/services/feature");
       const features = await featureService.listFeatures(orgId, undefined, featureData.projectId);
       const existingFeaturesContext = features
-        .filter(f => f.id !== featureId)
+        .filter(f => f.id !== featureId && f.status !== "REJECTED")
         .map(f => `ID: ${f.id}\nTitle: ${f.title}\nDescription: ${f.rawDescription}`)
         .join("\n\n");
 
@@ -73,6 +74,10 @@ export const featureCreated = inngest.createFunction(
       } else if (clarifierResult.action === "mark_ready") {
         await db.update(featureRequests)
           .set({ status: "CLARIFIED", updatedAt: new Date() })
+          .where(eq(featureRequests.id, featureId));
+      } else if (clarifierResult.action === "mark_duplicate") {
+        await db.update(featureRequests)
+          .set({ status: "REJECTED", updatedAt: new Date() })
           .where(eq(featureRequests.id, featureId));
       }
     });
@@ -143,7 +148,8 @@ export const featurePrdGenerated = inngest.createFunction(
     // 4. Insert prdVersions row
     const prdVersion = await step.run("insert-prd-version", async () => {
       const { prdVersions, prds, members } = await import("@shipflow/db/schema");
-      const { and, eq } = await import("drizzle-orm");
+      const { and, eq } = await import("@shipflow/db");
+
       
       const [member] = await db
         .select({ id: members.id })
@@ -195,9 +201,9 @@ export const featurePrdGenerated = inngest.createFunction(
   }
 );
 
-export const featureTasksGenerated = inngest.createFunction(
-  { id: "feature-tasks-generated" },
-  { event: "feature.tasks.generated" },
+export const featureExecutionPlanGenerated = inngest.createFunction(
+  { id: "feature-execution-plan-generated" },
+  { event: "feature.execution_plan.generated" },
   async ({ event, step }) => {
     const { featureId, orgId } = event.data;
 
@@ -217,23 +223,78 @@ export const featureTasksGenerated = inngest.createFunction(
 
     const prdContentString = JSON.stringify(prd.prdContent, null, 2);
 
-    const plannerResult = await step.run("run-planner", async () => {
+    const executionPlanResult = await step.run("run-execution-plan-generator", async () => {
       const project = await db.query.projects.findFirst({
         where: eq(projects.id, prd.feature.projectId),
       });
 
+      const { runExecutionPlanGenerator } = await import("@shipflow/ai");
+      const { result } = await runExecutionPlanGenerator(prd.feature.title, prdContentString, project?.contextDocument);
+      return result;
+    });
+
+    await step.run("save-execution-plan", async () => {
+      await db.update(featureRequests)
+        .set({ executionPlan: executionPlanResult, status: "EXECUTION_PLAN_GENERATED", updatedAt: new Date() })
+        .where(eq(featureRequests.id, featureId));
+    });
+
+    const org = await step.run("fetch-org-autopilot", async () => {
+      const { organizations } = await import("@shipflow/db/schema");
+      return db.query.organizations.findFirst({ where: eq(organizations.id, orgId) });
+    });
+
+    if (org?.isAutopilotEnabled) {
+      await step.sendEvent("auto-trigger-tasks", {
+        name: "feature.tasks.generated",
+        data: { featureId, orgId, previousState: "EXECUTION_PLAN_GENERATED", newState: "TASKS_GENERATED", actorId: "SYSTEM" }
+      });
+    }
+
+    return { success: true, featureId, status: "EXECUTION_PLAN_GENERATED" };
+  }
+);
+
+export const featureTasksGenerated = inngest.createFunction(
+  { id: "feature-tasks-generated" },
+  { event: "feature.tasks.generated" },
+  async ({ event, step }) => {
+    const { featureId, orgId } = event.data;
+
+    const executionPlan = await step.run("fetch-execution-plan", async () => {
+      const featureData = await db.query.featureRequests.findFirst({
+        where: eq(featureRequests.id, featureId),
+      });
+      if (!featureData || !featureData.executionPlan) {
+        throw new Error("Execution Plan not found for this feature");
+      }
+      return {
+        feature: featureData,
+        executionPlanContent: featureData.executionPlan
+      };
+    });
+
+    const plannerResult = await step.run("run-planner", async () => {
+      const project = await db.query.projects.findFirst({
+        where: eq(projects.id, executionPlan.feature.projectId),
+      });
+
       const { runPlanningAgent } = await import("@shipflow/ai");
-      const { result } = await runPlanningAgent(prdContentString, project?.contextDocument);
+      const { result } = await runPlanningAgent(executionPlan.executionPlanContent, project?.contextDocument);
       return result;
     });
 
     await step.run("insert-epic-and-tasks", async () => {
-      const { epics, tasks, subtasks } = await import("@shipflow/db/schema");
+      const { epics, tasks, subtasks, prds } = await import("@shipflow/db/schema");
       
+      const prd = await db.query.prds.findFirst({
+        where: eq(prds.featureRequestId, featureId),
+      });
+
       const [epic] = await db.insert(epics).values({
         orgId,
-        projectId: prd.feature.projectId,
-        prdId: prd.feature.prds[0]?.id as string,
+        projectId: executionPlan.feature.projectId,
+        prdId: prd?.id as string,
         title: (plannerResult as any).summary,
         description: (plannerResult as any).summary,
       }).returning();

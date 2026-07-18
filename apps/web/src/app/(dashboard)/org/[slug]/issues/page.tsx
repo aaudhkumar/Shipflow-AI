@@ -1,5 +1,6 @@
 import { db } from "@shipflow/db"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc } from "@shipflow/db"
+
 import { Badge } from "@/components/ui/badge"
 import { Sparkles, Inbox, ExternalLink } from "lucide-react"
 import Link from "next/link"

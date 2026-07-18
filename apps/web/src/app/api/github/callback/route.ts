@@ -2,7 +2,8 @@ import { requireEnv } from "@shipflow/utils";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@shipflow/db";
 import { githubInstallations } from "@shipflow/db/schema";
-import { eq } from "drizzle-orm";
+import { eq } from "@shipflow/db";
+
 import { getGithubApp } from "@shipflow/github";
 import { auth } from "@shipflow/auth";
 

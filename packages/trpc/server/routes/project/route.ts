@@ -61,6 +61,15 @@ export const projectRouter = router({
       return projectService.getProjectWithDetails(input.projectId, input.orgId, ctx.session.user.id);
     }),
 
+  delete: protectedProcedure
+    .meta({ openapi: { method: "DELETE", path: getPath("/{projectId}"), tags: TAGS } })
+    .input(z.object({ orgId: z.string(), projectId: z.string() }))
+    .output(z.any())
+    .mutation(async ({ input, ctx }) => {
+      return projectService.deleteProject(input.projectId, input.orgId, ctx.session.user.id);
+    }),
+
+
   updateMembers: protectedProcedure
     .meta({ openapi: { method: "PUT", path: getPath("/{projectId}/members"), tags: TAGS } })
     .input(

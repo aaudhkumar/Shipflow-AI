@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { notifications } from "@shipflow/db/schema";
-import type { InferSelectModel } from "drizzle-orm";
+import type { InferSelectModel } from "@shipflow/db";
+
 
 export const getNotificationListOutputSchema = z.any() as z.ZodType<InferSelectModel<typeof notifications>[]>;
 export const getUnreadCountOutputSchema = z.number();

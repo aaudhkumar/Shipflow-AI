@@ -20,7 +20,7 @@ import { toast } from "sonner"
 export function InviteMemberDialog({ orgId }: { orgId: string }) {
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState("")
-  const [role, setRole] = useState<"OWNER" | "ADMIN" | "PM" | "DEVELOPER" | "REVIEWER">("DEVELOPER")
+  const [role, setRole] = useState<"OWNER" | "ADMIN" | "PM" | "ENGINEER" | "REVIEWER">("ENGINEER")
   const utils = trpc.useUtils()
 
   const inviteMutation = trpc.member.invite.useMutation({
@@ -75,7 +75,7 @@ export function InviteMemberDialog({ orgId }: { orgId: string }) {
               <option value="OWNER">Owner</option>
               <option value="ADMIN">Admin</option>
               <option value="PM">Product Manager</option>
-              <option value="DEVELOPER">Developer</option>
+              <option value="ENGINEER">Engineer</option>
               <option value="REVIEWER">Reviewer</option>
             </select>
           </div>

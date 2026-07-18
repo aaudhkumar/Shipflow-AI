@@ -1,6 +1,7 @@
 import { db } from "@shipflow/db";
 import { organizations, users, members } from "@shipflow/db/schema";
-import { eq } from "drizzle-orm";
+import { eq } from "@shipflow/db";
+
 import { auth } from "@shipflow/auth";
 
 export default async function globalSetup() {

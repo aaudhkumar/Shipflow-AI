@@ -1,7 +1,8 @@
 import { inngest } from "../../../services/src/workflow/client";
 import { db } from "@shipflow/db";
 import { repositories } from "@shipflow/db/schema";
-import { eq } from "drizzle-orm";
+import { eq } from "@shipflow/db";
+
 
 export const handleDeploymentFailed = inngest.createFunction(
   { id: "deployment-failed" },

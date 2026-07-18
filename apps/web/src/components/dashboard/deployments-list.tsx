@@ -15,22 +15,21 @@ export function DeploymentsList({ deployments = [] }: { deployments?: any[] }) {
         ) : (
           deployments.map((dep) => (
             <div key={dep.id} className="flex items-center justify-between p-3 rounded-lg border border-border/40 bg-background/50 hover:bg-muted/20 transition-colors">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 min-w-0">
               <div className="flex-shrink-0">
                 {dep.status === "SUCCESS" && <CheckCircle2 className="w-5 h-5 text-emerald-500" />}
                 {dep.status === "FAILED" && <XCircle className="w-5 h-5 text-red-500" />}
                 {dep.status === "PENDING" && <Clock className="w-5 h-5 text-yellow-500 animate-pulse" />}
               </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{dep.repositoryName}</span>
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 uppercase bg-primary/10 text-primary">
-                    {dep.environment}
-                  </Badge>
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-medium text-sm break-all">{dep.repositoryName}</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  <span className="font-mono bg-muted px-1 py-0.5 rounded text-[10px]">{dep.commitSha}</span>
-                  <span>• {new Date(dep.deployedAt).toLocaleString()}</span>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 min-w-0">
+                  <span className="font-mono bg-muted px-1 py-0.5 rounded text-[10px] truncate">
+                    {dep.commitSha?.substring(0, 7) || 'N/A'}
+                  </span>
+                  <span className="truncate flex-shrink-0">• {new Date(dep.deployedAt).toLocaleString()}</span>
                 </div>
               </div>
             </div>

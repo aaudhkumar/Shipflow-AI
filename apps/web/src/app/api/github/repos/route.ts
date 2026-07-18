@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@shipflow/db";
 import { githubInstallations } from "@shipflow/db/schema";
-import { eq } from "drizzle-orm";
+import { eq } from "@shipflow/db";
+
 import { getInstallationOctokit } from "@shipflow/github";
 
 /**

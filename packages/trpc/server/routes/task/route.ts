@@ -1,7 +1,7 @@
 import { router, orgMemberProcedure } from "../../trpc";
 import { z } from "zod";
 import { db } from "@shipflow/db";
-import { prds, epics, tasks, projects, featureRequests } from "@shipflow/db/schema";
+import { prds, epics, tasks, projects, featureRequests, pullRequests } from "@shipflow/db/schema";
 import { eq, inArray, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { generatePath } from "../../utils/path-generator";
@@ -52,6 +52,13 @@ export const taskRouter = router({
       if (featureEpics.length > 0) {
         epic = featureEpics[0];
       }
+      
+      const featurePRs = await db.query.pullRequests.findMany({
+        where: eq(pullRequests.featureRequestId, input.featureId)
+      });
+      
+      // Fallback: If a task has no PRs in task.pullRequests, we might want to attach featurePRs to it, or pass them down.
+      // But actually, featurePRs might be empty too if the webhook failed.
       
       const grouped = {
         TODO: allTasks.filter(t => t.status === "TODO" || t.status === "BACKLOG"),

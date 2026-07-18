@@ -18,6 +18,7 @@ interface ReviewSubmissionModalProps {
 }
 
 export function ReviewSubmissionModal({ featureId, orgId, isOpen, onOpenChange, onComplete }: ReviewSubmissionModalProps) {
+  const utils = trpc.useUtils();
   const { data: kanbanData, isLoading: isLoadingTasks } = trpc.task.getKanban.useQuery(
     { featureId, orgId },
     { enabled: isOpen }
@@ -31,6 +32,8 @@ export function ReviewSubmissionModal({ featureId, orgId, isOpen, onOpenChange, 
   const submitForReview = trpc.feature.submitForReview.useMutation({
     onSuccess: () => {
       toast.success("Submitted for review successfully");
+      utils.task.getKanban.invalidate({ featureId, orgId });
+      utils.feature.getById.invalidate({ id: featureId, orgId });
       onOpenChange(false);
       onComplete();
     },
@@ -42,6 +45,8 @@ export function ReviewSubmissionModal({ featureId, orgId, isOpen, onOpenChange, 
   const redoExecutionPlan = trpc.feature.redoExecutionPlan.useMutation({
     onSuccess: () => {
       toast.success("Execution plan reset. Tasks are ready for AI.");
+      utils.task.getKanban.invalidate({ featureId, orgId });
+      utils.feature.getById.invalidate({ id: featureId, orgId });
       onOpenChange(false);
       onComplete();
     },
@@ -77,7 +82,7 @@ export function ReviewSubmissionModal({ featureId, orgId, isOpen, onOpenChange, 
 
   // Find findings that are blocking and still OPEN (if findings support statuses, else just map them)
   const openFindings = (findings || []).filter(f => f.status !== 'RESOLVED');
-  const blockingFindings = openFindings.filter(f => f.isBlocking);
+  const blockingFindings = openFindings.filter(f => f.isBlocking || f.severity === 'BLOCKER');
 
   const hasIssues = unimplementedTasks.length > 0 || blockingFindings.length > 0;
 
@@ -115,7 +120,7 @@ export function ReviewSubmissionModal({ featureId, orgId, isOpen, onOpenChange, 
                   <div key={finding.id} className="p-3 bg-card border border-border/50 rounded-lg text-sm">
                     <div className="flex items-start justify-between">
                       <div className="flex gap-2">
-                        {finding.isBlocking ? (
+                        {finding.isBlocking || finding.severity === 'BLOCKER' ? (
                           <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                         ) : (
                           <Circle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
@@ -125,7 +130,7 @@ export function ReviewSubmissionModal({ featureId, orgId, isOpen, onOpenChange, 
                           <p className="text-muted-foreground mt-1">{finding.description}</p>
                         </div>
                       </div>
-                      {finding.isBlocking && <Badge variant="destructive">Blocking</Badge>}
+                      {(finding.isBlocking || finding.severity === 'BLOCKER') && <Badge variant="destructive">Blocking</Badge>}
                     </div>
                   </div>
                 ))}

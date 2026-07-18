@@ -6,4 +6,5 @@ export * from "./agents/prd-generator";
 export * from "./agents/clarifier";
 export * from "./agents/release-readiness";
 export * from "./agents/project-context-generator";
+export * from "./agents/execution-plan-generator";
 export { generateObject } from "ai";

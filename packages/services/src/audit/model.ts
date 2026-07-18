@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { auditLogs } from "@shipflow/db/schema";
-import type { InferSelectModel } from "drizzle-orm";
+import type { InferSelectModel } from "@shipflow/db";
+
 
 type AuditLog = InferSelectModel<typeof auditLogs>;
 

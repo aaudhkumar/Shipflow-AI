@@ -1,7 +1,8 @@
 import { inngest } from "../../../services/src/workflow/client";
 import { db } from "@shipflow/db";
 import { subscriptions, invoices } from "@shipflow/db/schema";
-import { eq } from "drizzle-orm";
+import { eq } from "@shipflow/db";
+
 
 export const billingSyncWorkflow = inngest.createFunction(
   { id: "billing-sync" },
@@ -36,7 +37,7 @@ export const billingSyncWorkflow = inngest.createFunction(
            planId: planId || "PRO",
            currentPeriodEnd: newPeriodEnd,
            usageCount: 0,
-           usageLimit: planId === "ENTERPRISE" ? 70 : 30,
+           usageLimit: planId === "ENTERPRISE" ? 100 : 30,
          }).returning();
          if (!newSub) throw new Error("Failed to create new subscription");
          subId = newSub.id;
@@ -47,7 +48,7 @@ export const billingSyncWorkflow = inngest.createFunction(
             currentPeriodEnd: newPeriodEnd,
             planId: planId || existingSub.planId,
             razorpaySubscriptionId: subscriptionId || existingSub.razorpaySubscriptionId,
-            usageLimit: (planId || existingSub.planId) === "ENTERPRISE" ? 70 : 30,
+            usageLimit: (planId || existingSub.planId) === "ENTERPRISE" ? 100 : 30,
           })
           .where(eq(subscriptions.id, existingSub.id));
       }

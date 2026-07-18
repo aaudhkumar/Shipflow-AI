@@ -12,7 +12,7 @@ export const BILLING_PLANS = {
   PRO: {
     id: "PRO",
     name: "Pro",
-    priceUsd: 29,
+    priceUsd: 999,
     limits: {
       maxPrsAnalyzedPerMonth: 50,
       maxAiTokensPerMonth: 1000000,
@@ -22,7 +22,7 @@ export const BILLING_PLANS = {
   ENTERPRISE: {
     id: "ENTERPRISE",
     name: "Enterprise",
-    priceUsd: 99,
+    priceUsd: 2999,
     limits: {
       maxPrsAnalyzedPerMonth: 500,
       maxAiTokensPerMonth: 10000000,

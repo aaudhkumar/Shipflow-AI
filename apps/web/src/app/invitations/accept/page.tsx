@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, Suspense } from "react"
+import { useEffect, useState, Suspense, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { trpc } from "~/trpc/client"
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
@@ -13,6 +13,7 @@ function AcceptInvitationContent() {
   
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
   const [errorMessage, setErrorMessage] = useState("")
+  const hasAttempted = useRef(false)
 
   const acceptMutation = trpc.member.acceptInvitation.useMutation({
     onSuccess: () => {
@@ -39,7 +40,10 @@ function AcceptInvitationContent() {
       return
     }
 
-    acceptMutation.mutate({ token })
+    if (!hasAttempted.current) {
+      hasAttempted.current = true
+      acceptMutation.mutate({ token })
+    }
   }, [token])
 
   return (

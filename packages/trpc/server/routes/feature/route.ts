@@ -22,7 +22,9 @@ import {
   failReviewOutputSchema,
   approveHumanReleaseOutputSchema,
   addClarificationReplyOutputSchema,
-  submitClarificationAnswersOutputSchema
+  submitClarificationAnswersOutputSchema,
+  generateExecutionPlanOutputSchema,
+  updateExecutionPlanOutputSchema
 } from "@shipflow/services/feature/model";
 
 const TAGS = ["Feature"];
@@ -114,6 +116,29 @@ export const featureRouter = router({
       }
     }),
 
+  generateExecutionPlan: orgMemberProcedure
+    .use(enforceBillingLimit)
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/generate-execution-plan"), tags: TAGS } })
+    .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(generateExecutionPlanOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const { billingService } = await import("@shipflow/billing");
+        await billingService.incrementAiReviewUsage(input.orgId);
+        return await featureService.generateExecutionPlan(input.featureId, input.orgId, ctx.session!.user.id);
+      } catch (err: any) {
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message || "Unknown error" });
+      }
+    }),
+
+  updateExecutionPlan: orgMemberProcedure
+    .meta({ openapi: { method: "PUT", path: getPath("/{orgId}/{featureId}/execution-plan"), tags: TAGS } })
+    .input(z.object({ featureId: z.string(), orgId: z.string(), executionPlan: z.string() }))
+    .output(updateExecutionPlanOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      return await featureService.updateExecutionPlan(input.featureId, input.orgId, ctx.session!.user.id, input.executionPlan);
+    }),
+
   generateTasks: orgMemberProcedure
     .use(enforceBillingLimit)
     .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/generate-tasks"), tags: TAGS } })
@@ -142,7 +167,6 @@ export const featureRouter = router({
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
     .output(submitForReviewOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      await featureService.markInReview(input.featureId, input.orgId);
       return await featureService.markReviewPassed(input.featureId, input.orgId);
     }),
 
@@ -195,6 +219,19 @@ export const featureRouter = router({
       return await featureService.submitClarificationAnswers(input.featureId, input.orgId, ctx.session.user.id, input.answers);
     }),
 
+  refreshReleaseReadiness: orgMemberProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/{orgId}/{featureId}/refresh-release-readiness"), tags: TAGS } })
+    .input(z.object({ featureId: z.string(), orgId: z.string() }))
+    .output(z.object({ success: z.boolean() }))
+    .mutation(async ({ input }) => {
+      const { inngest } = await import("@shipflow/services/workflow/client");
+      await inngest.send({
+        name: "feature.awaiting.approval",
+        data: { featureId: input.featureId, orgId: input.orgId }
+      });
+      return { success: true };
+    }),
+
   getReleaseReadiness: orgMemberProcedure
     .meta({ openapi: { method: "GET", path: getPath("/{orgId}/{featureId}/release-readiness"), tags: TAGS } })
     .input(z.object({ featureId: z.string(), orgId: z.string() }))
@@ -218,31 +255,52 @@ export const featureRouter = router({
     .query(async ({ input }) => {
       const { db } = await import("@shipflow/db");
       const { pullRequests, pullRequestReviews, reviewFindings } = await import("@shipflow/db/schema");
-      const { eq, inArray, desc } = await import("drizzle-orm");
+      const { eq, inArray, desc, and, notInArray } = await import("drizzle-orm");
 
-      // 1. Get PRs for this feature
-      const prs = await db.select({ id: pullRequests.id })
+      // 1. Get all OPEN PRs for this feature
+      const prs = await db.select({ id: pullRequests.id, taskId: pullRequests.taskId, createdAt: pullRequests.createdAt })
         .from(pullRequests)
-        .where(eq(pullRequests.featureRequestId, input.featureId));
+        .where(
+          and(
+            eq(pullRequests.featureRequestId, input.featureId),
+            notInArray(pullRequests.state, ["MERGED", "CLOSED"])
+          )
+        );
         
       if (prs.length === 0) return [];
 
-      const prIds = prs.map(pr => pr.id);
+      // Group by taskId to find the latest PR for each task
+      const latestPrByTask = new Map<string, typeof prs[0]>();
+      
+      for (const pr of prs) {
+        const groupId = pr.taskId || "unassigned";
+        const existing = latestPrByTask.get(groupId);
+        if (!existing || pr.createdAt > existing.createdAt) {
+          latestPrByTask.set(groupId, pr);
+        }
+      }
 
-      // 2. Get latest reviews for these PRs
-      const reviews = await db.select({ id: pullRequestReviews.id })
-        .from(pullRequestReviews)
-        .where(inArray(pullRequestReviews.pullRequestId, prIds))
-        .orderBy(desc(pullRequestReviews.createdAt))
-        .limit(10); // get a bunch, but normally there's 1-2 per PR
+      const latestPrIds = Array.from(latestPrByTask.values()).map(pr => pr.id);
+      if (latestPrIds.length === 0) return [];
 
-      if (reviews.length === 0) return [];
+      // 2. For each latest PR, get its latest review
+      const latestReviewIds: string[] = [];
+      
+      for (const prId of latestPrIds) {
+        const latestReview = await db.query.pullRequestReviews.findFirst({
+          where: eq(pullRequestReviews.pullRequestId, prId),
+          orderBy: [desc(pullRequestReviews.createdAt)]
+        });
+        if (latestReview) {
+          latestReviewIds.push(latestReview.id);
+        }
+      }
 
-      const reviewIds = reviews.map(r => r.id);
+      if (latestReviewIds.length === 0) return [];
 
-      // 3. Get findings from these reviews
+      // 3. Get findings from these latest reviews
       const findings = await db.query.reviewFindings.findMany({
-        where: inArray(reviewFindings.reviewId, reviewIds)
+        where: inArray(reviewFindings.reviewId, latestReviewIds)
       });
 
       return findings;

@@ -7,7 +7,7 @@ type ReviewComment = {
     | "SECURITY"
     | "PERFORMANCE"
     | "ARCHITECTURE"
-    | "PRD_DEVIATION"
+    | "TASK_DEVIATION"
     | "CODE_QUALITY"
     | "EDGE_CASE"
     | "TEST_COVERAGE";
@@ -110,15 +110,67 @@ export async function postReviewComment(
   const hasBlockingFindings = reviewResult.comments.some((c) => c.isBlocking);
 
   // Post the review
-  const response = await octokit.rest.pulls.createReview({
-    owner,
-    repo,
-    pull_number: prNumber,
-    commit_id: commitId,
-    body: reviewBody,
-    event: hasBlockingFindings ? "REQUEST_CHANGES" : "COMMENT",
-    comments: inlineComments,
-  });
+  let eventType = hasBlockingFindings ? "REQUEST_CHANGES" : "COMMENT";
+  let response: any;
+  let reviewId: number;
+
+  // Step 1: Create a pending review with all the comments
+  try {
+    const createRes = await octokit.rest.pulls.createReview({
+      owner,
+      repo,
+      pull_number: prNumber,
+      commit_id: commitId,
+      body: reviewBody,
+      comments: inlineComments,
+    });
+    reviewId = createRes.data.id;
+    response = createRes;
+  } catch (error) {
+    throw error;
+  }
+
+  // Step 2: Submit the review
+  try {
+    response = await octokit.rest.pulls.submitReview({
+      owner,
+      repo,
+      pull_number: prNumber,
+      review_id: reviewId,
+      event: eventType as any,
+    });
+  } catch (error: any) {
+    if (
+      eventType === "REQUEST_CHANGES" &&
+      error.message &&
+      error.message.includes("request changes on your own pull request")
+    ) {
+      // Fallback to COMMENT if the PR was authored by the bot itself
+      // We also update the review body to explain why it's a comment
+      const fallbackBody = `> [!WARNING]\n> **Changes Requested**: GitHub does not allow bots to formally "Request Changes" on their own Pull Requests, but this review contains blocking findings that must be addressed.\n\n` + reviewBody;
+      
+      await octokit.rest.pulls.updateReview({
+        owner,
+        repo,
+        pull_number: prNumber,
+        review_id: reviewId,
+        body: fallbackBody,
+      });
+
+      response = await octokit.rest.pulls.submitReview({
+        owner,
+        repo,
+        pull_number: prNumber,
+        review_id: reviewId,
+        event: "COMMENT",
+      });
+
+      // Manually override the state so our internal DB still tracks it as a blocking review
+      response.data.state = "CHANGES_REQUESTED";
+    } else {
+      throw error;
+    }
+  }
 
   return {
     id: response.data.id,

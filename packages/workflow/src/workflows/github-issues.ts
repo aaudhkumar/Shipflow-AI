@@ -1,7 +1,8 @@
 import { inngest } from "../../../services/src/workflow/client";
 import { db } from "@shipflow/db";
 import { githubIssues, githubIssueComments, featureRequests, projectRepositories } from "@shipflow/db/schema";
-import { eq, and, sql, notInArray, inArray } from "drizzle-orm";
+import { eq, and, sql, notInArray, inArray } from "@shipflow/db";
+
 import { getDefaultModel, generateObject } from "@shipflow/ai";
 import { z } from "zod";
 

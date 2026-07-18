@@ -3,10 +3,10 @@ import { getDefaultModel } from "../../client";
 import { PlannerResultSchema } from "./schema";
 import { plannerSystemPrompt } from "./prompt";
 
-export async function runPlanningAgent(requirementsContent: string, projectContext?: string | null) {
+export async function runPlanningAgent(executionPlanContent: string, projectContext?: string | null) {
   const model = getDefaultModel();
 
-  let prompt = `Please decompose the following requirements into actionable engineering tasks:\n\n${requirementsContent}`;
+  let prompt = `Please parse the following Execution Plan into actionable engineering tasks:\n\n${executionPlanContent}`;
   if (projectContext) {
     prompt = `=== PROJECT CONTEXT ===\n${projectContext}\n\n` + prompt;
   }

@@ -13,6 +13,7 @@ export function FeatureStatusBadge({ status, hasIssue }: { status: string; hasIs
       colorClass = "bg-indigo-500/10 text-indigo-600 dark:text-indigo-500 border-indigo-500/20 hover:bg-indigo-500/20";
       break;
     case "PRD_GENERATED":
+    case "EXECUTION_PLAN_GENERATED":
     case "TASKS_GENERATED":
       colorClass = "bg-purple-500/10 text-purple-600 dark:text-purple-500 border-purple-500/20 hover:bg-purple-500/20";
       break;

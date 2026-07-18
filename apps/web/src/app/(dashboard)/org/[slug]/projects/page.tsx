@@ -3,11 +3,13 @@
 import { useParams } from "next/navigation";
 import { trpc } from "~/trpc/client";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
-import { FolderGit2, Users } from "lucide-react";
+import { FolderGit2, Users, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export default function ProjectsPage() {
   const params = useParams();
@@ -18,6 +20,16 @@ export default function ProjectsPage() {
     { orgId: org?.id! },
     { enabled: !!org?.id }
   );
+
+  const deleteProject = trpc.project.delete.useMutation({
+    onSuccess: () => {
+      toast.success("Project deleted successfully");
+      refetch();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Failed to delete project");
+    }
+  });
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -69,9 +81,27 @@ export default function ProjectsPage() {
                     <FolderGit2 className="w-5 h-5 flex-shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
                     <span className="truncate" title={project.name}>{project.name}</span>
                   </CardTitle>
-                  <Badge variant={project.status === "ACTIVE" ? "default" : "secondary"} className="flex-shrink-0">
-                    {project.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={project.status === "ACTIVE" ? "default" : "secondary"} className="flex-shrink-0">
+                      {project.status}
+                    </Badge>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      disabled={deleteProject.isPending}
+                      className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                      title="Delete Project"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (confirm("Are you sure you want to delete this project? This will also delete all associated feature requests and tasks.")) {
+                          deleteProject.mutate({ orgId: org!.id, projectId: project.id });
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
                 <CardDescription 
                   className="max-h-[4.5rem] overflow-y-auto min-h-[2.5rem] pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent"

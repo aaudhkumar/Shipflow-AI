@@ -8,12 +8,12 @@ import { ExternalLink } from "lucide-react"
 
 export function ActivityFeed({ activities = [], orgId }: { activities?: any[], orgId: string }) {
   return (
-    <Card className="h-full bg-card/40 backdrop-blur-md border-border/50 shadow-sm flex flex-col">
+    <Card className="h-[60vh] bg-card/40 backdrop-blur-md border-border/50 shadow-sm flex flex-col">
       <CardHeader>
         <CardTitle className="text-lg">Recent AI Activity</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 p-0">
-        <ScrollArea className="h-[320px] px-6">
+      <CardContent className="flex-1 p-0 min-h-0">
+        <ScrollArea className="h-full px-6">
           <div className="space-y-4 pb-4">
             {activities.length === 0 && (
               <div className="text-sm text-muted-foreground pt-4">No recent activity.</div>

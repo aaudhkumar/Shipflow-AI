@@ -171,7 +171,10 @@ export function SettingsClient({ orgId, orgSlug }: { orgId: string, orgSlug: str
                   variant="destructive" 
                   size="sm"
                   className="h-9 px-3 rounded-lg bg-[#E0142C] hover:bg-[#C91227] font-semibold shadow-sm text-[13px]"
-                  onClick={async () => await signOut()}
+                  onClick={async () => {
+                    await signOut()
+                    window.location.href = "/"
+                  }}
                 >
                   <LogOut className="mr-1.5 h-3.5 w-3.5" />
                   Sign out

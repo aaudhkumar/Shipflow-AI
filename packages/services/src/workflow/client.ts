@@ -24,6 +24,9 @@ type Events = {
   "feature.prd.generated": {
     data: z.infer<typeof FeatureStateTransitionSchema>;
   };
+  "feature.execution_plan.generated": {
+    data: z.infer<typeof FeatureStateTransitionSchema>;
+  };
   "feature.tasks.generated": {
     data: z.infer<typeof FeatureStateTransitionSchema>;
   };

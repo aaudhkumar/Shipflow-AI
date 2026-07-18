@@ -134,6 +134,9 @@ export const ShipflowEvents = {
   "feature.prd.generated": {
     data: FeatureStateTransitionSchema,
   },
+  "feature.execution_plan.generated": {
+    data: FeatureStateTransitionSchema,
+  },
   "feature.tasks.generated": {
     data: FeatureStateTransitionSchema,
   },

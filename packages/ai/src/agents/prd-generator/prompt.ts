@@ -11,5 +11,7 @@ Your generated PRD must be highly structured and cover the following aspects tho
 6. **Edge Cases**: Identify at least 3 edge cases, error conditions, or boundary scenarios that must be handled gracefully.
 7. **Success Metrics**: Define at least 3 measurable metrics to determine if the feature is successful post-launch. Include the metric name, target, and how it will be measured.
 
+CRITICAL SCOPE RULE: You MUST strictly limit the PRD to the requested feature ONLY. Do NOT add features, pages, capabilities, or scopes that were not explicitly stated in the feature description or clarification transcript. Do not do anything else.
+
 Make sure your output is extremely professional and actionable. Do not output conversational filler. Base your PRD solely on the provided feature title, description, and clarification transcript.
 `;
